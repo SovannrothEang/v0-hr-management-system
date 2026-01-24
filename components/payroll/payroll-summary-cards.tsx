@@ -1,0 +1,78 @@
+"use client";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { usePayrollSummary } from "@/hooks/use-payroll";
+import { DollarSign, Users, Clock, CheckCircle2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function PayrollSummaryCards() {
+  const { data: summary, isLoading } = usePayrollSummary();
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="bg-card border-border">
+            <CardContent className="p-6">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-8 w-32" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const cards = [
+    {
+      title: "Total Payroll",
+      value: `$${(summary?.totalPayroll ?? 0).toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-chart-1",
+      bgColor: "bg-chart-1/10",
+    },
+    {
+      title: "Total Employees",
+      value: summary?.totalEmployees ?? 0,
+      icon: Users,
+      color: "text-chart-2",
+      bgColor: "bg-chart-2/10",
+    },
+    {
+      title: "Pending",
+      value: summary?.pendingPayments ?? 0,
+      icon: Clock,
+      color: "text-chart-4",
+      bgColor: "bg-chart-4/10",
+    },
+    {
+      title: "Processed",
+      value: summary?.processedPayments ?? 0,
+      icon: CheckCircle2,
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {cards.map((card) => (
+        <Card key={card.title} className="bg-card border-border">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">{card.title}</p>
+                <p className="text-2xl font-bold text-foreground mt-1">
+                  {card.value}
+                </p>
+              </div>
+              <div className={`p-3 rounded-lg ${card.bgColor}`}>
+                <card.icon className={`h-5 w-5 ${card.color}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
