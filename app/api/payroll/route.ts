@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { mockPayrollRecords } from "@/lib/mock-data";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function GET(request: Request) {
+export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period");
   const status = searchParams.get("status");
@@ -22,4 +24,4 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ success: true, data: filtered });
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

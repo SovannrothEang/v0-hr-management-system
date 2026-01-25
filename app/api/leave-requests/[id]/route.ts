@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { mockLeaveRequests } from "@/lib/mock-data";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = withRole(async (
+  request,
+  context
+) => {
   try {
-    const { id } = await params;
+    const { id } = await context?.params!;
     const body = await request.json();
 
     const leaveRequest = mockLeaveRequests.find((l) => l.id === id);
@@ -30,4 +32,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

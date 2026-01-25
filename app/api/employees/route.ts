@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { mockEmployees, departments } from "@/lib/mock-data";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function GET(request: Request) {
+export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.toLowerCase();
   const department = searchParams.get("department");
   const status = searchParams.get("status");
 
   let filtered = [...mockEmployees];
+
+  // HR Manager can only see their department
+  if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+    filtered = filtered.filter((e) => e.department === request.user.department);
+  }
 
   if (search) {
     filtered = filtered.filter(
@@ -28,9 +35,9 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ success: true, data: filtered });
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 
-export async function POST(request: Request) {
+export const POST = withRole(async (request) => {
   try {
     const body = await request.json();
     const newEmployee = {
@@ -48,4 +55,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

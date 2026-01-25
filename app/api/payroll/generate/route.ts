@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { mockEmployees } from "@/lib/mock-data";
 import type { PayrollRecord } from "@/types";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function POST(request: Request) {
+export const POST = withRole(async (request) => {
   try {
     const body = await request.json();
     const { month, year } = body;
@@ -33,4 +35,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { mockEmployees } from "@/lib/mock-data";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export const GET = withRole(async (
+  request,
+  context
+) => {
+  const { id } = await context?.params!;
   const employee = mockEmployees.find((e) => e.id === id);
 
   if (!employee) {
@@ -15,15 +17,25 @@ export async function GET(
     );
   }
 
-  return NextResponse.json({ success: true, data: employee });
-}
+  // HR Manager can only view employees in their department
+  if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+    if (employee.department !== request.user.department) {
+      return NextResponse.json(
+        { success: false, message: "Access denied" },
+        { status: 403 }
+      );
+    }
+  }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  return NextResponse.json({ success: true, data: employee });
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+
+export const PUT = withRole(async (
+  request,
+  context
+) => {
   try {
-    const { id } = await params;
+    const { id } = await context?.params!;
     const body = await request.json();
     const employee = mockEmployees.find((e) => e.id === id);
 
@@ -32,6 +44,16 @@ export async function PUT(
         { success: false, message: "Employee not found" },
         { status: 404 }
       );
+    }
+
+    // HR Manager can only update employees in their department
+    if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+      if (employee.department !== request.user.department) {
+        return NextResponse.json(
+          { success: false, message: "Access denied" },
+          { status: 403 }
+        );
+      }
     }
 
     const updatedEmployee = {
@@ -47,13 +69,13 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export const DELETE = withRole(async (
+  request,
+  context
+) => {
+  const { id } = await context?.params!;
   const employee = mockEmployees.find((e) => e.id === id);
 
   if (!employee) {
@@ -63,5 +85,15 @@ export async function DELETE(
     );
   }
 
+  // HR Manager can only delete employees in their department
+  if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+    if (employee.department !== request.user.department) {
+      return NextResponse.json(
+        { success: false, message: "Access denied" },
+        { status: 403 }
+      );
+    }
+  }
+
   return NextResponse.json({ success: true, data: null });
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

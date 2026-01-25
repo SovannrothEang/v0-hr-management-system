@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { generateToken } from "@/lib/auth/verify-token";
+import { ROLES } from "@/lib/constants/roles";
 
 const mockUsers = [
   {
@@ -6,7 +8,7 @@ const mockUsers = [
     email: "admin@hrflow.com",
     password: "admin123",
     name: "Admin User",
-    role: "admin" as const,
+    role: ROLES.ADMIN,
     department: "Administration",
   },
   {
@@ -14,7 +16,7 @@ const mockUsers = [
     email: "hr@hrflow.com",
     password: "hr123",
     name: "Emily Rodriguez",
-    role: "hr_manager" as const,
+    role: ROLES.HR_MANAGER,
     department: "Human Resources",
     employeeId: "EMP003",
   },
@@ -23,7 +25,7 @@ const mockUsers = [
     email: "sarah.johnson@hrflow.com",
     password: "emp123",
     name: "Sarah Johnson",
-    role: "employee" as const,
+    role: ROLES.EMPLOYEE,
     department: "Engineering",
     employeeId: "EMP001",
   },
@@ -49,7 +51,16 @@ export async function POST(request: Request) {
     }
 
     const { password: _, ...userWithoutPassword } = user;
-    const token = `mock-jwt-token-${user.id}-${Date.now()}`;
+    
+    // Generate real JWT token
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      department: user.department,
+      employeeId: user.employeeId,
+    });
 
     return NextResponse.json({
       success: true,
