@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { mockPayrollRecords } from "@/lib/mock-data";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function GET() {
+export const GET = withRole(async () => {
   const summary = {
     totalPayroll: mockPayrollRecords.reduce((acc, p) => acc + p.netPay, 0),
     totalEmployees: mockPayrollRecords.length,
@@ -14,4 +16,4 @@ export async function GET() {
   };
 
   return NextResponse.json({ success: true, data: summary });
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

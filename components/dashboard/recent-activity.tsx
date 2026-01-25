@@ -18,7 +18,7 @@ const activityIcons = {
 
 const activityColors = {
   attendance: "text-primary bg-primary/10",
-  leave: "text-primary bg-accent/10",
+  leave: "text-primary bg-primary/10",
   payroll: "text-success bg-success/10",
   employee: "text-chart-3 bg-chart-3/10",
 };

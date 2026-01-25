@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { withRole } from "@/lib/auth/with-role";
+import { ROLES } from "@/lib/constants/roles";
 
-export async function GET(request: Request) {
+export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
@@ -15,12 +17,16 @@ export async function GET(request: Request) {
 
   const baseUrl = new URL(request.url).origin;
   const queryString = searchParams.toString();
+  
+  // Get auth header to forward to internal requests
+  const authHeader = request.headers.get('authorization');
+  const headers: Record<string, string> = authHeader ? { 'Authorization': authHeader } : {};
 
   const [attendanceRes, employeeRes, payrollRes, leaveRes] = await Promise.all([
-    fetch(`${baseUrl}/api/reports/attendance?${queryString}`),
-    fetch(`${baseUrl}/api/reports/employee?${queryString}`),
-    fetch(`${baseUrl}/api/reports/payroll?${queryString}`),
-    fetch(`${baseUrl}/api/reports/leave?${queryString}`),
+    fetch(`${baseUrl}/api/reports/attendance?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/employee?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/payroll?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/leave?${queryString}`, { headers }),
   ]);
 
   const [attendance, employee, payroll, leave] = await Promise.all([
@@ -39,4 +45,4 @@ export async function GET(request: Request) {
   };
 
   return NextResponse.json({ success: true, data: report });
-}
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { mockAttendanceRecords } from "@/lib/mock-data";
+import { withAuth } from "@/lib/auth/with-auth";
 
-export async function GET(request: Request) {
+export const GET = withAuth(async (request) => {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
   const employeeId = searchParams.get("employeeId");
@@ -23,4 +24,4 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ success: true, data: filtered });
-}
+});
