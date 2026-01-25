@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Clock, Calendar, DollarSign, UserPlus } from "lucide-react";
+import { Clock, DollarSign, UserPlus, CalendarDays } from "lucide-react";
 import type { RecentActivity } from "@/hooks/use-dashboard";
 
 interface RecentActivityListProps {
@@ -11,14 +11,14 @@ interface RecentActivityListProps {
 
 const activityIcons = {
   attendance: Clock,
-  leave: Calendar,
+  leave: CalendarDays,
   payroll: DollarSign,
   employee: UserPlus,
 };
 
 const activityColors = {
   attendance: "text-primary bg-primary/10",
-  leave: "text-accent bg-accent/10",
+  leave: "text-primary bg-accent/10",
   payroll: "text-success bg-success/10",
   employee: "text-chart-3 bg-chart-3/10",
 };

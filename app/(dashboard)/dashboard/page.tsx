@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/page-header";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { AttendanceChart } from "@/components/dashboard/attendance-chart";
-import { DepartmentChart } from "@/components/dashboard/department-chart";
+import { DepartmentDistributionChart } from "@/components/charts/department-distribution-chart";
 import { RecentActivityList } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,7 +145,12 @@ export default function DashboardPage() {
         {deptLoading ? (
           <ChartSkeleton />
         ) : departmentDist ? (
-          <DepartmentChart data={departmentDist} />
+          <DepartmentDistributionChart 
+            data={departmentDist} 
+            variant="card"
+            size="md"
+            showLegend={true}
+          />
         ) : null}
       </div>
 

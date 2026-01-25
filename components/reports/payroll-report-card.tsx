@@ -111,27 +111,30 @@ export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="oklch(0.25 0.005 285)"
+                    stroke="var(--color-border)"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="period"
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                   />
                   <YAxis
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "oklch(0.13 0.005 285)",
-                      border: "1px solid oklch(0.25 0.005 285)",
+                      backgroundColor: "var(--color-popover)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "8px",
-                      color: "oklch(0.95 0 0)",
+                      color: "var(--color-popover-foreground)",
+                    }}
+                    itemStyle={{
+                      color: "var(--color-popover-foreground)",
                     }}
                     formatter={(value: number) => [`$${value.toLocaleString()}`, "Amount"]}
                   />
@@ -156,34 +159,37 @@ export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
                 <BarChart data={data.departmentPayroll.slice(0, 6)} layout="vertical">
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="oklch(0.25 0.005 285)"
+                    stroke="var(--color-border)"
                     horizontal={false}
                   />
                   <XAxis
                     type="number"
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                     tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                   />
                   <YAxis
                     type="category"
                     dataKey="department"
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                     width={100}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "oklch(0.13 0.005 285)",
-                      border: "1px solid oklch(0.25 0.005 285)",
+                      backgroundColor: "var(--color-popover)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "8px",
-                      color: "oklch(0.95 0 0)",
+                      color: "var(--color-popover-foreground)",
+                    }}
+                    itemStyle={{
+                      color: "var(--color-popover-foreground)",
                     }}
                     formatter={(value: number) => [`$${value.toLocaleString()}`, "Total"]}
                   />
-                  <Bar dataKey="total" fill="oklch(0.65 0.2 45)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="total" fill="var(--color-chart-2)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

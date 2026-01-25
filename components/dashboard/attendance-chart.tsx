@@ -52,29 +52,35 @@ export function AttendanceChart({ data }: AttendanceChartProps) {
                   <stop offset="95%" stopColor="oklch(0.65 0.2 45)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.005 285)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                 tickLine={false}
-                axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                axisLine={{ stroke: "var(--color-border)" }}
               />
               <YAxis
-                tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                 tickLine={false}
-                axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                axisLine={{ stroke: "var(--color-border)" }}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "oklch(0.13 0.005 285)",
-                  border: "1px solid oklch(0.25 0.005 285)",
+                  backgroundColor: "var(--color-popover)",
+                  border: "1px solid var(--color-border)",
                   borderRadius: "8px",
-                  color: "oklch(0.95 0 0)",
+                  color: "var(--color-popover-foreground)",
+                }}
+                itemStyle={{
+                  color: "var(--color-popover-foreground)",
                 }}
               />
               <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                formatter={(value) => <span style={{ color: "oklch(0.6 0 0)" }}>{value}</span>}
+                wrapperStyle={{ 
+                  paddingTop: "20px",
+                  color: "var(--color-foreground)"
+                }}
+                formatter={(value) => <span style={{ color: "var(--color-foreground)" }}>{value}</span>}
               />
               <Area
                 type="monotone"

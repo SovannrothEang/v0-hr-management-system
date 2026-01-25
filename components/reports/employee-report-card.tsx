@@ -2,17 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DepartmentDistributionChart } from "@/components/charts/department-distribution-chart";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import { Users, UserCheck, CalendarOff, UserPlus } from "lucide-react";
 import type { EmployeeReport } from "@/hooks/use-reports";
@@ -21,17 +19,6 @@ interface EmployeeReportCardProps {
   data?: EmployeeReport;
   isLoading: boolean;
 }
-
-const COLORS = [
-  "oklch(0.7 0.15 160)",
-  "oklch(0.65 0.2 45)",
-  "oklch(0.6 0.15 250)",
-  "oklch(0.7 0.18 320)",
-  "oklch(0.55 0.2 25)",
-  "oklch(0.75 0.15 75)",
-  "oklch(0.6 0.12 200)",
-  "oklch(0.65 0.15 280)",
-];
 
 export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps) {
   if (isLoading || !data) {
@@ -113,37 +100,12 @@ export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps)
               Department Distribution
             </h4>
             <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.departmentBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="count"
-                    nameKey="department"
-                  >
-                    {data.departmentBreakdown.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                        stroke="oklch(0.13 0.005 285)"
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(0.13 0.005 285)",
-                      border: "1px solid oklch(0.25 0.005 285)",
-                      borderRadius: "8px",
-                      color: "oklch(0.95 0 0)",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <DepartmentDistributionChart
+                data={data.departmentBreakdown}
+                variant="inline"
+                size="sm"
+                showLegend={true}
+              />
             </div>
           </div>
 
@@ -156,32 +118,35 @@ export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps)
                 <BarChart data={data.positionBreakdown.slice(0, 5)} layout="vertical">
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="oklch(0.25 0.005 285)"
+                    stroke="var(--color-border)"
                     horizontal={false}
                   />
                   <XAxis
                     type="number"
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                   />
                   <YAxis
                     type="category"
                     dataKey="position"
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 11 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                     width={120}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "oklch(0.13 0.005 285)",
-                      border: "1px solid oklch(0.25 0.005 285)",
+                      backgroundColor: "var(--color-popover)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "8px",
-                      color: "oklch(0.95 0 0)",
+                      color: "var(--color-popover-foreground)",
+                    }}
+                    itemStyle={{
+                      color: "var(--color-popover-foreground)",
                     }}
                   />
-                  <Bar dataKey="count" fill="oklch(0.7 0.15 160)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" fill="var(--color-chart-1)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

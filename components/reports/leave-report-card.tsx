@@ -134,17 +134,20 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
-                        stroke="oklch(0.13 0.005 285)"
+                        stroke="var(--color-background)"
                         strokeWidth={2}
                       />
                     ))}
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "oklch(0.13 0.005 285)",
-                      border: "1px solid oklch(0.25 0.005 285)",
+                      backgroundColor: "var(--color-popover)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "8px",
-                      color: "oklch(0.95 0 0)",
+                      color: "var(--color-popover-foreground)",
+                    }}
+                    itemStyle={{
+                      color: "var(--color-popover-foreground)",
                     }}
                   />
                 </PieChart>
@@ -161,34 +164,37 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
                 <LineChart data={data.monthlyTrend}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="oklch(0.25 0.005 285)"
+                    stroke="var(--color-border)"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                   />
                   <YAxis
-                    tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
+                    tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
-                    axisLine={{ stroke: "oklch(0.25 0.005 285)" }}
+                    axisLine={{ stroke: "var(--color-border)" }}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "oklch(0.13 0.005 285)",
-                      border: "1px solid oklch(0.25 0.005 285)",
+                      backgroundColor: "var(--color-popover)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "8px",
-                      color: "oklch(0.95 0 0)",
+                      color: "var(--color-popover-foreground)",
+                    }}
+                    itemStyle={{
+                      color: "var(--color-popover-foreground)",
                     }}
                   />
                   <Line
                     type="monotone"
                     dataKey="count"
-                    stroke="oklch(0.7 0.15 160)"
+                    stroke="var(--color-chart-1)"
                     strokeWidth={2}
-                    dot={{ fill: "oklch(0.7 0.15 160)", r: 4 }}
+                    dot={{ fill: "var(--color-chart-1)", r: 4 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
