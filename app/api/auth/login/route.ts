@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { generateToken } from "@/lib/auth/verify-token";
+import { generateToken, generateRefreshToken } from "@/lib/auth/verify-token";
 import { ROLES } from "@/lib/constants/roles";
+import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
+import { checkRateLimit, getClientId, RateLimitPresets } from "@/lib/rate-limit";
 
 const mockUsers = [
   {
@@ -33,6 +35,40 @@ const mockUsers = [
 
 export async function POST(request: Request) {
   try {
+    const metadata = getRequestMetadata(request);
+    const clientId = getClientId(request);
+
+    // Apply rate limiting
+    const rateLimit = checkRateLimit(`login:${clientId}`, RateLimitPresets.AUTH);
+    
+    if (!rateLimit.allowed) {
+      const retryAfter = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
+      
+      // Log rate limit violation
+      logAuditEvent(AuditAction.LOGIN_FAILED, null, {
+        ...metadata,
+        success: false,
+        details: { reason: 'rate_limited', clientId },
+        errorMessage: 'Too many login attempts',
+      });
+
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Too many login attempts. Please try again in ${retryAfter} seconds.` 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': retryAfter.toString(),
+            'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          }
+        }
+      );
+    }
+
     const body = await request.json();
     const { email, password } = body;
 
@@ -44,22 +80,50 @@ export async function POST(request: Request) {
     );
 
     if (!user) {
+      // Log failed login attempt
+      logAuditEvent(AuditAction.LOGIN_FAILED, null, {
+        ...metadata,
+        success: false,
+        details: { email },
+        errorMessage: "Invalid email or password",
+      });
+      
       return NextResponse.json(
         { success: false, message: "Invalid email or password" },
-        { status: 401 }
+        { 
+          status: 401,
+          headers: {
+            'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          }
+        }
       );
     }
 
     const { password: _, ...userWithoutPassword } = user;
     
-    // Generate real JWT token
-    const token = generateToken({
+    // Generate JWT tokens
+    const tokenPayload = {
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
       department: user.department,
       employeeId: user.employeeId,
+    };
+    
+    const token = generateToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Log successful login
+    logAuditEvent(AuditAction.LOGIN, tokenPayload, {
+      ...metadata,
+      success: true,
+      details: { 
+        email: user.email,
+        role: user.role,
+      },
     });
 
     return NextResponse.json({
@@ -67,7 +131,14 @@ export async function POST(request: Request) {
       data: {
         user: userWithoutPassword,
         token,
+        refreshToken,
       },
+    }, {
+      headers: {
+        'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
+        'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+      }
     });
   } catch {
     return NextResponse.json(

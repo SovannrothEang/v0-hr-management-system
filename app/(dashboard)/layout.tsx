@@ -5,6 +5,7 @@ import React from "react"
 import { cn } from "@/lib/utils";
 import { AuthGuard } from "@/components/auth-guard";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SessionTimeoutWarning } from "@/components/auth/session-timeout-warning";
 import { useSidebarStore } from "@/stores/sidebar-store";
 
 export default function DashboardLayout({
@@ -26,6 +27,7 @@ export default function DashboardLayout({
         >
           {children}
         </main>
+        <SessionTimeoutWarning />
       </div>
     </AuthGuard>
   );

@@ -8,6 +8,8 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private baseUrl: string;
+  private isRefreshing = false;
+  private refreshPromise: Promise<string> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -28,9 +30,79 @@ class ApiClient {
     }
   }
 
+  private getRefreshToken(): string | null {
+    // Get refresh token from localStorage
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const authStore = localStorage.getItem('hrflow-auth');
+      if (!authStore) return null;
+      
+      const parsed = JSON.parse(authStore);
+      return parsed?.state?.refreshToken || null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async refreshAccessToken(): Promise<string> {
+    // If already refreshing, return the existing promise
+    if (this.isRefreshing && this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = (async () => {
+      try {
+        const refreshToken = this.getRefreshToken();
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to refresh token');
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.data.token && data.data.refreshToken) {
+          // Update tokens in localStorage
+          const authStore = localStorage.getItem('hrflow-auth');
+          if (authStore) {
+            const parsed = JSON.parse(authStore);
+            parsed.state.token = data.data.token;
+            parsed.state.refreshToken = data.data.refreshToken;
+            localStorage.setItem('hrflow-auth', JSON.stringify(parsed));
+          }
+          
+          return data.data.token;
+        }
+
+        throw new Error('Invalid refresh response');
+      } catch (error) {
+        // Refresh failed, clear auth and redirect to login
+        localStorage.removeItem('hrflow-auth');
+        window.location.href = '/login';
+        throw error;
+      } finally {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
+  }
+
   private async request<T>(
     endpoint: string,
-    options?: RequestInit
+    options?: RequestInit,
+    retryCount = 0
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -53,13 +125,19 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       
-      // Handle 401 - token expired or invalid, logout user
-      if (response.status === 401) {
+      // Handle 401 - token expired, try to refresh
+      if (response.status === 401 && retryCount === 0) {
         if (typeof window !== 'undefined') {
-          // Clear auth state
-          localStorage.removeItem('hrflow-auth');
-          // Redirect to login
-          window.location.href = '/login';
+          try {
+            // Try to refresh the token
+            await this.refreshAccessToken();
+            // Retry the request with new token
+            return this.request<T>(endpoint, options, retryCount + 1);
+          } catch {
+            // Refresh failed, redirect to login
+            localStorage.removeItem('hrflow-auth');
+            window.location.href = '/login';
+          }
         }
       }
       

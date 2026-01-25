@@ -35,29 +35,73 @@ function isProtectedApiRoute(pathname: string): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Create response
+  let response: NextResponse;
+
   // Allow public routes
   if (isPublicRoute(pathname)) {
-    return NextResponse.next();
+    response = NextResponse.next();
   }
-
   // Check if this is a protected API route
-  if (isProtectedApiRoute(pathname)) {
+  else if (isProtectedApiRoute(pathname)) {
     const authHeader = request.headers.get('authorization');
     
     if (!authHeader) {
-      return NextResponse.json(
+      response = NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
+    } else {
+      // Token validation will be done in API routes (middleware runs on Edge runtime)
+      // Just pass the token through for now
+      response = NextResponse.next();
     }
-
-    // Token validation will be done in API routes (middleware runs on Edge runtime)
-    // Just pass the token through for now
-    return NextResponse.next();
+  }
+  // Allow all other routes (pages are protected by AuthGuard component)
+  else {
+    response = NextResponse.next();
   }
 
-  // Allow all other routes (pages are protected by AuthGuard component)
-  return NextResponse.next();
+  // Add security headers to all responses
+  const headers = response.headers;
+
+  // Content Security Policy
+  headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https:; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self'; " +
+    "frame-ancestors 'none';"
+  );
+
+  // Prevent clickjacking
+  headers.set('X-Frame-Options', 'DENY');
+
+  // Prevent MIME type sniffing
+  headers.set('X-Content-Type-Options', 'nosniff');
+
+  // Enable XSS protection
+  headers.set('X-XSS-Protection', '1; mode=block');
+
+  // Referrer Policy
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Permissions Policy
+  headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+  );
+
+  // Strict Transport Security (HSTS)
+  headers.set(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains'
+  );
+
+  return response;
 }
 
 // Configure which routes this middleware runs on

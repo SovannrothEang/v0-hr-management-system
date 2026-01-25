@@ -11,6 +11,7 @@ interface LoginCredentials {
 interface LoginResponse {
   user: User;
   token: string;
+  refreshToken: string;
 }
 
 export function useLogin() {
@@ -25,7 +26,7 @@ export function useLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      login(data.user, data.token);
+      login(data.user, data.token, data.refreshToken);
       toast.success("Login successful", {
         description: `Welcome back, ${data.user.name}!`,
       });

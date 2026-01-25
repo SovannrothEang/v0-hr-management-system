@@ -16,11 +16,13 @@ export interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: User, token: string) => void;
+  login: (user: User, token: string, refreshToken: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
+  updateTokens: (token: string, refreshToken: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,13 +30,16 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: true,
-      login: (user, token) =>
-        set({ user, token, isAuthenticated: true, isLoading: false }),
+      login: (user, token, refreshToken) =>
+        set({ user, token, refreshToken, isAuthenticated: true, isLoading: false }),
       logout: () =>
-        set({ user: null, token: null, isAuthenticated: false, isLoading: false }),
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false }),
       setLoading: (loading) => set({ isLoading: loading }),
+      updateTokens: (token, refreshToken) => 
+        set({ token, refreshToken }),
     }),
     {
       name: "hrflow-auth",
