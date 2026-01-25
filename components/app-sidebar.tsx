@@ -35,7 +35,9 @@ import {
   User,
   Building2,
   CalendarDays,
+  BarChart3,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -43,7 +45,7 @@ const navigation = [
   { name: "Attendance", href: "/attendance", icon: Clock },
   { name: "Leave Requests", href: "/leave-requests", icon: CalendarDays },
   { name: "Payroll", href: "/payroll", icon: DollarSign },
-  { name: "Reports", href: "/reports", icon: FileText },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -141,6 +143,11 @@ export function AppSidebar() {
             })}
           </ul>
         </nav>
+
+        {/* Theme Toggle */}
+        <div className="px-2 pb-2">
+          <ThemeToggle collapsed={isCollapsed} variant="ghost" className="text-sidebar-foreground hover:bg-sidebar-accent" />
+        </div>
 
         {/* User Menu */}
         <div className="p-2 border-t border-sidebar-border">
