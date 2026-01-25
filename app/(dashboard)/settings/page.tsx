@@ -19,7 +19,7 @@ import { Building2, Bell, Shield, Globe, Palette } from "lucide-react";
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Settings"
         description="Manage your organization settings, preferences, and configurations."

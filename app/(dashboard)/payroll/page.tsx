@@ -52,12 +52,12 @@ export default function PayrollPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Payroll Management"
         description="Process and manage employee payroll, generate payslips, and track payments."
       >
-        <Button variant="outline" className="gap-2 bg-transparent">
+        <Button variant="outline" className="gap-2">
           <Download className="h-4 w-4" />
           Export
         </Button>

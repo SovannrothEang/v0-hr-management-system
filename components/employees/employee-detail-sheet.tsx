@@ -38,6 +38,7 @@ const statusConfig: Record<
   { label: string; className: string }
 > = {
   active: { label: "Active", className: "bg-success/20 text-success" },
+  inactive: { label: "Inactive", className: "bg-muted text-muted-foreground" },
   on_leave: { label: "On Leave", className: "bg-secondary text-secondary-foreground" },
   probation: { label: "Probation", className: "bg-warning/20 text-warning" },
   terminated: { label: "Terminated", className: "bg-destructive/20 text-destructive" },
@@ -97,7 +98,7 @@ export function EmployeeDetailSheet({
           </div>
           <Button
             variant="outline"
-            className="w-full bg-transparent"
+            className="w-full"
             onClick={() => onEdit(employee)}
           >
             <Pencil className="mr-2 h-4 w-4" />

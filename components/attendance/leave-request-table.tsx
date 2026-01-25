@@ -110,7 +110,7 @@ export function LeaveRequestTable({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-success hover:text-success bg-transparent"
+                          className="text-success hover:text-success border-success/30 hover:bg-success/10"
                           onClick={() => onApprove(request.id)}
                         >
                           <Check className="mr-1 h-4 w-4" />
@@ -119,7 +119,7 @@ export function LeaveRequestTable({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-destructive hover:text-destructive bg-transparent"
+                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                           onClick={() => onReject(request.id)}
                         >
                           <X className="mr-1 h-4 w-4" />

@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useLogout } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -74,7 +75,7 @@ export function AppSidebar() {
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
-          isCollapsed ? "w-16" : "w-64"
+          isCollapsed ? "w-16" : "w-56"
         )}
       >
         {/* Logo */}
@@ -120,7 +121,7 @@ export function AppSidebar() {
                   )}
                 >
                   <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
-                  {!isCollapsed && <span>{item.name}</span>}
+                  {!isCollapsed && <span className="truncate">{item.name}</span>}
                 </Link>
               );
 
@@ -129,7 +130,7 @@ export function AppSidebar() {
                   <li key={item.name}>
                     <Tooltip>
                       <TooltipTrigger asChild>{NavContent}</TooltipTrigger>
-                      <TooltipContent side="right" className="font-medium">
+                      <TooltipContent side="right" className="font-medium" sideOffset={10}>
                         {item.name}
                       </TooltipContent>
                     </Tooltip>
@@ -137,10 +138,30 @@ export function AppSidebar() {
                 );
               }
 
-              return <li key={item.name}>{NavContent}</li>;
+              return (
+                <li key={item.name}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>{NavContent}</TooltipTrigger>
+                    <TooltipContent side="right" className="font-medium" sideOffset={10}>
+                      {item.name}
+                    </TooltipContent>
+                  </Tooltip>
+                </li>
+              );
             })}
           </ul>
         </nav>
+
+        {/* Theme Toggle */}
+        <div className={cn(
+          "p-2 border-t border-sidebar-border",
+          isCollapsed ? "flex justify-center" : "flex items-center justify-between"
+        )}>
+          {!isCollapsed && (
+            <span className="text-xs font-medium text-muted-foreground px-2">Theme</span>
+          )}
+          <ThemeToggle />
+        </div>
 
         {/* User Menu */}
         <div className="p-2 border-t border-sidebar-border">
@@ -148,7 +169,7 @@ export function AppSidebar() {
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "w-full flex items-center gap-3 p-2 rounded-md hover:bg-sidebar-accent transition-colors",
+                  "w-full flex items-center gap-3 p-2 rounded-md hover:bg-sidebar-accent transition-colors cursor-pointer",
                   isCollapsed && "justify-center"
                 )}
               >
