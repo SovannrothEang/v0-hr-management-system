@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { PayrollRecord, PayrollSummary } from "@/stores/payroll-store";
+import type { PayrollRecord, PayrollSummary } from "@/types";
 import { toast } from "sonner";
 
 export function usePayrollRecords(params?: {
@@ -81,9 +81,9 @@ export function useProcessPayroll() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (ids: string[]) => {
+    mutationFn: async (payrollId: string) => {
       const response = await apiClient.post<PayrollRecord[]>("/payroll/process", {
-        ids,
+        ids: [payrollId],
       });
       return response.data;
     },

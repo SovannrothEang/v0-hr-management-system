@@ -1,6 +1,6 @@
-import type { Employee } from "@/stores/employee-store";
+import type { Employee } from "@/types";
 import type { AttendanceRecord, LeaveRequest } from "@/stores/attendance-store";
-import type { PayrollRecord } from "@/stores/payroll-store";
+import type { PayrollRecord } from "@/types";
 import type {
   DashboardStats,
   AttendanceTrend,
@@ -189,7 +189,7 @@ export const mockEmployees: Employee[] = [
     department: "Operations",
     position: "Operations Coordinator",
     employmentType: "part_time",
-    status: "probation",
+    status: "inactive",
     hireDate: "2024-01-02",
     salary: 45000,
     createdAt: "2024-01-02T00:00:00Z",
@@ -306,17 +306,16 @@ const currentPeriod = new Date().toISOString().slice(0, 7);
 export const mockPayrollRecords: PayrollRecord[] = mockEmployees.map((emp, index) => ({
   id: `payroll-${index + 1}`,
   employeeId: emp.id,
-  employeeName: `${emp.firstName} ${emp.lastName}`,
-  period: currentPeriod,
-  baseSalary: emp.salary / 12,
-  overtime: Math.random() > 0.7 ? Math.floor(Math.random() * 500) : 0,
-  bonus: Math.random() > 0.8 ? Math.floor(Math.random() * 1000) : 0,
+  employee: emp,
+  month: new Date().toLocaleString('default', { month: 'long' }),
+  year: new Date().getFullYear(),
+  basicSalary: emp.salary / 12,
+  allowances: Math.random() > 0.7 ? Math.floor(Math.random() * 500) : 0,
   deductions: Math.floor((emp.salary / 12) * 0.05),
-  tax: Math.floor((emp.salary / 12) * 0.22),
-  netSalary: Math.floor((emp.salary / 12) * 0.73),
-  status: index < 3 ? "paid" : index < 6 ? "completed" : index < 9 ? "processing" : "draft",
+  netPay: Math.floor((emp.salary / 12) * 0.95),
+  status: index < 3 ? "paid" : index < 6 ? "processed" : "pending",
   paidAt: index < 3 ? "2024-01-25T00:00:00Z" : undefined,
-  createdAt: "2024-01-01T00:00:00Z",
+  processedAt: index < 6 ? "2024-01-20T00:00:00Z" : undefined,
 }));
 
 export const mockDashboardStats: DashboardStats = {
@@ -325,7 +324,7 @@ export const mockDashboardStats: DashboardStats = {
   onLeave: mockAttendanceRecords.filter((a) => a.status === "on_leave").length,
   pendingLeaveRequests: mockLeaveRequests.filter((l) => l.status === "pending").length,
   newHiresThisMonth: mockEmployees.filter((e) => e.hireDate.startsWith("2024-01")).length,
-  upcomingPayroll: mockPayrollRecords.reduce((acc, p) => acc + p.netSalary, 0),
+  upcomingPayroll: mockPayrollRecords.reduce((acc, p) => acc + p.netPay, 0),
   attendanceRate: 91.5,
   averageWorkHours: 8.2,
 };

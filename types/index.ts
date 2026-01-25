@@ -32,6 +32,10 @@ export interface Employee {
     accountNumber: string;
     routingNumber: string;
   };
+  employmentType?: string;
+  managerId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Department {

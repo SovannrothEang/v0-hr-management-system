@@ -96,7 +96,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
     }
   };
 
-  const allSelected = payrolls?.length > 0 && selectedPayrolls.length === payrolls.length;
+  const allSelected = payrolls?.length ? selectedPayrolls.length === payrolls.length : false;
 
   if (isLoading) {
     return (
@@ -118,7 +118,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
                 checked={allSelected}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    selectAll(payrolls?.map((p: { id: string }) => p.id) ?? []);
+                    selectAll(payrolls?.map((p) => p.id) ?? []);
                   } else {
                     clearSelection();
                   }
@@ -135,21 +135,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {payrolls?.map((payroll: {
-            id: string;
-            employee: {
-              id: string;
-              firstName: string;
-              lastName: string;
-              avatar?: string;
-              department: string;
-            };
-            basicSalary: number;
-            allowances: number;
-            deductions: number;
-            netPay: number;
-            status: string;
-          }) => (
+          {payrolls?.map((payroll) => (
             <TableRow key={payroll.id} className="hover:bg-secondary/30">
               <TableCell>
                 <Checkbox
@@ -160,18 +146,18 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={payroll.employee.avatar || "/placeholder.svg"} />
+                    <AvatarImage src={payroll.employee?.avatar || "/placeholder.svg"} />
                     <AvatarFallback className="bg-primary/10 text-primary">
-                      {payroll.employee.firstName[0]}
-                      {payroll.employee.lastName[0]}
+                      {payroll.employee?.firstName[0]}
+                      {payroll.employee?.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium text-foreground">
-                      {payroll.employee.firstName} {payroll.employee.lastName}
+                      {payroll.employee?.firstName} {payroll.employee?.lastName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {payroll.employee.department}
+                      {payroll.employee?.department}
                     </p>
                   </div>
                 </div>
