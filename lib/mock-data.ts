@@ -301,12 +301,11 @@ export const mockLeaveRequests: LeaveRequest[] = [
   },
 ];
 
-const currentPeriod = new Date().toISOString().slice(0, 7);
-
 export const mockPayrollRecords: PayrollRecord[] = mockEmployees.map((emp, index) => ({
   id: `payroll-${index + 1}`,
   employeeId: emp.id,
   employee: emp,
+  period: `${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`,
   month: new Date().toLocaleString('default', { month: 'long' }),
   year: new Date().getFullYear(),
   basicSalary: emp.salary / 12,

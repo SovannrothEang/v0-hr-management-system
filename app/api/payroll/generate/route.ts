@@ -1,25 +1,30 @@
 import { NextResponse } from "next/server";
 import { mockEmployees } from "@/lib/mock-data";
+import type { PayrollRecord } from "@/types";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { period } = body;
+    const { month, year } = body;
+    const period = `${month} ${year}`;
 
-    const payrollRecords = mockEmployees.map((emp, index) => ({
-      id: `payroll-gen-${Date.now()}-${index}`,
-      employeeId: emp.id,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      period,
-      baseSalary: emp.salary / 12,
-      overtime: 0,
-      bonus: 0,
-      deductions: Math.floor((emp.salary / 12) * 0.05),
-      tax: Math.floor((emp.salary / 12) * 0.22),
-      netSalary: Math.floor((emp.salary / 12) * 0.73),
-      status: "draft",
-      createdAt: new Date().toISOString(),
-    }));
+    const payrollRecords: PayrollRecord[] = mockEmployees
+      .filter((emp) => emp.status === "active")
+      .map((emp, index) => ({
+        id: `payroll-gen-${Date.now()}-${index}`,
+        employeeId: emp.id,
+        employee: emp,
+        period,
+        month,
+        year,
+        basicSalary: emp.salary / 12,
+        allowances: Math.random() > 0.7 ? Math.floor(Math.random() * 500) : 0,
+        deductions: Math.floor((emp.salary / 12) * 0.05),
+        netPay: Math.floor((emp.salary / 12) * 0.95),
+        status: "pending" as const,
+        processedAt: undefined,
+        paidAt: undefined,
+      }));
 
     return NextResponse.json({ success: true, data: payrollRecords });
   } catch {

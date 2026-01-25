@@ -126,6 +126,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
               />
             </TableHead>
             <TableHead>Employee</TableHead>
+            <TableHead>Period</TableHead>
             <TableHead>Basic Salary</TableHead>
             <TableHead>Allowances</TableHead>
             <TableHead>Deductions</TableHead>
@@ -161,6 +162,9 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
                     </p>
                   </div>
                 </div>
+              </TableCell>
+              <TableCell className="text-foreground">
+                {payroll.period}
               </TableCell>
               <TableCell className="text-foreground">
                 ${payroll.basicSalary.toLocaleString()}

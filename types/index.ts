@@ -77,6 +77,7 @@ export interface PayrollRecord {
   id: string;
   employeeId: string;
   employee?: Employee;
+  period: string;
   month: string;
   year: number;
   basicSalary: number;
