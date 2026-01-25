@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type EmploymentStatus = "active" | "on_leave" | "terminated" | "probation";
+export type EmploymentStatus = "active" | "on_leave" | "terminated" | "probation" | "inactive";
 export type EmploymentType = "full_time" | "part_time" | "contract" | "intern";
 
 export interface Employee {

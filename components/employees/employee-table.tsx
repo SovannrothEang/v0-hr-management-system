@@ -40,6 +40,7 @@ const statusConfig: Record<
   on_leave: { label: "On Leave", variant: "secondary" },
   probation: { label: "Probation", variant: "outline" },
   terminated: { label: "Terminated", variant: "destructive" },
+  inactive: { label: "Inactive", variant: "outline" },
 };
 
 export function EmployeeTable({
