@@ -6,6 +6,7 @@ import { PayrollSummaryCards } from "@/components/payroll/payroll-summary-cards"
 import { PayrollTable } from "@/components/payroll/payroll-table";
 import { PayslipDialog } from "@/components/payroll/payslip-dialog";
 import { GeneratePayrollDialog } from "@/components/payroll/generate-payroll-dialog";
+import { AdminOrHROnly } from "@/components/auth/protected-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -57,17 +58,19 @@ export default function PayrollPage() {
         title="Payroll Management"
         description="Process and manage employee payroll, generate payslips, and track payments."
       >
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
-        <Button
-          className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-          onClick={() => setGenerateDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Generate Payroll
-        </Button>
+        <AdminOrHROnly>
+          <Button variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={() => setGenerateDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Generate Payroll
+          </Button>
+        </AdminOrHROnly>
       </PageHeader>
 
       <PayrollSummaryCards />

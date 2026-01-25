@@ -21,6 +21,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePayroll, useProcessPayroll, useMarkPayrollPaid } from "@/hooks/use-payroll";
 import { usePayrollStore } from "@/stores/payroll-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { MoreHorizontal, FileText, CheckCircle2, Clock, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
   const markPaid = useMarkPayrollPaid();
   const { selectedPayrolls, togglePayroll, selectAll, clearSelection } = usePayrollStore();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const { isAdmin, isEmployee } = usePermissions();
 
   const handleProcess = async (payrollId: string) => {
     setProcessingIds((prev) => new Set(prev).add(payrollId));
@@ -191,7 +193,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
                       <Eye className="h-4 w-4 mr-2" />
                       View Payslip
                     </DropdownMenuItem>
-                    {payroll.status === "pending" && (
+                    {!isEmployee && payroll.status === "pending" && (
                       <DropdownMenuItem
                         onClick={() => handleProcess(payroll.id)}
                         disabled={processingIds.has(payroll.id)}
@@ -200,7 +202,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
                         Process Payroll
                       </DropdownMenuItem>
                     )}
-                    {payroll.status === "processed" && (
+                    {isAdmin && payroll.status === "processed" && (
                       <DropdownMenuItem
                         onClick={() => handleMarkPaid(payroll.id)}
                         disabled={processingIds.has(payroll.id)}

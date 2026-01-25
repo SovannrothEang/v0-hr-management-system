@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { usePermissions } from "@/hooks/use-permissions";
 import type { Employee, EmploymentStatus } from "@/stores/employee-store";
 
 interface EmployeeTableProps {
@@ -50,6 +51,7 @@ export function EmployeeTable({
   onDelete,
 }: EmployeeTableProps) {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const { isEmployee } = usePermissions();
 
   const toggleRow = (id: string) => {
     const newSelected = new Set(selectedRows);
@@ -166,18 +168,22 @@ export function EmployeeTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(employee)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => onDelete(employee)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {!isEmployee && (
+                        <>
+                          <DropdownMenuItem onClick={() => onEdit(employee)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onDelete(employee)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

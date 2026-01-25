@@ -9,12 +9,14 @@ import { LeaveRequestTable } from "@/components/attendance/leave-request-table";
 import { LeaveRequestForm } from "@/components/attendance/leave-request-form";
 import { useLeaveRequests, useUpdateLeaveRequest } from "@/hooks/use-attendance";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Plus } from "lucide-react";
 
 export default function LeaveRequestsPage() {
   const { user } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
+  const { isAdmin, isHRManager } = usePermissions();
 
   const { data: requests, isLoading } = useLeaveRequests({
     status: statusFilter,
@@ -37,7 +39,7 @@ export default function LeaveRequestsPage() {
     });
   };
 
-  const isManager = user?.role === "admin" || user?.role === "hr_manager";
+  const isManager = isAdmin || isHRManager;
 
   const pendingCount = requests?.filter((r) => r.status === "pending").length || 0;
 

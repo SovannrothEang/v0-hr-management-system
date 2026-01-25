@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useLogout } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,13 +40,48 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Employees", href: "/employees", icon: Users },
-  { name: "Attendance", href: "/attendance", icon: Clock },
-  { name: "Leave Requests", href: "/leave-requests", icon: CalendarDays },
-  { name: "Payroll", href: "/payroll", icon: DollarSign },
-  { name: "Reports", href: "/reports", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { 
+    name: "Dashboard", 
+    href: "/dashboard", 
+    icon: LayoutDashboard,
+    roles: ['admin', 'hr_manager', 'employee'] // All roles
+  },
+  { 
+    name: "Employees", 
+    href: "/employees", 
+    icon: Users,
+    roles: ['admin', 'hr_manager'] // Admin and HR only
+  },
+  { 
+    name: "Attendance", 
+    href: "/attendance", 
+    icon: Clock,
+    roles: ['admin', 'hr_manager', 'employee'] // All roles
+  },
+  { 
+    name: "Leave Requests", 
+    href: "/leave-requests", 
+    icon: CalendarDays,
+    roles: ['admin', 'hr_manager', 'employee'] // All roles
+  },
+  { 
+    name: "Payroll", 
+    href: "/payroll", 
+    icon: DollarSign,
+    roles: ['admin', 'hr_manager'] // Admin and HR only
+  },
+  { 
+    name: "Reports", 
+    href: "/reports", 
+    icon: FileText,
+    roles: ['admin', 'hr_manager'] // Admin and HR only
+  },
+  { 
+    name: "Settings", 
+    href: "/settings", 
+    icon: Settings,
+    roles: ['admin', 'hr_manager', 'employee'] // All roles
+  },
 ];
 
 export function AppSidebar() {
@@ -54,6 +90,12 @@ export function AppSidebar() {
   const { user } = useAuthStore();
   const { isCollapsed, toggle } = useSidebarStore();
   const { mutate: logout } = useLogout();
+  const { role } = usePermissions();
+
+  // Filter navigation items based on user role
+  const filteredNavigation = navigation.filter((item) => 
+    role && item.roles.includes(role)
+  );
 
   const handleLogout = () => {
     logout(undefined, {
@@ -107,7 +149,7 @@ export function AppSidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-2">
           <ul className="space-y-1">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = pathname === item.href;
               const NavContent = (
                 <Link

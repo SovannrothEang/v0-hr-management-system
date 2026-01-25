@@ -63,6 +63,14 @@ class ApiClient {
         }
       }
       
+      // Handle 403 - permission denied
+      if (response.status === 403) {
+        if (typeof window !== 'undefined') {
+          // Show error message (toast will be shown by the calling code)
+          throw new Error(error.message || 'You do not have permission to perform this action');
+        }
+      }
+      
       throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }
 

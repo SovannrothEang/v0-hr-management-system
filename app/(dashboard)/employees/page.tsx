@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AdminOrHROnly } from "@/components/auth/protected-action";
 import { useEmployees, useDeleteEmployee } from "@/hooks/use-employees";
 import { useEmployeeStore, type Employee } from "@/stores/employee-store";
 import { Plus, Download, Upload } from "lucide-react";
@@ -74,18 +75,20 @@ export default function EmployeesPage() {
         title="Employees"
         description="Manage your organization's workforce"
       >
-        <Button variant="outline" size="sm">
-          <Upload className="mr-2 h-4 w-4" />
-          Import
-        </Button>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-        <Button size="sm" onClick={handleAddNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Employee
-        </Button>
+        <AdminOrHROnly>
+          <Button variant="outline" size="sm">
+            <Upload className="mr-2 h-4 w-4" />
+            Import
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+          <Button size="sm" onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Employee
+          </Button>
+        </AdminOrHROnly>
       </PageHeader>
 
       <EmployeeFilters />
