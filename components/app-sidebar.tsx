@@ -117,17 +117,23 @@ export function AppSidebar() {
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
-          isCollapsed ? "w-16" : "w-56"
+          isCollapsed ? "w-16" : "w-64"
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-          <Link href="/dashboard" className="flex items-center gap-2">
+        <div className={cn(
+          "h-16 flex items-center border-b border-sidebar-border relative",
+          isCollapsed ? "justify-center px-2" : "justify-between px-4"
+        )}>
+          <Link href="/dashboard" className={cn(
+            "flex items-center gap-2",
+            !isCollapsed && "min-w-0 flex-1"
+          )}>
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
               <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
             {!isCollapsed && (
-              <span className="text-lg font-semibold text-sidebar-foreground">
+              <span className="text-lg font-semibold text-sidebar-foreground truncate">
                 HRFlow
               </span>
             )}
@@ -135,7 +141,10 @@ export function AppSidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent"
+            className={cn(
+              "h-6 w-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent absolute -right-3 top-1/2 -translate-y-1/2 z-50 shadow-sm",
+              "flex items-center justify-center"
+            )}
             onClick={toggle}
           >
             {isCollapsed ? (
@@ -211,18 +220,18 @@ export function AppSidebar() {
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "w-full flex items-center gap-3 p-2 rounded-md hover:bg-sidebar-accent transition-colors cursor-pointer",
+                  "w-full flex items-center gap-3 p-2 rounded-md hover:bg-sidebar-accent transition-colors cursor-pointer overflow-hidden",
                   isCollapsed && "justify-center"
                 )}
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name} />
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
                     {user ? getInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
                 {!isCollapsed && (
-                  <div className="flex-1 text-left">
+                  <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-medium text-sidebar-foreground truncate">
                       {user?.name}
                     </p>
@@ -237,7 +246,7 @@ export function AppSidebar() {
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 max-w-[224px]">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
