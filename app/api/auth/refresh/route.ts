@@ -1,15 +1,54 @@
 /**
  * Token Refresh Endpoint
  * Refreshes session using refresh token from httpOnly cookie
+ * Implements token rotation for security
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { refreshAuthSession, clearAuthSession } from "@/lib/session";
+import { refreshAuthSession, clearAuthSession, getAuthSessionFromRequest } from "@/lib/session";
 import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
+import { checkRateLimit, getClientId, RateLimitPresets } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const metadata = getRequestMetadata(request);
+    const clientId = getClientId(request);
+
+    // Get user info for rate limiting (if available)
+    const currentSession = getAuthSessionFromRequest(request);
+    const rateLimitKey = currentSession 
+      ? `refresh:${currentSession.id}` // Per-user rate limit
+      : `refresh:${clientId}`; // Per-IP rate limit for unauthenticated
+
+    // Apply rate limiting
+    const rateLimit = checkRateLimit(rateLimitKey, RateLimitPresets.REFRESH);
+    
+    if (!rateLimit.allowed) {
+      const retryAfter = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
+      
+      logAuditEvent(AuditAction.TOKEN_REFRESH, currentSession as any, {
+        ...metadata,
+        success: false,
+        details: { reason: 'rate_limited' },
+        errorMessage: 'Too many refresh attempts',
+      });
+
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Too many refresh attempts. Please try again in ${retryAfter} seconds.` 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': retryAfter.toString(),
+            'X-RateLimit-Limit': RateLimitPresets.REFRESH.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          }
+        }
+      );
+    }
 
     // Create response
     const response = NextResponse.json({
@@ -25,12 +64,27 @@ export async function POST(request: NextRequest) {
       // Clear any stale cookies
       clearAuthSession(response);
       
+      // Log failed refresh attempt
+      logAuditEvent(AuditAction.TOKEN_REFRESH, currentSession as any, {
+        ...metadata,
+        success: false,
+        details: { reason: 'invalid_or_expired_token' },
+        errorMessage: 'Session expired or token invalid',
+      });
+      
       return NextResponse.json(
         { 
           success: false, 
           message: "Session expired. Please log in again." 
         },
-        { status: 401 }
+        { 
+          status: 401,
+          headers: {
+            'X-RateLimit-Limit': RateLimitPresets.REFRESH.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          },
+        }
       );
     }
 
@@ -46,15 +100,24 @@ export async function POST(request: NextRequest) {
 
     // Return success with session data
     // Note: Need to create new response to include session data
-    const finalResponse = NextResponse.json({
-      success: true,
-      message: "Token refreshed successfully",
-      data: {
-        user: sessionData.user,
-        expiresAt: sessionData.expiresAt,
-        csrfToken: sessionData.csrfToken,
+    const finalResponse = NextResponse.json(
+      {
+        success: true,
+        message: "Token refreshed successfully",
+        data: {
+          user: sessionData.user,
+          expiresAt: sessionData.expiresAt,
+          csrfToken: sessionData.csrfToken,
+        },
       },
-    });
+      {
+        headers: {
+          'X-RateLimit-Limit': RateLimitPresets.REFRESH.maxRequests.toString(),
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+        },
+      }
+    );
 
     // Copy cookies from original response
     response.cookies.getAll().forEach((cookie) => {

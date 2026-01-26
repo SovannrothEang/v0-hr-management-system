@@ -14,6 +14,15 @@ import {
   JWTPayload,
   JWT_EXPIRES_IN,
 } from '@/lib/auth/verify-token';
+import { 
+  generateTokenId,
+  markTokenAsUsed,
+  isTokenUsed,
+  setActiveToken,
+  isFamilyCompromised,
+  markFamilyCompromised,
+  clearCompromisedStatus,
+} from '@/lib/auth/token-store';
 import { RoleName } from '@/lib/constants/roles';
 
 // Cookie names
@@ -67,12 +76,19 @@ function getTokenExpiry(token: string): number {
  * Create auth session - sets httpOnly cookies on the response
  * @param response - The NextResponse to set cookies on
  * @param user - User data to store in tokens
+ * @param isNewLogin - Whether this is a fresh login (clears compromised status)
  * @returns Session data including CSRF token and expiry
  */
 export function createAuthSession(
   response: NextResponse,
-  user: SessionUser
+  user: SessionUser,
+  isNewLogin: boolean = false
 ): SessionData {
+  // Clear compromised status on fresh login
+  if (isNewLogin) {
+    clearCompromisedStatus(user.id);
+  }
+
   // Generate tokens
   const tokenPayload = {
     id: user.id,
@@ -84,7 +100,17 @@ export function createAuthSession(
   };
 
   const accessToken = generateToken(tokenPayload as Omit<JWTPayload, 'iat' | 'exp'>);
-  const refreshToken = generateRefreshToken(tokenPayload as Omit<JWTPayload, 'iat' | 'exp'>);
+  
+  // Generate refresh token with unique JTI for rotation tracking
+  const refreshTokenId = generateTokenId();
+  const refreshToken = generateRefreshToken(
+    tokenPayload as Omit<JWTPayload, 'iat' | 'exp' | 'jti'>,
+    refreshTokenId
+  );
+  
+  // Track this as the active refresh token for the user
+  setActiveToken(user.id, refreshTokenId);
+  
   const csrfToken = generateCsrfToken();
 
   // Set access token cookie (httpOnly, secure)
@@ -228,6 +254,7 @@ export function clearAuthSession(response: NextResponse): void {
 
 /**
  * Refresh auth session - validates refresh token and issues new tokens
+ * Implements token rotation: each refresh token can only be used once
  * @param request - The incoming request with refresh token cookie
  * @param response - The response to set new cookies on
  * @returns New session data or null if refresh failed
@@ -245,8 +272,30 @@ export function refreshAuthSession(
   try {
     // Verify refresh token
     const payload = verifyRefreshToken(refreshToken);
+    const userId = payload.id;
+    const tokenJti = payload.jti;
 
-    // Create new session with refreshed tokens
+    // Check if user's token family is compromised (security breach detected)
+    if (isFamilyCompromised(userId)) {
+      console.warn(`[SECURITY] Rejected refresh attempt for compromised user: ${userId}`);
+      return null;
+    }
+
+    // Token rotation check: has this token already been used?
+    if (tokenJti && isTokenUsed(tokenJti)) {
+      // SECURITY: Token reuse detected! This could indicate token theft.
+      // Invalidate the entire token family for this user.
+      markFamilyCompromised(userId);
+      console.error(`[SECURITY] Refresh token reuse detected for user: ${userId}, JTI: ${tokenJti}`);
+      return null;
+    }
+
+    // Mark the current token as used (rotated)
+    if (tokenJti) {
+      markTokenAsUsed(tokenJti, userId);
+    }
+
+    // Create new session with rotated tokens
     const user: SessionUser = {
       id: payload.id,
       email: payload.email,
@@ -256,8 +305,10 @@ export function refreshAuthSession(
       employeeId: payload.employeeId,
     };
 
-    return createAuthSession(response, user);
-  } catch {
+    // Create new session (not a new login, so don't clear compromised status)
+    return createAuthSession(response, user, false);
+  } catch (error) {
+    console.error('[Session] Refresh token verification failed:', error);
     return null;
   }
 }

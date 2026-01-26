@@ -95,8 +95,11 @@ if (typeof setInterval !== 'undefined') {
  * Predefined rate limit configs for different endpoint types
  */
 export const RateLimitPresets = {
-  // Very strict for auth endpoints
+  // Very strict for auth endpoints (login)
   AUTH: { maxRequests: 5, windowMs: 60000 }, // 5 requests per minute
+  
+  // Moderate for token refresh (automatic, but should not be abused)
+  REFRESH: { maxRequests: 10, windowMs: 60000 }, // 10 requests per minute
   
   // Strict for mutation operations
   WRITE: { maxRequests: 30, windowMs: 60000 }, // 30 requests per minute

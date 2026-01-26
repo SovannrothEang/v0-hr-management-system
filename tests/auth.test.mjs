@@ -2,6 +2,8 @@
 /**
  * Authentication & Authorization Test Script
  * Tests all 3 roles against protected API routes
+ * 
+ * Updated for cookie-based authentication with CSRF protection
  */
 
 const BASE_URL = 'http://localhost:3000';
@@ -65,6 +67,36 @@ function log(color, message) {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
+/**
+ * Parse Set-Cookie headers into a cookie jar object
+ */
+function parseCookies(setCookieHeaders) {
+  const cookies = {};
+  if (!setCookieHeaders) return cookies;
+  
+  const headerArray = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
+  
+  for (const header of headerArray) {
+    const parts = header.split(';')[0]; // Get cookie=value part
+    const [name, ...valueParts] = parts.split('=');
+    cookies[name.trim()] = valueParts.join('='); // Handle values with = in them
+  }
+  
+  return cookies;
+}
+
+/**
+ * Convert cookie jar to Cookie header string
+ */
+function cookiesToHeader(cookies) {
+  return Object.entries(cookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+}
+
+/**
+ * Login and return session info (cookies + CSRF token)
+ */
 async function login(user) {
   try {
     const response = await fetch(`${BASE_URL}/api/auth/login`, {
@@ -78,20 +110,39 @@ async function login(user) {
     }
 
     const data = await response.json();
-    return data.data.token;
+    
+    // Parse cookies from Set-Cookie headers
+    const setCookieHeaders = response.headers.getSetCookie?.() || response.headers.get('set-cookie');
+    const cookies = parseCookies(setCookieHeaders);
+    
+    return {
+      cookies,
+      csrfToken: data.data?.csrfToken || cookies.csrf_token,
+      user: data.data?.user,
+    };
   } catch (error) {
     throw new Error(`Login error: ${error.message}`);
   }
 }
 
-async function testRoute(route, token, expectSuccess) {
+/**
+ * Test a route with cookie-based authentication
+ */
+async function testRoute(route, session, expectSuccess) {
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cookie': cookiesToHeader(session.cookies),
+    };
+    
+    // Add CSRF token for state-changing requests (POST, PUT, DELETE, PATCH)
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(route.method) && session.csrfToken) {
+      headers['X-CSRF-Token'] = session.csrfToken;
+    }
+
     const options = {
       method: route.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
     };
 
     if (route.body) {
@@ -102,9 +153,9 @@ async function testRoute(route, token, expectSuccess) {
     const status = response.status;
 
     if (expectSuccess && status === 200) {
-      return { success: true, status, message: 'Access granted ✓' };
+      return { success: true, status, message: 'Access granted' };
     } else if (!expectSuccess && (status === 403 || status === 401)) {
-      return { success: true, status, message: 'Access denied (as expected) ✓' };
+      return { success: true, status, message: 'Access denied (as expected)' };
     } else {
       return { success: false, status, message: `Unexpected status: ${status}` };
     }
@@ -120,10 +171,13 @@ async function testUser(userType, user) {
 
   // Login
   log('blue', '\n1. Login...');
-  let token;
+  let session;
   try {
-    token = await login(user);
-    log('green', `   ✓ Login successful - Token received`);
+    session = await login(user);
+    log('green', `   ✓ Login successful - Session cookies received`);
+    if (session.csrfToken) {
+      log('green', `   ✓ CSRF token received`);
+    }
   } catch (error) {
     log('red', `   ✗ Login failed: ${error.message}`);
     return;
@@ -133,7 +187,7 @@ async function testUser(userType, user) {
   log('blue', '\n2. Testing Admin & HR Manager routes...');
   const shouldAccessAdminHr = userType === 'admin' || userType === 'hrManager';
   for (const route of TEST_ROUTES.adminHrOnly) {
-    const result = await testRoute(route, token, shouldAccessAdminHr);
+    const result = await testRoute(route, session, shouldAccessAdminHr);
     const icon = result.success ? '✓' : '✗';
     const color = result.success ? 'green' : 'red';
     log(color, `   ${icon} ${route.name}: ${result.message} (${result.status})`);
@@ -143,7 +197,7 @@ async function testUser(userType, user) {
   log('blue', '\n3. Testing Admin-only routes...');
   const shouldAccessAdmin = userType === 'admin';
   for (const route of TEST_ROUTES.adminOnly) {
-    const result = await testRoute(route, token, shouldAccessAdmin);
+    const result = await testRoute(route, session, shouldAccessAdmin);
     const icon = result.success ? '✓' : '✗';
     const color = result.success ? 'green' : 'red';
     log(color, `   ${icon} ${route.name}: ${result.message} (${result.status})`);
@@ -152,7 +206,7 @@ async function testUser(userType, user) {
   // Test all authenticated routes
   log('blue', '\n4. Testing routes for all authenticated users...');
   for (const route of TEST_ROUTES.allAuth) {
-    const result = await testRoute(route, token, true);
+    const result = await testRoute(route, session, true);
     const icon = result.success ? '✓' : '✗';
     const color = result.success ? 'green' : 'red';
     log(color, `   ${icon} ${route.name}: ${result.message} (${result.status})`);
@@ -164,7 +218,7 @@ async function testWithoutAuth() {
   log('cyan', 'Testing: Unauthenticated Access');
   log('cyan', '='.repeat(60));
 
-  log('blue', '\nTesting protected route without token...');
+  log('blue', '\nTesting protected route without cookies...');
   try {
     const response = await fetch(`${BASE_URL}/api/employees`);
     if (response.status === 401) {
@@ -177,9 +231,140 @@ async function testWithoutAuth() {
   }
 }
 
+async function testCsrfProtection() {
+  log('cyan', `\n${'='.repeat(60)}`);
+  log('cyan', 'Testing: CSRF Protection');
+  log('cyan', '='.repeat(60));
+
+  // Login as admin first
+  log('blue', '\n1. Login as admin...');
+  let session;
+  try {
+    session = await login(USERS.admin);
+    log('green', '   ✓ Login successful');
+  } catch (error) {
+    log('red', `   ✗ Login failed: ${error.message}`);
+    return;
+  }
+
+  // Test POST without CSRF token
+  log('blue', '\n2. Testing POST without CSRF token...');
+  try {
+    const response = await fetch(`${BASE_URL}/api/payroll/mark-paid`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookiesToHeader(session.cookies),
+        // No X-CSRF-Token header
+      },
+      body: JSON.stringify({ ids: ['test'] }),
+    });
+    
+    if (response.status === 403) {
+      log('green', '   ✓ Correctly rejected (403 - CSRF validation failed)');
+    } else if (response.status === 200) {
+      log('yellow', `   ~ Request succeeded (CSRF may be disabled or optional)`);
+    } else {
+      log('red', `   ✗ Unexpected status: ${response.status}`);
+    }
+  } catch (error) {
+    log('red', `   ✗ Error: ${error.message}`);
+  }
+
+  // Test POST with wrong CSRF token
+  log('blue', '\n3. Testing POST with invalid CSRF token...');
+  try {
+    const response = await fetch(`${BASE_URL}/api/payroll/mark-paid`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookiesToHeader(session.cookies),
+        'X-CSRF-Token': 'invalid-token-12345',
+      },
+      body: JSON.stringify({ ids: ['test'] }),
+    });
+    
+    if (response.status === 403) {
+      log('green', '   ✓ Correctly rejected (403 - Invalid CSRF token)');
+    } else if (response.status === 200) {
+      log('yellow', `   ~ Request succeeded (CSRF validation may be lenient)`);
+    } else {
+      log('red', `   ✗ Unexpected status: ${response.status}`);
+    }
+  } catch (error) {
+    log('red', `   ✗ Error: ${error.message}`);
+  }
+
+  // Test POST with correct CSRF token
+  log('blue', '\n4. Testing POST with valid CSRF token...');
+  try {
+    const response = await fetch(`${BASE_URL}/api/payroll/mark-paid`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookiesToHeader(session.cookies),
+        'X-CSRF-Token': session.csrfToken,
+      },
+      body: JSON.stringify({ ids: ['test'] }),
+    });
+    
+    if (response.status === 200) {
+      log('green', '   ✓ Request succeeded with valid CSRF token');
+    } else if (response.status === 400) {
+      log('green', '   ✓ Request accepted (400 = validation error, not auth error)');
+    } else {
+      log('red', `   ✗ Unexpected status: ${response.status}`);
+    }
+  } catch (error) {
+    log('red', `   ✗ Error: ${error.message}`);
+  }
+}
+
+async function testSessionEndpoint() {
+  log('cyan', `\n${'='.repeat(60)}`);
+  log('cyan', 'Testing: Session Validation Endpoint');
+  log('cyan', '='.repeat(60));
+
+  // Test without session
+  log('blue', '\n1. Testing /api/auth/session without cookies...');
+  try {
+    const response = await fetch(`${BASE_URL}/api/auth/session`);
+    const data = await response.json();
+    
+    if (response.status === 401 || data.authenticated === false) {
+      log('green', '   ✓ Correctly returns unauthenticated');
+    } else {
+      log('red', `   ✗ Unexpected response: ${JSON.stringify(data)}`);
+    }
+  } catch (error) {
+    log('red', `   ✗ Error: ${error.message}`);
+  }
+
+  // Login and test with session
+  log('blue', '\n2. Testing /api/auth/session with valid cookies...');
+  try {
+    const session = await login(USERS.admin);
+    const response = await fetch(`${BASE_URL}/api/auth/session`, {
+      headers: {
+        'Cookie': cookiesToHeader(session.cookies),
+      },
+    });
+    const data = await response.json();
+    
+    if (response.status === 200 && data.authenticated === true && data.user) {
+      log('green', `   ✓ Session validated - User: ${data.user.name}`);
+    } else {
+      log('red', `   ✗ Unexpected response: ${JSON.stringify(data)}`);
+    }
+  } catch (error) {
+    log('red', `   ✗ Error: ${error.message}`);
+  }
+}
+
 async function runTests() {
   log('yellow', '\n╔═══════════════════════════════════════════════════════════╗');
-  log('yellow', '║  HR Management System - Authentication & RBAC Tests      ║');
+  log('yellow', '║  HR Management System - Authentication & RBAC Tests       ║');
+  log('yellow', '║  (Cookie-based Auth with CSRF Protection)                 ║');
   log('yellow', '╚═══════════════════════════════════════════════════════════╝');
 
   // Check if server is running
@@ -195,6 +380,12 @@ async function runTests() {
   // Test unauthenticated access
   await testWithoutAuth();
 
+  // Test session endpoint
+  await testSessionEndpoint();
+
+  // Test CSRF protection
+  await testCsrfProtection();
+
   // Test each user role
   await testUser('admin', USERS.admin);
   await testUser('hrManager', USERS.hrManager);
@@ -206,10 +397,11 @@ async function runTests() {
   log('yellow', '='.repeat(60));
   log('green', '\n✓ All tests completed!');
   log('cyan', '\nExpected Behavior:');
-  log('blue', '  • Admin: Access to all routes');
-  log('blue', '  • HR Manager: Access to admin/hr routes (not admin-only)');
-  log('blue', '  • Employee: Access to basic routes only');
-  log('blue', '  • No token: All requests denied (401)');
+  log('blue', '  - Admin: Access to all routes');
+  log('blue', '  - HR Manager: Access to admin/hr routes (not admin-only)');
+  log('blue', '  - Employee: Access to basic routes only');
+  log('blue', '  - No cookies: All requests denied (401)');
+  log('blue', '  - Invalid CSRF: Mutation requests denied (403)');
   log('yellow', '\n');
 }
 

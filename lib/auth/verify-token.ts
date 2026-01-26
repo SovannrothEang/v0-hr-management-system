@@ -24,6 +24,7 @@ export interface JWTPayload {
   employeeId?: string;
   iat?: number; // issued at
   exp?: number; // expiration
+  jti?: string; // JWT ID (for refresh token rotation)
 }
 
 /**
@@ -61,10 +62,15 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
 /**
  * Generate a refresh token for a user
  * @param payload - User data to encode in the refresh token
+ * @param jti - Optional JWT ID for token rotation tracking
  * @returns The signed refresh token
  */
-export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+export function generateRefreshToken(
+  payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti'>,
+  jti?: string
+): string {
+  const tokenPayload = jti ? { ...payload, jti } : payload;
+  return jwt.sign(tokenPayload, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
   });
 }

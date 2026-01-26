@@ -134,8 +134,8 @@ export async function POST(request: Request) {
       }
     );
 
-    // Create session and set cookies
-    const sessionData = createAuthSession(response, sessionUser);
+    // Create session and set cookies (isNewLogin = true to clear any compromised status)
+    const sessionData = createAuthSession(response, sessionUser, true);
 
     // Log successful login
     logAuditEvent(AuditAction.LOGIN, sessionUser, {
