@@ -1,12 +1,14 @@
 /**
  * Session Timeout Warning Component
  * Shows a warning dialog when the user's session is about to expire
+ * Uses server-provided expiry time instead of decoding tokens client-side
  */
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSessionStore } from "@/stores/session";
+import { useRefreshSession, useLogout } from "@/hooks/use-auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,102 +19,86 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 
 const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before expiration
-const TOKEN_LIFETIME = 24 * 60 * 60 * 1000; // 24 hours
 
 export function SessionTimeoutWarning() {
   const [showWarning, setShowWarning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  const { token, refreshToken, isAuthenticated, logout, updateTokens } = useAuthStore();
+  const { sessionExpiresAt, isAuthenticated, clearSession } = useSessionStore();
+  const refreshSession = useRefreshSession();
+  const logout = useLogout();
 
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!isAuthenticated || !sessionExpiresAt) return;
 
-    // Decode token to get expiration time
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expirationTime = payload.exp * 1000; // Convert to milliseconds
+    const checkExpiration = () => {
       const currentTime = Date.now();
-      const timeUntilExpiration = expirationTime - currentTime;
+      const timeUntilExpiration = sessionExpiresAt - currentTime;
 
       if (timeUntilExpiration <= 0) {
-        // Token already expired
-        logout();
+        // Session already expired
+        clearSession();
         return;
       }
 
-      // Set timer to show warning
-      const warningTimeout = setTimeout(() => {
+      // Show warning in last 5 minutes
+      if (timeUntilExpiration <= WARNING_TIME) {
         setShowWarning(true);
-        setTimeLeft(Math.floor((timeUntilExpiration - WARNING_TIME) / 1000));
-      }, Math.max(0, timeUntilExpiration - WARNING_TIME));
+        setTimeLeft(Math.floor(timeUntilExpiration / 1000));
+      }
+    };
 
-      // Countdown timer
-      const countdownInterval = setInterval(() => {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const expirationTime = payload.exp * 1000;
-        const currentTime = Date.now();
-        const remaining = Math.floor((expirationTime - currentTime) / 1000);
-        
-        if (remaining <= 300) { // Last 5 minutes
-          setTimeLeft(remaining);
-        }
+    // Initial check
+    checkExpiration();
 
-        if (remaining <= 0) {
-          clearInterval(countdownInterval);
-          logout();
-        }
-      }, 1000);
+    // Set up countdown timer
+    const countdownInterval = setInterval(() => {
+      const currentTime = Date.now();
+      const remaining = Math.floor((sessionExpiresAt - currentTime) / 1000);
 
-      return () => {
-        clearTimeout(warningTimeout);
+      if (remaining <= 300) { // Last 5 minutes
+        setShowWarning(true);
+        setTimeLeft(remaining);
+      }
+
+      if (remaining <= 0) {
         clearInterval(countdownInterval);
-      };
-    } catch (error) {
-      console.error('Failed to decode token:', error);
-    }
-  }, [token, isAuthenticated, logout]);
+        clearSession();
+        window.location.href = '/login';
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(countdownInterval);
+    };
+  }, [sessionExpiresAt, isAuthenticated, clearSession]);
 
   const handleExtendSession = async () => {
     try {
-      if (!refreshToken) {
-        toast.error("Cannot extend session", {
-          description: "No refresh token available",
-        });
-        logout();
-        return;
-      }
-
-      const response = await apiClient.post<{
-        token: string;
-        refreshToken: string;
-        user: any;
-      }>("/auth/refresh", { refreshToken });
-
-      if (response.success && response.data.token && response.data.refreshToken) {
-        updateTokens(response.data.token, response.data.refreshToken);
-        setShowWarning(false);
-        toast.success("Session extended", {
-          description: "Your session has been extended for another 24 hours",
-        });
-      }
+      await refreshSession.mutateAsync();
+      setShowWarning(false);
+      toast.success("Session extended", {
+        description: "Your session has been extended for another 24 hours",
+      });
     } catch (error) {
       toast.error("Failed to extend session", {
         description: "Please log in again",
       });
-      logout();
+      clearSession();
+      window.location.href = '/login';
     }
   };
 
   const handleLogout = () => {
-    logout();
+    logout.mutate();
     setShowWarning(false);
+    window.location.href = '/login';
   };
 
   const formatTime = (seconds: number) => {
+    if (seconds < 0) return "0:00";
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
@@ -133,8 +119,11 @@ export function SessionTimeoutWarning() {
           <AlertDialogCancel onClick={handleLogout}>
             Log Out
           </AlertDialogCancel>
-          <AlertDialogAction onClick={handleExtendSession}>
-            Extend Session
+          <AlertDialogAction 
+            onClick={handleExtendSession}
+            disabled={refreshSession.isPending}
+          >
+            {refreshSession.isPending ? "Extending..." : "Extend Session"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

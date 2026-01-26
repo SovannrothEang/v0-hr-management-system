@@ -1,6 +1,7 @@
 /**
  * withRole Higher-Order Function
  * Wraps API route handlers with role-based authorization
+ * Uses cookie-based authentication with CSRF protection
  */
 
 import { NextResponse } from 'next/server';

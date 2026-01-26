@@ -8,12 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LeaveRequestTable } from "@/components/attendance/leave-request-table";
 import { LeaveRequestForm } from "@/components/attendance/leave-request-form";
 import { useLeaveRequests, useUpdateLeaveRequest } from "@/hooks/use-attendance";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSessionStore } from "@/stores/session";
 import { usePermissions } from "@/hooks/use-permissions";
 import { Plus } from "lucide-react";
 
 export default function LeaveRequestsPage() {
-  const { user } = useAuthStore();
+  const { user } = useSessionStore();
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const { isAdmin, isHRManager } = usePermissions();

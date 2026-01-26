@@ -73,7 +73,7 @@ export function EmployeeDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto px-6">
         <SheetHeader className="space-y-4 pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">

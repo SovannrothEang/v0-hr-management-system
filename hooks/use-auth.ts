@@ -1,6 +1,11 @@
+/**
+ * Authentication Hooks
+ * Provides login and logout functionality using cookie-based sessions
+ */
+
 import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import { useAuthStore, type User } from "@/stores/auth-store";
+import { useSessionStore, type User } from "@/stores/session";
 import { toast } from "sonner";
 
 interface LoginCredentials {
@@ -10,12 +15,17 @@ interface LoginCredentials {
 
 interface LoginResponse {
   user: User;
-  token: string;
-  refreshToken: string;
+  expiresAt: number;
+  csrfToken: string;
 }
 
+/**
+ * Hook for user login
+ * Sends credentials to server, which sets httpOnly cookies
+ * Client stores user info and CSRF token only
+ */
 export function useLogin() {
-  const login = useAuthStore((state) => state.login);
+  const setSession = useSessionStore((state) => state.setSession);
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
@@ -26,7 +36,8 @@ export function useLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      login(data.user, data.token, data.refreshToken);
+      // Store user info and session data (no tokens stored client-side)
+      setSession(data.user, data.expiresAt, data.csrfToken);
       toast.success("Login successful", {
         description: `Welcome back, ${data.user.name}!`,
       });
@@ -39,19 +50,46 @@ export function useLogin() {
   });
 }
 
+/**
+ * Hook for user logout
+ * Calls server to clear httpOnly cookies, then clears client state
+ */
 export function useLogout() {
-  const logout = useAuthStore((state) => state.logout);
+  const clearSession = useSessionStore((state) => state.clearSession);
 
   return useMutation({
     mutationFn: async () => {
       await apiClient.post("/auth/logout");
     },
     onSuccess: () => {
-      logout();
+      clearSession();
       toast.success("Logged out successfully");
     },
     onError: () => {
-      logout();
+      // Clear session anyway on error
+      clearSession();
+    },
+  });
+}
+
+/**
+ * Hook for refreshing the session
+ * Calls server to refresh tokens in cookies
+ */
+export function useRefreshSession() {
+  const updateSessionExpiry = useSessionStore((state) => state.updateSessionExpiry);
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post<{
+        user: User;
+        expiresAt: number;
+        csrfToken: string;
+      }>("/auth/refresh");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      updateSessionExpiry(data.expiresAt, data.csrfToken);
     },
   });
 }

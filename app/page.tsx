@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSessionStore } from "@/stores/session";
 import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading } = useSessionStore();
 
   useEffect(() => {
     if (!isLoading) {

@@ -1,10 +1,14 @@
+/**
+ * Auth Guard Component
+ * Protects routes by validating session with server
+ * Shows loading state while checking authentication
+ */
+
 "use client";
 
-import React from "react"
-
-import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useAuthStore } from "@/stores/auth-store";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSessionStore } from "@/stores/session";
 import { Loader2 } from "lucide-react";
 
 interface AuthGuardProps {
@@ -13,15 +17,18 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, checkSession } = useSessionStore();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, isLoading, router]);
+    // Validate session with server on mount
+    checkSession().then((isValid) => {
+      if (!isValid) {
+        router.push("/login");
+      }
+    });
+  }, [checkSession, router]);
 
+  // Show loading while checking session
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -33,6 +40,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
+  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return null;
   }

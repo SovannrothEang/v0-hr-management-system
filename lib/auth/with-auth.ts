@@ -1,10 +1,15 @@
 /**
  * withAuth Higher-Order Function
- * Wraps API route handlers with authentication
+ * Wraps API route handlers with cookie-based authentication and CSRF protection
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuthHeader, JWTPayload } from './verify-token';
+import { JWTPayload } from './verify-token';
+import { 
+  getAuthSessionFromRequest, 
+  validateCsrfToken, 
+  requiresCsrfValidation 
+} from '@/lib/session';
 
 // Extended request with user data
 export interface AuthenticatedRequest extends NextRequest {
@@ -19,7 +24,8 @@ export type AuthenticatedHandler = (
 
 /**
  * Wrap an API route handler with authentication
- * Verifies JWT token and attaches user to request
+ * Verifies JWT token from cookie and attaches user to request
+ * Also validates CSRF token for state-changing requests (POST, PUT, DELETE, PATCH)
  * 
  * @param handler - The API route handler to wrap
  * @returns Wrapped handler with authentication
@@ -29,17 +35,24 @@ export function withAuth(handler: AuthenticatedHandler) {
     request: NextRequest,
     context?: { params?: Promise<Record<string, string>> }
   ) => {
-    // Get authorization header
-    const authHeader = request.headers.get('authorization');
-
-    // Verify token
-    const user = verifyAuthHeader(authHeader);
+    // Get user from cookie
+    const user = getAuthSessionFromRequest(request);
 
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
+    }
+
+    // Validate CSRF token for state-changing requests
+    if (requiresCsrfValidation(request.method)) {
+      if (!validateCsrfToken(request)) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid CSRF token' },
+          { status: 403 }
+        );
+      }
     }
 
     // Attach user to request

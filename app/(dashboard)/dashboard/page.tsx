@@ -13,7 +13,7 @@ import {
   useDepartmentDistribution,
   useRecentActivity,
 } from "@/hooks/use-dashboard";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSessionStore } from "@/stores/session";
 import {
   Users,
   UserCheck,
@@ -48,7 +48,7 @@ function ChartSkeleton() {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const { user } = useSessionStore();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: attendanceTrend, isLoading: trendLoading } = useAttendanceTrend();
   const { data: departmentDist, isLoading: deptLoading } = useDepartmentDistribution();

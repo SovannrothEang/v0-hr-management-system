@@ -3,12 +3,12 @@
  * Provides role-based permission checks for UI components
  */
 
-import { useAuthStore } from '@/stores/auth-store';
+import { useSessionStore } from '@/stores/session';
 import { ROLES, PERMISSIONS, hasRole, hasPermission, hasAnyPermission } from '@/lib/constants/roles';
 import type { RoleName, PermissionName } from '@/lib/constants/roles';
 
 export function usePermissions() {
-  const { user } = useAuthStore();
+  const { user } = useSessionStore();
   const userRole = user?.role as RoleName | undefined;
 
   return {

@@ -25,7 +25,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCreateLeaveRequest } from "@/hooks/use-attendance";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSessionStore } from "@/stores/session";
 import type { LeaveType } from "@/stores/attendance-store";
 import { useState } from "react";
 
@@ -40,7 +40,7 @@ interface FormData {
 }
 
 export function LeaveRequestForm({ open, onOpenChange }: LeaveRequestFormProps) {
-  const { user } = useAuthStore();
+  const { user } = useSessionStore();
   const { mutate: createRequest, isPending } = useCreateLeaveRequest();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();

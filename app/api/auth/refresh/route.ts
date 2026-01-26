@@ -1,59 +1,73 @@
 /**
  * Token Refresh Endpoint
- * Allows users to refresh their access token using a refresh token
+ * Refreshes session using refresh token from httpOnly cookie
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRefreshToken, generateToken, generateRefreshToken } from "@/lib/auth/verify-token";
+import { refreshAuthSession, clearAuthSession } from "@/lib/session";
+import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { refreshToken } = body;
+    const metadata = getRequestMetadata(request);
 
-    if (!refreshToken) {
-      return NextResponse.json(
-        { success: false, message: "Refresh token is required" },
-        { status: 400 }
-      );
-    }
+    // Create response
+    const response = NextResponse.json({
+      success: true,
+      message: "Token refreshed successfully",
+      data: {},
+    });
 
-    // Verify the refresh token
-    let decoded;
-    try {
-      decoded = verifyRefreshToken(refreshToken);
-    } catch (error) {
+    // Refresh session using cookie
+    const sessionData = refreshAuthSession(request, response);
+
+    if (!sessionData) {
+      // Clear any stale cookies
+      clearAuthSession(response);
+      
       return NextResponse.json(
         { 
           success: false, 
-          message: error instanceof Error ? error.message : "Invalid refresh token" 
+          message: "Session expired. Please log in again." 
         },
         { status: 401 }
       );
     }
 
-    // Generate new tokens
-    const tokenPayload = {
-      id: decoded.id,
-      email: decoded.email,
-      name: decoded.name,
-      role: decoded.role,
-      department: decoded.department,
-      employeeId: decoded.employeeId,
-    };
+    // Log token refresh
+    logAuditEvent(AuditAction.TOKEN_REFRESH, sessionData.user as any, {
+      ...metadata,
+      success: true,
+      details: { 
+        email: sessionData.user.email,
+        role: sessionData.user.role,
+      },
+    });
 
-    const newAccessToken = generateToken(tokenPayload);
-    const newRefreshToken = generateRefreshToken(tokenPayload);
-
-    return NextResponse.json({
+    // Return success with session data
+    // Note: Need to create new response to include session data
+    const finalResponse = NextResponse.json({
       success: true,
       message: "Token refreshed successfully",
       data: {
-        token: newAccessToken,
-        refreshToken: newRefreshToken,
-        user: tokenPayload,
+        user: sessionData.user,
+        expiresAt: sessionData.expiresAt,
+        csrfToken: sessionData.csrfToken,
       },
     });
+
+    // Copy cookies from original response
+    response.cookies.getAll().forEach((cookie) => {
+      finalResponse.cookies.set(cookie.name, cookie.value, {
+        httpOnly: cookie.name !== 'csrf_token',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: cookie.name === 'refresh_token' ? '/api/auth' : '/',
+        maxAge: cookie.name === 'refresh_token' ? 7 * 24 * 60 * 60 : 24 * 60 * 60,
+      });
+    });
+
+    return finalResponse;
   } catch (error) {
     console.error("Token refresh error:", error);
     return NextResponse.json(

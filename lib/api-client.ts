@@ -1,3 +1,11 @@
+/**
+ * API Client
+ * Handles all API requests with cookie-based authentication and CSRF protection
+ * Cookies are automatically sent by the browser - no manual token handling needed
+ */
+
+import { getCsrfToken } from "@/stores/session";
+
 const API_BASE_URL = "/api";
 
 interface ApiResponse<T> {
@@ -6,46 +14,49 @@ interface ApiResponse<T> {
   success: boolean;
 }
 
+/**
+ * Get CSRF token from cookie (fallback if store doesn't have it)
+ */
+function getCsrfTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Check if the request method requires CSRF token
+ */
+function requiresCsrf(method: string): boolean {
+  const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
+  return !safeMethods.includes(method.toUpperCase());
+}
+
 class ApiClient {
   private baseUrl: string;
   private isRefreshing = false;
-  private refreshPromise: Promise<string> | null = null;
+  private refreshPromise: Promise<boolean> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
   }
 
-  private getAuthToken(): string | null {
-    // Get token from localStorage (Zustand persists it there)
-    if (typeof window === 'undefined') return null;
+  /**
+   * Get CSRF token for requests
+   */
+  private getCsrfToken(): string | null {
+    // First try the store
+    const storeToken = getCsrfToken();
+    if (storeToken) return storeToken;
     
-    try {
-      const authStore = localStorage.getItem('hrflow-auth');
-      if (!authStore) return null;
-      
-      const parsed = JSON.parse(authStore);
-      return parsed?.state?.token || null;
-    } catch {
-      return null;
-    }
+    // Fallback to reading from cookie
+    return getCsrfTokenFromCookie();
   }
 
-  private getRefreshToken(): string | null {
-    // Get refresh token from localStorage
-    if (typeof window === 'undefined') return null;
-    
-    try {
-      const authStore = localStorage.getItem('hrflow-auth');
-      if (!authStore) return null;
-      
-      const parsed = JSON.parse(authStore);
-      return parsed?.state?.refreshToken || null;
-    } catch {
-      return null;
-    }
-  }
-
-  private async refreshAccessToken(): Promise<string> {
+  /**
+   * Attempt to refresh the session
+   */
+  private async refreshSession(): Promise<boolean> {
     // If already refreshing, return the existing promise
     if (this.isRefreshing && this.refreshPromise) {
       return this.refreshPromise;
@@ -54,42 +65,20 @@ class ApiClient {
     this.isRefreshing = true;
     this.refreshPromise = (async () => {
       try {
-        const refreshToken = this.getRefreshToken();
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
         const response = await fetch(`${this.baseUrl}/auth/refresh`, {
           method: 'POST',
+          credentials: 'include', // Include cookies
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to refresh token');
+          return false;
         }
 
         const data = await response.json();
-        
-        if (data.success && data.data.token && data.data.refreshToken) {
-          // Update tokens in localStorage
-          const authStore = localStorage.getItem('hrflow-auth');
-          if (authStore) {
-            const parsed = JSON.parse(authStore);
-            parsed.state.token = data.data.token;
-            parsed.state.refreshToken = data.data.refreshToken;
-            localStorage.setItem('hrflow-auth', JSON.stringify(parsed));
-          }
-          
-          return data.data.token;
-        }
-
-        throw new Error('Invalid refresh response');
-      } catch (error) {
-        // Refresh failed, clear auth and redirect to login
-        localStorage.removeItem('hrflow-auth');
-        window.location.href = '/login';
-        throw error;
+        return data.success;
+      } catch {
+        return false;
       } finally {
         this.isRefreshing = false;
         this.refreshPromise = null;
@@ -99,54 +88,63 @@ class ApiClient {
     return this.refreshPromise;
   }
 
+  /**
+   * Make an API request
+   */
   private async request<T>(
     endpoint: string,
     options?: RequestInit,
     retryCount = 0
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
+    const method = options?.method || 'GET';
     
-    // Get auth token and add to headers
-    const token = this.getAuthToken();
+    // Build headers
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options?.headers as Record<string, string>),
     };
     
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    // Add CSRF token for state-changing requests
+    if (requiresCsrf(method)) {
+      const csrfToken = this.getCsrfToken();
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
     }
     
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: 'include', // Always include cookies
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       
-      // Handle 401 - token expired, try to refresh
+      // Handle 401 - session expired, try to refresh
       if (response.status === 401 && retryCount === 0) {
         if (typeof window !== 'undefined') {
           try {
-            // Try to refresh the token
-            await this.refreshAccessToken();
-            // Retry the request with new token
-            return this.request<T>(endpoint, options, retryCount + 1);
+            // Try to refresh the session
+            const refreshed = await this.refreshSession();
+            if (refreshed) {
+              // Retry the request with new session
+              return this.request<T>(endpoint, options, retryCount + 1);
+            }
           } catch {
-            // Refresh failed, redirect to login
-            localStorage.removeItem('hrflow-auth');
-            window.location.href = '/login';
+            // Refresh failed
           }
+          
+          // Redirect to login if refresh failed
+          window.location.href = '/login';
+          throw new Error('Session expired');
         }
       }
       
-      // Handle 403 - permission denied
+      // Handle 403 - permission denied or invalid CSRF
       if (response.status === 403) {
-        if (typeof window !== 'undefined') {
-          // Show error message (toast will be shown by the calling code)
-          throw new Error(error.message || 'You do not have permission to perform this action');
-        }
+        throw new Error(error.message || 'You do not have permission to perform this action');
       }
       
       throw new Error(error.message || `HTTP error! status: ${response.status}`);

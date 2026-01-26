@@ -1,8 +1,13 @@
+/**
+ * Login Endpoint
+ * Validates credentials and creates httpOnly cookie session
+ */
+
 import { NextResponse } from "next/server";
-import { generateToken, generateRefreshToken } from "@/lib/auth/verify-token";
 import { ROLES } from "@/lib/constants/roles";
 import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
 import { checkRateLimit, getClientId, RateLimitPresets } from "@/lib/rate-limit";
+import { createAuthSession, SessionUser } from "@/lib/session";
 
 const mockUsers = [
   {
@@ -101,10 +106,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-    
-    // Generate JWT tokens
-    const tokenPayload = {
+    // Prepare user data (without password)
+    const sessionUser: SessionUser = {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -112,12 +115,30 @@ export async function POST(request: Request) {
       department: user.department,
       employeeId: user.employeeId,
     };
-    
-    const token = generateToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Create response
+    const response = NextResponse.json(
+      {
+        success: true,
+        data: {
+          user: sessionUser,
+          // expiresAt and csrfToken will be added below
+        },
+      },
+      {
+        headers: {
+          'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+        }
+      }
+    );
+
+    // Create session and set cookies
+    const sessionData = createAuthSession(response, sessionUser);
 
     // Log successful login
-    logAuditEvent(AuditAction.LOGIN, tokenPayload, {
+    logAuditEvent(AuditAction.LOGIN, sessionUser, {
       ...metadata,
       success: true,
       details: { 
@@ -126,20 +147,38 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        user: userWithoutPassword,
-        token,
-        refreshToken,
+    // Return response with session info
+    // Note: We need to reconstruct the response to include session data
+    const finalResponse = NextResponse.json(
+      {
+        success: true,
+        data: {
+          user: sessionUser,
+          expiresAt: sessionData.expiresAt,
+          csrfToken: sessionData.csrfToken,
+        },
       },
-    }, {
-      headers: {
-        'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
-        'X-RateLimit-Remaining': rateLimit.remaining.toString(),
-        'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+      {
+        headers: {
+          'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+        }
       }
+    );
+
+    // Copy cookies from original response
+    response.cookies.getAll().forEach((cookie) => {
+      finalResponse.cookies.set(cookie.name, cookie.value, {
+        httpOnly: cookie.name !== 'csrf_token',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: cookie.name === 'refresh_token' ? '/api/auth' : '/',
+        maxAge: cookie.name === 'refresh_token' ? 7 * 24 * 60 * 60 : 24 * 60 * 60,
+      });
     });
+
+    return finalResponse;
   } catch {
     return NextResponse.json(
       { success: false, message: "Internal server error" },

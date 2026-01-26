@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
+import { useSessionStore } from "@/stores/session";
 import { useSidebarStore } from "@/stores/sidebar-store";
 import { useLogout } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -87,7 +87,7 @@ const navigation = [
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user } = useSessionStore();
   const { isCollapsed, toggle } = useSidebarStore();
   const { mutate: logout } = useLogout();
   const { role } = usePermissions();
