@@ -1,112 +1,79 @@
 # Agent Guidelines for HR Management System
 
-This document provides coding standards and guidelines for AI agents working on this Next.js 16 HR Management System with TypeScript, Tailwind CSS v4, and shadcn/ui.
+Guidelines for AI agents working on this Next.js 16 + TypeScript + Tailwind CSS v4 + shadcn/ui project.
 
 ## Build, Lint, and Test Commands
 
 ```bash
 # Development
-npm run dev                    # Start dev server on http://localhost:3000
-npm run build                  # Production build
-npm run start                  # Start production server
-npm run lint                   # Run ESLint
+npm run dev              # Start dev server at http://localhost:3000
+npm run build            # Production build (includes TypeScript checking)
+npm run start            # Start production server
+npm run lint             # Run ESLint (requires eslint.config.js)
 
-# Testing (standalone .mjs files in /tests directory)
-node tests/auth.test.mjs                  # Run backend auth tests (requires dev server)
-node tests/ui-permissions.test.mjs        # Run UI permissions tests (requires dev server)
+# Testing - standalone .mjs files requiring dev server running
+node tests/auth.test.mjs            # Auth & RBAC tests (cookie-based auth, CSRF)
+node tests/ui-permissions.test.mjs  # UI permission tests
 
-# Run specific test file
-node tests/[filename].mjs                 # Replace with specific test file
+# Run specific test
+node tests/<filename>.mjs
+
+# Type checking only
+npx tsc --noEmit
 ```
+
+**Test Users:** `admin@hrflow.com/admin123`, `hr@hrflow.com/hr123`, `sarah.johnson@hrflow.com/emp123`
 
 ## Project Structure
 
 ```
 app/
-  (auth)/          # Auth-related pages (login)
-  (dashboard)/     # Protected dashboard pages
-  api/             # API routes (27 endpoints)
+  (auth)/           # Auth pages (login)
+  (dashboard)/      # Protected pages
+  api/              # API routes (~30 endpoints)
 components/
-  auth/            # Authentication components (protected-action, session-timeout-warning)
-  ui/              # shadcn/ui components
-hooks/             # Custom React hooks (useAuth, usePermissions, etc.)
+  auth/             # Auth components (protected-action, session-timeout-warning)
+  ui/               # shadcn/ui components
+hooks/              # Custom hooks (useAuth, usePermissions)
 lib/
-  auth/            # Authentication utilities (with-auth, with-role, verify-token)
-  constants/       # Constants (roles, permissions)
-  rate-limit.ts    # Rate limiting utility
-  audit-log.ts     # Audit logging infrastructure
-stores/            # Zustand state management (auth, employee, payroll, attendance)
-tests/             # Test files (.mjs)
+  auth/             # Auth utilities (with-auth, with-role, verify-token, token-store)
+  constants/        # Constants (roles, permissions)
+  session.ts        # Cookie-based session management
+  api-client.ts     # Centralized API client with CSRF
+stores/             # Zustand stores (session, employee, payroll, attendance)
+tests/              # Test files (.mjs)
+docs/               # Documentation (BACKEND_API_REQUIREMENTS.md)
 ```
 
-## Code Style Guidelines
+## Code Style
 
-### Imports
-
-**Order:** External packages → Next.js/React → Internal absolute imports → Types
+### Imports (in order)
 ```typescript
-import { NextResponse } from "next/server";
-import { useState } from "react";
-import { apiClient } from "@/lib/api-client";
-import { useAuthStore } from "@/stores/auth-store";
-import type { User, UserRole } from "@/stores/auth-store";
-```
-
-**Use `@/` for absolute imports** (configured in tsconfig.json):
-```typescript
-import { ROLES } from "@/lib/constants/roles";  // ✅ Good
-import { ROLES } from "../../lib/constants/roles";  // ❌ Bad
+import { NextResponse } from "next/server";      // 1. External packages
+import { useState } from "react";                 // 2. React/Next.js
+import { apiClient } from "@/lib/api-client";     // 3. Internal (use @/ alias)
+import type { User } from "@/stores/session";     // 4. Types last
 ```
 
 ### TypeScript
-
-**Always use explicit types** for function parameters and return values:
-```typescript
-export function getUserRole(userId: string): RoleName | null {  // ✅
-export function getUserRole(userId) {  // ❌
-```
-
-**Use `interface` for object shapes, `type` for unions/aliases:**
-```typescript
-interface User {  // ✅
-  id: string;
-  name: string;
-}
-
-type RoleName = "admin" | "hr_manager" | "employee";  // ✅
-```
-
-**Always use `as const` for constant objects:**
-```typescript
-export const ROLES = {
-  ADMIN: 'admin',
-  HR_MANAGER: 'hr_manager',
-  EMPLOYEE: 'employee',
-} as const;  // ✅ Ensures literal types
-```
-
-### File Headers
-
-**Add JSDoc comments** to utility files and key modules:
-```typescript
-/**
- * Rate Limiting Utility
- * Implements token bucket algorithm for rate limiting
- */
-```
+- **Explicit types** on function parameters and return values
+- **`interface`** for object shapes, **`type`** for unions/aliases
+- **`as const`** for constant objects to ensure literal types
+- Strict mode enabled (`tsconfig.json`)
 
 ### Naming Conventions
-
-- **Files:** `kebab-case.ts` (e.g., `auth-store.ts`, `with-role.ts`)
-- **Components:** `PascalCase.tsx` (e.g., `AppSidebar.tsx`)
-- **Hooks:** `use-prefix` (e.g., `usePermissions`, `useAuth`)
-- **Constants:** `SCREAMING_SNAKE_CASE` (e.g., `ROLES`, `PERMISSIONS`)
-- **Functions:** `camelCase` (e.g., `generateToken`, `hasPermission`)
-- **Types/Interfaces:** `PascalCase` (e.g., `JWTPayload`, `RoleName`)
+| Type | Convention | Example |
+|------|------------|---------|
+| Files | kebab-case | `auth-store.ts`, `with-role.ts` |
+| Components | PascalCase | `AppSidebar.tsx` |
+| Hooks | usePrefix | `usePermissions`, `useAuth` |
+| Constants | SCREAMING_SNAKE | `ROLES`, `PERMISSIONS` |
+| Functions | camelCase | `generateToken`, `hasPermission` |
+| Types/Interfaces | PascalCase | `JWTPayload`, `SessionUser` |
 
 ### Error Handling
 
-**API Routes:** Always return consistent JSON structure:
+**API Routes** - consistent JSON structure:
 ```typescript
 return NextResponse.json(
   { success: false, message: "Error description" },
@@ -114,130 +81,88 @@ return NextResponse.json(
 );
 ```
 
-**Try-Catch:** Use try-catch in async operations, avoid silent failures:
-```typescript
-try {
-  const result = await operation();
-  return NextResponse.json({ success: true, data: result });
-} catch (error) {
-  console.error("Operation failed:", error);
-  return NextResponse.json(
-    { success: false, message: "Operation failed" },
-    { status: 500 }
-  );
-}
-```
-
-**User-facing errors:** Use toast notifications (sonner):
+**Client-side** - use sonner toast:
 ```typescript
 import { toast } from "sonner";
-
-toast.error("Failed to save", {
-  description: error.message,
-});
+toast.error("Failed to save", { description: error.message });
 ```
 
 ### React Components
-
-**Client Components:** Add `"use client"` directive at top when needed:
 ```typescript
-"use client";
+"use client";  // Add when using hooks/browser APIs
 
-import { useState } from "react";
-```
-
-**Component Structure:**
-```typescript
-export function MyComponent({ prop1, prop2 }: MyComponentProps) {
+export function MyComponent({ prop }: Props) {
   // 1. Hooks
   const [state, setState] = useState();
-  
   // 2. Derived values
   const computed = useMemo(() => {...}, []);
-  
   // 3. Handlers
   const handleClick = () => {...};
-  
   // 4. Return JSX
   return <div>...</div>;
 }
 ```
 
-### Security Guidelines
+## Security Patterns (CRITICAL)
 
-**CRITICAL:** Always use HOCs for API protection:
+### API Route Protection
 ```typescript
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
 export const POST = withRole(async (request) => {
-  // Handler code
-}, [ROLES.ADMIN]);  // Specify allowed roles
+  const user = request.user;  // Injected by withRole
+  // ... handler code
+  return NextResponse.json({ success: true, data: result });
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 ```
 
-**NEVER hardcode roles:**
+### CSRF Protection
+- Mutations (POST/PUT/DELETE) require `X-CSRF-Token` header
+- Use `apiClient` which handles CSRF automatically
+- CSRF token stored in `csrf_token` cookie (readable by JS)
+
+### Role Checks - NEVER hardcode
 ```typescript
-if (user.role === ROLES.ADMIN) { }  // ✅ Good
-if (user.role === "admin") { }      // ❌ Bad
+if (user.role === ROLES.ADMIN) { }     // Good
+if (user.role === "admin") { }          // Bad
 ```
 
-**UI Protection:** Use permission hooks and components:
+### UI Protection
 ```typescript
 import { usePermissions } from "@/hooks/use-permissions";
-import { AdminOnly } from "@/components/auth/protected-action";
-
-const { isAdmin } = usePermissions();
-{isAdmin && <Button>Admin Action</Button>}
-// OR
-<AdminOnly><Button>Admin Action</Button></AdminOnly>
+const { isAdmin, isHrManager } = usePermissions();
+{isAdmin && <AdminButton />}
 ```
 
-**Audit Logging:** Log security-sensitive actions:
+### Audit Logging
 ```typescript
 import { logAuditEvent, AuditAction } from "@/lib/audit-log";
-
 logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, user, {
-  ipAddress,
-  userAgent,
-  details: { payrollIds },
+  ipAddress, userAgent, details: { payrollIds }
 });
-```
-
-### API Client
-
-**Always use the centralized API client:**
-```typescript
-import { apiClient } from "@/lib/api-client";
-
-const response = await apiClient.post<ResponseType>("/api/endpoint", data);
-```
-
-### State Management
-
-**Use Zustand for global state:**
-```typescript
-export const useMyStore = create<MyState>()(
-  persist(
-    (set) => ({
-      // state and actions
-    }),
-    { name: "my-store" }
-  )
-);
 ```
 
 ## Common Patterns
 
-### Protected API Route
+### API Client (handles cookies + CSRF)
 ```typescript
-export const GET = withRole(async (request) => {
-  const user = request.user;  // Available via withRole
-  return NextResponse.json({ success: true, data: {...} });
-}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+import { apiClient } from "@/lib/api-client";
+const { data } = await apiClient.post<ResponseType>("/api/endpoint", body);
 ```
 
-### Form with React Hook Form + Zod
+### Zustand Store
 ```typescript
+export const useMyStore = create<MyState>()(
+  persist((set) => ({ /* state and actions */ }), { name: "store-name" })
+);
+```
+
+### Form with Zod Validation
+```typescript
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 const form = useForm<FormValues>({
   resolver: zodResolver(schema),
   defaultValues: {...},
@@ -247,25 +172,25 @@ const form = useForm<FormValues>({
 ### Rate Limiting
 ```typescript
 import { checkRateLimit, RateLimitPresets } from "@/lib/rate-limit";
-
 const rateLimit = checkRateLimit(clientId, RateLimitPresets.AUTH);
 if (!rateLimit.allowed) {
-  return NextResponse.json({...}, { status: 429 });
+  return NextResponse.json({ success: false, message: "Rate limited" }, { status: 429 });
 }
 ```
 
-## Testing Guidelines
+## Authentication Architecture
 
-- Tests are in `/tests` directory as standalone `.mjs` files
-- Start dev server before running tests: `npm run dev`
-- Tests make real HTTP requests to `http://localhost:3000`
-- Use test users: `admin@hrflow.com/admin123`, `hr@hrflow.com/hr123`, `sarah.johnson@hrflow.com/emp123`
+- **Cookie-based JWT** with httpOnly cookies (`auth_token`, `refresh_token`)
+- **CSRF protection** via `csrf_token` cookie + `X-CSRF-Token` header
+- **Refresh token rotation** with reuse detection (see `lib/auth/token-store.ts`)
+- **Session validation** via `GET /api/auth/session`
 
-## Important Notes
+## Key Rules
 
-- **Never skip security checks** - All API routes MUST use `withAuth` or `withRole`
-- **Always validate input** - Use Zod schemas for validation
-- **Log sensitive actions** - Use audit logging for compliance
-- **Handle errors gracefully** - Never expose internal errors to users
-- **Respect rate limits** - Apply appropriate rate limiting to endpoints
-- **Follow defense in depth** - Protect both backend AND frontend
+1. **All API routes MUST use `withAuth` or `withRole`** - no exceptions
+2. **Always validate input** with Zod schemas
+3. **Log sensitive actions** via audit logging
+4. **Never expose internal errors** to users
+5. **Use `@/` imports** - never relative paths like `../../`
+6. **Defense in depth** - protect both backend AND frontend
+7. **Rate limit** auth and sensitive endpoints
