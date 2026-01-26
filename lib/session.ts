@@ -40,7 +40,7 @@ export interface SessionUser {
   id: string;
   email: string;
   name: string;
-  role: RoleName;
+  roles: RoleName[];
   department?: string;
   employeeId?: string;
 }
@@ -94,7 +94,7 @@ export function createAuthSession(
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    roles: user.roles,
     department: user.department,
     employeeId: user.employeeId,
   };
@@ -167,7 +167,7 @@ export async function getAuthSession(): Promise<SessionUser | null> {
       id: payload.id,
       email: payload.email,
       name: payload.name,
-      role: payload.role,
+      roles: payload.roles,
       department: payload.department,
       employeeId: payload.employeeId,
     };
@@ -300,7 +300,7 @@ export function refreshAuthSession(
       id: payload.id,
       email: payload.email,
       name: payload.name,
-      role: payload.role,
+      roles: payload.roles,
       department: payload.department,
       employeeId: payload.employeeId,
     };

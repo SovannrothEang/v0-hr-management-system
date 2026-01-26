@@ -90,11 +90,11 @@ export function AppSidebar() {
   const { user } = useSessionStore();
   const { isCollapsed, toggle } = useSidebarStore();
   const { mutate: logout } = useLogout();
-  const { role } = usePermissions();
+  const { roles } = usePermissions();
 
-  // Filter navigation items based on user role
+  // Filter navigation items based on user roles
   const filteredNavigation = navigation.filter((item) => 
-    role && item.roles.includes(role)
+    roles && roles.some((role) => item.roles.includes(role))
   );
 
   const handleLogout = () => {
@@ -236,9 +236,9 @@ export function AppSidebar() {
                       {user?.name}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {user?.role === "admin"
+                      {user?.roles?.includes("admin")
                         ? "Administrator"
-                        : user?.role === "hr_manager"
+                        : user?.roles?.includes("hr_manager")
                         ? "HR Manager"
                         : "Employee"}
                     </p>

@@ -26,7 +26,7 @@ export const GET = withRole(async (request) => {
   ).length;
 
   const terminatedEmployees = employees.filter(
-    (e) => e.status === "terminated"
+    (e) => e.status === "inactive"
   ).length;
 
   const departmentMap = new Map<string, number>();

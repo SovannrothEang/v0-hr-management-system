@@ -29,13 +29,13 @@ export function withRole(
 ) {
   return withAuth(async (request, context) => {
     // Check if user has one of the allowed roles
-    if (!hasRole(request.user.role, allowedRoles)) {
+    if (!hasRole(request.user.roles, allowedRoles)) {
       return NextResponse.json(
         { 
           success: false, 
           message: 'Insufficient permissions',
           required: allowedRoles,
-          current: request.user.role,
+          current: request.user.roles,
         },
         { status: 403 }
       );

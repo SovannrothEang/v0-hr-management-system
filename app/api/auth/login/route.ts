@@ -15,7 +15,7 @@ const mockUsers = [
     email: "admin@hrflow.com",
     password: "admin123",
     name: "Admin User",
-    role: ROLES.ADMIN,
+    roles: [ROLES.ADMIN],
     department: "Administration",
   },
   {
@@ -23,7 +23,7 @@ const mockUsers = [
     email: "hr@hrflow.com",
     password: "hr123",
     name: "Emily Rodriguez",
-    role: ROLES.HR_MANAGER,
+    roles: [ROLES.HR_MANAGER],
     department: "Human Resources",
     employeeId: "EMP003",
   },
@@ -32,7 +32,7 @@ const mockUsers = [
     email: "sarah.johnson@hrflow.com",
     password: "emp123",
     name: "Sarah Johnson",
-    role: ROLES.EMPLOYEE,
+    roles: [ROLES.EMPLOYEE],
     department: "Engineering",
     employeeId: "EMP001",
   },
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
+      roles: user.roles,
       department: user.department,
       employeeId: user.employeeId,
     };
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       success: true,
       details: { 
         email: user.email,
-        role: user.role,
+        roles: user.roles,
       },
     });
 

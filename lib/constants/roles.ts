@@ -158,19 +158,19 @@ export const ROUTE_ROLES: Record<string, RoleName[]> = {
 };
 
 // Helper functions
-export function hasRole(userRole: RoleName | undefined, allowedRoles: RoleName[]): boolean {
-  if (!userRole) return false;
-  return allowedRoles.includes(userRole);
+export function hasRole(userRoles: RoleName[] | undefined, allowedRoles: RoleName[]): boolean {
+  if (!userRoles || userRoles.length === 0) return false;
+  return userRoles.some((role) => allowedRoles.includes(role));
 }
 
-export function hasPermission(userRole: RoleName | undefined, permission: PermissionName): boolean {
-  if (!userRole) return false;
-  return ROLE_PERMISSIONS[userRole]?.includes(permission) ?? false;
+export function hasPermission(userRoles: RoleName[] | undefined, permission: PermissionName): boolean {
+  if (!userRoles || userRoles.length === 0) return false;
+  return userRoles.some((role) => ROLE_PERMISSIONS[role]?.includes(permission) ?? false);
 }
 
-export function hasAnyPermission(userRole: RoleName | undefined, permissions: PermissionName[]): boolean {
-  if (!userRole) return false;
-  return permissions.some((permission) => hasPermission(userRole, permission));
+export function hasAnyPermission(userRoles: RoleName[] | undefined, permissions: PermissionName[]): boolean {
+  if (!userRoles || userRoles.length === 0) return false;
+  return permissions.some((permission) => hasPermission(userRoles, permission));
 }
 
 export function getAllowedRolesForRoute(pathname: string): RoleName[] | null {

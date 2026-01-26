@@ -18,7 +18,7 @@ export const GET = withRole(async (
   }
 
   // HR Manager can only view employees in their department
-  if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+  if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
     if (employee.department !== request.user.department) {
       return NextResponse.json(
         { success: false, message: "Access denied" },
@@ -47,7 +47,7 @@ export const PUT = withRole(async (
     }
 
     // HR Manager can only update employees in their department
-    if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+    if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
       if (employee.department !== request.user.department) {
         return NextResponse.json(
           { success: false, message: "Access denied" },
@@ -86,7 +86,7 @@ export const DELETE = withRole(async (
   }
 
   // HR Manager can only delete employees in their department
-  if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+  if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
     if (employee.department !== request.user.department) {
       return NextResponse.json(
         { success: false, message: "Access denied" },

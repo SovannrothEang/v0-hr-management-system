@@ -97,7 +97,7 @@ export function logAuditEvent(
     severity: options.severity || getSeverityForAction(action),
     userId: user?.id || 'anonymous',
     userEmail: user?.email || 'anonymous',
-    userRole: user?.role || 'unknown',
+    userRole: user?.roles?.join(',') || 'unknown',
     ipAddress: options.ipAddress,
     userAgent: options.userAgent,
     resource: options.resource,

@@ -19,7 +19,7 @@ export interface JWTPayload {
   id: string;
   email: string;
   name: string;
-  role: RoleName;
+  roles: RoleName[];
   department?: string;
   employeeId?: string;
   iat?: number; // issued at

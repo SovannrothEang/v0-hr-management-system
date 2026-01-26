@@ -11,7 +11,7 @@ export const GET = withAuth(async (request) => {
   let filtered = [...mockLeaveRequests];
 
   // Employees can only see their own leave requests
-  if (request.user.role === ROLES.EMPLOYEE) {
+  if (request.user.roles.includes(ROLES.EMPLOYEE) && !request.user.roles.includes(ROLES.ADMIN) && !request.user.roles.includes(ROLES.HR_MANAGER)) {
     filtered = filtered.filter((l) => l.employeeId === request.user.employeeId);
   }
 

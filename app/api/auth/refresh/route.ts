@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       success: true,
       details: { 
         email: sessionData.user.email,
-        role: sessionData.user.role,
+        roles: sessionData.user.roles,
       },
     });
 

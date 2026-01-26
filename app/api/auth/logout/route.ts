@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         success: true,
         details: { 
           email: user.email,
-          role: user.role,
+          roles: user.roles,
         },
       });
     }

@@ -12,7 +12,7 @@ export const GET = withRole(async (request) => {
   let filtered = [...mockEmployees];
 
   // HR Manager can only see their department
-  if (request.user.role === ROLES.HR_MANAGER && request.user.department) {
+  if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
     filtered = filtered.filter((e) => e.department === request.user.department);
   }
 
