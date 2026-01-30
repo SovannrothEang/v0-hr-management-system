@@ -9,6 +9,45 @@ export interface PayrollSummary {
   totalBonuses: number;
   totalDeductions: number;
   averageSalary: number;
+  // Additional fields for alignment with external API spec
+  totalGrossSalary?: number;
+  totalTax?: number;
+  totalNetSalary?: number;
+  byStatus?: Array<{
+    status: PayrollStatus;
+    count: number;
+    totalAmount: number;
+  }>;
+  byDepartment?: Array<{
+    department: string;
+    employeeCount: number;
+    totalSalary: number;
+    totalDeductions: number;
+    totalNetSalary: number;
+  }>;
+}
+
+export interface PayrollRecord {
+  id: string;
+  employeeId: string;
+  employee?: {
+    id: string;
+    employeeId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+  };
+  period: string;
+  month: string;
+  year: number;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  netPay: number;
+  status: PayrollStatus;
+  processedAt?: string;
+  paidAt?: string;
 }
 
 interface PayrollState {

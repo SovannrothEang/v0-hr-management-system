@@ -116,7 +116,7 @@ export default function LoginPage() {
               <div className="grid gap-2 text-xs">
                 <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
                   <span className="text-muted-foreground">Admin:</span>
-                  <code className="text-card-foreground">admin@hrflow.com / admin123</code>
+                  <code className="text-card-foreground">admin@example.com / Admin123!</code>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
                   <span className="text-muted-foreground">HR Manager:</span>

@@ -18,10 +18,41 @@ export function useEmployees(params?: {
       if (params?.status && params.status !== "all")
         queryParams.set("status", params.status);
 
-      const response = await apiClient.get<Employee[]>(
+      const response = await apiClient.get<{ data: Employee[]; meta: any } | Employee[]>(
         `/employees?${queryParams.toString()}`
       );
-      return response.data;
+      
+      // Handle both internal API (array) and external API (object with data array)
+      const data = Array.isArray(response.data) ? response.data : (response.data as any).data || [];
+      
+      // Transform external API data to match frontend interface
+      return data.map((emp: any) => ({
+        id: emp.id,
+        employeeId: emp.employeeCode || emp.employeeId,
+        firstName: emp.firstname || emp.firstName,
+        lastName: emp.lastname || emp.lastName,
+        email: emp.user?.email || emp.email,
+        phone: emp.phoneNumber || emp.phone || '',
+        avatar: emp.avatar,
+        department: emp.department?.name || emp.department || '',
+        position: emp.position?.title || emp.position || '',
+        employmentType: emp.employmentType?.toLowerCase() || emp.employmentType,
+        status: emp.status?.toLowerCase() || emp.status,
+        hireDate: emp.hireDate || emp.createdAt,
+        salary: emp.salary || 0,
+        managerId: emp.managerId,
+        address: emp.address,
+        emergencyContact: emp.emergencyContact,
+        bankDetails: emp.bankDetails,
+        gender: emp.gender,
+        dateOfBirth: emp.dateOfBirth,
+        userId: emp.user?.id || emp.userId,
+        positionId: emp.position?.id || emp.positionId,
+        departmentId: emp.department?.id || emp.departmentId,
+        isActive: emp.isActive ?? true,
+        createdAt: emp.createdAt,
+        updatedAt: emp.updatedAt,
+      }));
     },
   });
 }
@@ -96,8 +127,14 @@ export function useDepartments() {
   return useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
-      const response = await apiClient.get<string[]>("/departments");
-      return response.data;
+      const response = await apiClient.get<string[] | { id: string; name: string }[]>("/departments");
+      // Handle both internal API (string[]) and external API (object[])
+      const data = response.data;
+      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+        return data as string[];
+      }
+      // Transform external API objects to department names
+      return (data as { id: string; name: string }[]).map((dept) => dept.name);
     },
   });
 }

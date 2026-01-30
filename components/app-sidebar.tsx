@@ -94,7 +94,7 @@ export function AppSidebar() {
 
   // Filter navigation items based on user roles
   const filteredNavigation = navigation.filter((item) => 
-    roles && roles.some((role) => item.roles.includes(role))
+    roles && roles.some((role) => item.roles.includes(role.toLowerCase()))
   );
 
   const handleLogout = () => {
@@ -104,6 +104,7 @@ export function AppSidebar() {
   };
 
   const getInitials = (name: string) => {
+    if (name.trim().length === 0) return "";
     return name
       .split(" ")
       .map((n) => n[0])
@@ -227,7 +228,7 @@ export function AppSidebar() {
                 <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name} />
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
-                    {user ? getInitials(user.name) : "U"}
+                    {user ? getInitials(user.name ? user.name : "") : "U"}
                   </AvatarFallback>
                 </Avatar>
                 {!isCollapsed && (

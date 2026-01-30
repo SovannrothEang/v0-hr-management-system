@@ -88,7 +88,7 @@ export function EmployeeFormDialog({
         position: employee.position,
         employmentType: employee.employmentType,
         status: employee.status,
-        hireDate: employee.hireDate,
+        hireDate: new Date(employee.hireDate).toISOString().split("T")[0],
         salary: employee.salary,
         address: employee.address || "",
       });

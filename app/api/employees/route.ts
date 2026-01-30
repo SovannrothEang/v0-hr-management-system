@@ -8,6 +8,8 @@ export const GET = withRole(async (request) => {
   const search = searchParams.get("search")?.toLowerCase();
   const department = searchParams.get("department");
   const status = searchParams.get("status");
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
 
   let filtered = [...mockEmployees];
 
@@ -34,7 +36,23 @@ export const GET = withRole(async (request) => {
     filtered = filtered.filter((e) => e.status === status);
   }
 
-  return NextResponse.json({ success: true, data: filtered });
+  // Apply pagination
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / limit);
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const paginatedData = filtered.slice(startIndex, endIndex);
+
+  return NextResponse.json({
+    success: true,
+    data: paginatedData,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  });
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 
 export const POST = withRole(async (request) => {

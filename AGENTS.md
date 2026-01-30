@@ -14,6 +14,7 @@ npm run lint             # Run ESLint
 # Testing - standalone .mjs files requiring dev server running
 node tests/auth.test.mjs            # Auth & RBAC tests (cookie-based auth, CSRF)
 node tests/ui-permissions.test.mjs  # UI permission tests
+node tests/external-api-auth.test.mjs  # External API authentication tests
 
 # Run specific test
 node tests/<filename>.mjs

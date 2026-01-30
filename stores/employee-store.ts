@@ -2,6 +2,19 @@ import { create } from "zustand";
 
 export type EmploymentStatus = "active" | "on_leave" | "terminated" | "probation" | "inactive";
 export type EmploymentType = "full_time" | "part_time" | "contract" | "intern";
+export type Gender = "male" | "female" | "unknown";
+
+export interface EmergencyContact {
+  name: string;
+  phone: string;
+  relationship: string;
+}
+
+export interface BankDetails {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}
 
 export interface Employee {
   id: string;
@@ -19,11 +32,15 @@ export interface Employee {
   salary: number;
   managerId?: string;
   address?: string;
-  emergencyContact?: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
+  emergencyContact?: EmergencyContact;
+  bankDetails?: BankDetails;
+  // Additional fields for alignment with external API spec
+  gender?: Gender;
+  dateOfBirth?: string;
+  userId?: string;
+  positionId?: string;
+  departmentId?: string;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -14,6 +14,24 @@ export interface AttendanceRecord {
   workHours?: number;
   overtime?: number;
   notes?: string;
+  // Additional fields for alignment with external API spec
+  performBy?: string;
+  performer?: {
+    id: string;
+    email: string;
+    name: string;
+  };
+  employee?: {
+    id: string;
+    employeeId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    department: string;
+  };
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LeaveRequest {

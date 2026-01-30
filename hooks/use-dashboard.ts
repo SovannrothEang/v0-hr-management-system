@@ -37,8 +37,9 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ["dashboard", "stats"],
     queryFn: async () => {
-      const response = await apiClient.get<DashboardStats>("/dashboard/stats");
-      return response.data;
+      const response = await apiClient.get<DashboardStats | { data: DashboardStats }>("/dashboard/stats");
+      // Handle both internal API (object) and external API (object with data property)
+      return (response.data as any).data || response.data;
     },
   });
 }
@@ -47,10 +48,11 @@ export function useAttendanceTrend(days: number = 7) {
   return useQuery({
     queryKey: ["dashboard", "attendance-trend", days],
     queryFn: async () => {
-      const response = await apiClient.get<AttendanceTrend[]>(
+      const response = await apiClient.get<{ trend: AttendanceTrend[]; days: number } | AttendanceTrend[]>(
         `/dashboard/attendance-trend?days=${days}`
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with trend array)
+      return Array.isArray(response.data) ? response.data : (response.data as any).trend || [];
     },
   });
 }
@@ -59,10 +61,11 @@ export function useDepartmentDistribution() {
   return useQuery({
     queryKey: ["dashboard", "department-distribution"],
     queryFn: async () => {
-      const response = await apiClient.get<DepartmentDistribution[]>(
+      const response = await apiClient.get<{ departments: DepartmentDistribution[]; totalEmployees: number } | DepartmentDistribution[]>(
         "/dashboard/department-distribution"
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with departments array)
+      return Array.isArray(response.data) ? response.data : (response.data as any).departments || [];
     },
   });
 }
@@ -71,10 +74,11 @@ export function useRecentActivity() {
   return useQuery({
     queryKey: ["dashboard", "recent-activity"],
     queryFn: async () => {
-      const response = await apiClient.get<RecentActivity[]>(
+      const response = await apiClient.get<{ activities: RecentActivity[]; count: number }>(
         "/dashboard/recent-activity"
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with activities array)
+      return Array.isArray(response.data) ? response.data : response.data.activities || [];
     },
   });
 }

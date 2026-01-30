@@ -15,6 +15,7 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           // Content Security Policy
+          // Updated to allow connections to external API
           {
             key: 'Content-Security-Policy',
             value: [
@@ -23,7 +24,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              // Allow connections to localhost API (development) and external API domains
+              "connect-src 'self' http://localhost:3001 https://api.hrflow.com https://staging-api.hrflow.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },

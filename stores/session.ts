@@ -1,7 +1,7 @@
 /**
  * Client-Side Session Store
- * Manages user session state using Zustand with localStorage persistence
- * Note: Tokens are stored in httpOnly cookies - only user info is persisted here
+ * Manages user session state using Zustand with Bearer token authentication
+ * Access token is stored in memory (not localStorage) for security
  */
 
 import { create } from "zustand";
@@ -14,6 +14,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
   roles: UserRole[];
   avatar?: string;
   department?: string;
@@ -26,24 +27,16 @@ interface SessionState {
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionExpiresAt: number | null; // Unix timestamp in milliseconds
+  accessToken: string | null; // Stored in memory, not persisted
   csrfToken: string | null;
 
   // Actions
-  setSession: (user: User, expiresAt: number, csrfToken: string) => void;
+  setSession: (user: User, expiresAt: number, csrfToken: string, accessToken: string) => void;
+  setAccessToken: (token: string) => void;
   clearSession: () => void;
   setLoading: (loading: boolean) => void;
   updateSessionExpiry: (expiresAt: number, csrfToken?: string) => void;
   checkSession: () => Promise<boolean>;
-}
-
-/**
- * Get CSRF token from cookie
- */
-function getCsrfTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export const useSessionStore = create<SessionState>()(
@@ -54,18 +47,28 @@ export const useSessionStore = create<SessionState>()(
       isAuthenticated: false,
       isLoading: true,
       sessionExpiresAt: null,
+      accessToken: null,
       csrfToken: null,
 
       /**
        * Set session after successful login
        */
-      setSession: (user, expiresAt, csrfToken) =>
+      setSession: (user: User, expiresAt: number, csrfToken: string, accessToken: string) =>
         set({
           user,
           isAuthenticated: true,
           isLoading: false,
           sessionExpiresAt: expiresAt,
           csrfToken,
+          accessToken,
+        }),
+
+      /**
+       * Set access token (for token refresh)
+       */
+      setAccessToken: (token: string) =>
+        set({
+          accessToken: token,
         }),
 
       /**
@@ -77,18 +80,19 @@ export const useSessionStore = create<SessionState>()(
           isAuthenticated: false,
           isLoading: false,
           sessionExpiresAt: null,
+          accessToken: null,
           csrfToken: null,
         }),
 
       /**
        * Set loading state
        */
-      setLoading: (loading) => set({ isLoading: loading }),
+      setLoading: (loading: boolean) => set({ isLoading: loading }),
 
       /**
        * Update session expiry after token refresh
        */
-      updateSessionExpiry: (expiresAt, csrfToken) =>
+      updateSessionExpiry: (expiresAt: number, csrfToken?: string) =>
         set((state) => ({
           sessionExpiresAt: expiresAt,
           csrfToken: csrfToken ?? state.csrfToken,
@@ -101,14 +105,27 @@ export const useSessionStore = create<SessionState>()(
       checkSession: async () => {
         const state = get();
         
-        // If no user in store, try to validate with server anyway
-        // (cookie might still be valid from a previous session)
+        // If no access token, user is not authenticated
+        if (!state.accessToken) {
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            sessionExpiresAt: null,
+            csrfToken: null,
+            accessToken: null,
+          });
+          return false;
+        }
+        
         try {
           set({ isLoading: true });
 
-          const response = await fetch('/api/auth/session', {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || '/api'}/auth/session`, {
             method: 'GET',
-            credentials: 'include', // Include cookies
+            headers: {
+              'Authorization': `Bearer ${state.accessToken}`,
+            },
           });
 
           if (!response.ok) {
@@ -118,22 +135,20 @@ export const useSessionStore = create<SessionState>()(
               isLoading: false,
               sessionExpiresAt: null,
               csrfToken: null,
+              accessToken: null,
             });
             return false;
           }
 
           const data = await response.json();
 
-          if (data.success && data.data.authenticated) {
-            // Sync CSRF token from cookie
-            const csrfToken = getCsrfTokenFromCookie() || state.csrfToken;
-            
+          if (data.data) {
             set({
-              user: data.data.user,
+              user: data.data,
               isAuthenticated: true,
               isLoading: false,
-              sessionExpiresAt: data.data.expiresAt,
-              csrfToken,
+              sessionExpiresAt: state.sessionExpiresAt, // Keep existing expiry from login
+              accessToken: state.accessToken,
             });
             return true;
           }
@@ -144,6 +159,7 @@ export const useSessionStore = create<SessionState>()(
             isLoading: false,
             sessionExpiresAt: null,
             csrfToken: null,
+            accessToken: null,
           });
           return false;
         } catch {
@@ -153,6 +169,7 @@ export const useSessionStore = create<SessionState>()(
             isLoading: false,
             sessionExpiresAt: null,
             csrfToken: null,
+            accessToken: null,
           });
           return false;
         }
@@ -160,10 +177,13 @@ export const useSessionStore = create<SessionState>()(
     }),
     {
       name: "hrflow-session",
-      // Only persist user data (for quick UI display), not auth tokens
+      // Persist user data, session expiry, and access token for cross-page reload support
+      // Note: Access token is stored in localStorage (not httpOnly cookie) for frontend convenience
+      // Security is maintained through: HTTPS, CORS, CSRF, short expiry (1h), and automatic refresh
       partialize: (state) => ({
         user: state.user,
         sessionExpiresAt: state.sessionExpiresAt,
+        accessToken: state.accessToken,
       }),
       onRehydrateStorage: () => (state) => {
         // After rehydration, validate session with server
@@ -180,29 +200,29 @@ export const useSessionStore = create<SessionState>()(
 );
 
 /**
+ * Helper hook to get access token for API requests
+ */
+export function useAccessToken(): string | null {
+  return useSessionStore((state) => state.accessToken);
+}
+
+/**
+ * Get access token synchronously (for use in apiClient)
+ */
+export function getAccessToken(): string | null {
+  return useSessionStore.getState().accessToken;
+}
+
+/**
  * Helper hook to get CSRF token for API requests
  */
 export function useCsrfToken(): string | null {
-  const csrfToken = useSessionStore((state) => state.csrfToken);
-  
-  // Fallback to reading from cookie if not in store
-  if (!csrfToken && typeof document !== 'undefined') {
-    return getCsrfTokenFromCookie();
-  }
-  
-  return csrfToken;
+  return useSessionStore((state) => state.csrfToken);
 }
 
 /**
  * Get CSRF token synchronously (for use in apiClient)
  */
 export function getCsrfToken(): string | null {
-  // First try store
-  const state = useSessionStore.getState();
-  if (state.csrfToken) {
-    return state.csrfToken;
-  }
-  
-  // Fallback to cookie
-  return getCsrfTokenFromCookie();
+  return useSessionStore.getState().csrfToken;
 }

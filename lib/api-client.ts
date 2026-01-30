@@ -1,27 +1,20 @@
 /**
  * API Client
- * Handles all API requests with cookie-based authentication and CSRF protection
- * Cookies are automatically sent by the browser - no manual token handling needed
+ * Handles all API requests with Bearer token authentication
+ * Access token is stored in memory (React state) for security
+ * CSRF token is stored in memory for state-changing requests
  */
 
-import { getCsrfToken } from "@/stores/session";
+import { getAccessToken, getCsrfToken } from "@/stores/session";
 
-const API_BASE_URL = "/api";
+// Get API base URL from environment variable
+// Falls back to "/api" for backward compatibility with Next.js API routes
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 interface ApiResponse<T> {
   data: T;
   message?: string;
   success: boolean;
-}
-
-/**
- * Get CSRF token from cookie (fallback if store doesn't have it)
- */
-function getCsrfTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
 }
 
 /**
@@ -42,18 +35,6 @@ class ApiClient {
   }
 
   /**
-   * Get CSRF token for requests
-   */
-  private getCsrfToken(): string | null {
-    // First try the store
-    const storeToken = getCsrfToken();
-    if (storeToken) return storeToken;
-    
-    // Fallback to reading from cookie
-    return getCsrfTokenFromCookie();
-  }
-
-  /**
    * Attempt to refresh the session
    */
   private async refreshSession(): Promise<boolean> {
@@ -67,7 +48,6 @@ class ApiClient {
       try {
         const response = await fetch(`${this.baseUrl}/auth/refresh`, {
           method: 'POST',
-          credentials: 'include', // Include cookies
           headers: { 'Content-Type': 'application/json' },
         });
 
@@ -76,7 +56,13 @@ class ApiClient {
         }
 
         const data = await response.json();
-        return data.success;
+        if (data.success && data.data?.accessToken) {
+          // Update access token in store
+          const { useSessionStore } = await import("@/stores/session");
+          useSessionStore.getState().setAccessToken(data.data.accessToken);
+          return true;
+        }
+        return false;
       } catch {
         return false;
       } finally {
@@ -105,18 +91,23 @@ class ApiClient {
       ...(options?.headers as Record<string, string>),
     };
     
+    // Add Bearer token for authenticated requests
+    const accessToken = getAccessToken();
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    
     // Add CSRF token for state-changing requests
     if (requiresCsrf(method)) {
-      const csrfToken = this.getCsrfToken();
+      const csrfToken = getCsrfToken();
       if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
+        headers['x-csrf-token'] = csrfToken;
       }
     }
     
     const response = await fetch(url, {
       ...options,
       headers,
-      credentials: 'include', // Always include cookies
     });
 
     if (!response.ok) {

@@ -1,6 +1,7 @@
 /**
  * Authentication Hooks
- * Provides login and logout functionality using cookie-based sessions
+ * Provides login and logout functionality using Bearer token authentication
+ * Access token is stored in memory (React state) for security
  */
 
 import { useMutation } from "@tanstack/react-query";
@@ -14,32 +15,53 @@ interface LoginCredentials {
 }
 
 interface LoginResponse {
+  accessToken: string;
   user: User;
   expiresAt: number;
-  csrfToken: string;
+  csrfToken?: string;
 }
 
 /**
  * Hook for user login
- * Sends credentials to server, which sets httpOnly cookies
- * Client stores user info and CSRF token only
+ * Sends credentials to server, receives access token
+ * Client stores access token in memory (not localStorage)
  */
 export function useLogin() {
   const setSession = useSessionStore((state) => state.setSession);
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const response = await apiClient.post<LoginResponse>(
-        "/auth/login",
-        credentials
+      // Use fetch directly to avoid circular dependency with apiClient
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api'}/auth/login`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials),
+        }
       );
-      return response.data;
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Login failed');
+      }
+      
+      const data = await response.json();
+      
+      // Extract CSRF token from cookies
+      const cookies = response.headers.get('set-cookie');
+      const csrfToken = cookies?.match(/csrf_token=([^;]+)/)?.[1] || '';
+      
+      return {
+        ...data.data,
+        csrfToken,
+      };
     },
-    onSuccess: (data) => {
-      // Store user info and session data (no tokens stored client-side)
-      setSession(data.user, data.expiresAt, data.csrfToken);
+    onSuccess: (data: LoginResponse & { csrfToken?: string }) => {
+      // Store user info, access token, and CSRF token in memory
+      setSession(data.user, data.expiresAt, data.csrfToken || '', data.accessToken);
       toast.success("Login successful", {
-        description: `Welcome back, ${data.user.name}!`,
+        description: `Welcome back, ${data.user.name || data.user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -52,13 +74,14 @@ export function useLogin() {
 
 /**
  * Hook for user logout
- * Calls server to clear httpOnly cookies, then clears client state
+ * Clears session state (access token is in memory, so it's automatically cleared)
  */
 export function useLogout() {
   const clearSession = useSessionStore((state) => state.clearSession);
 
   return useMutation({
     mutationFn: async () => {
+      // Call logout endpoint if needed
       await apiClient.post("/auth/logout");
     },
     onSuccess: () => {
@@ -74,7 +97,7 @@ export function useLogout() {
 
 /**
  * Hook for refreshing the session
- * Calls server to refresh tokens in cookies
+ * Calls server to refresh access token
  */
 export function useRefreshSession() {
   const updateSessionExpiry = useSessionStore((state) => state.updateSessionExpiry);
@@ -82,14 +105,13 @@ export function useRefreshSession() {
   return useMutation({
     mutationFn: async () => {
       const response = await apiClient.post<{
-        user: User;
+        accessToken: string;
         expiresAt: number;
-        csrfToken: string;
       }>("/auth/refresh");
       return response.data;
     },
     onSuccess: (data) => {
-      updateSessionExpiry(data.expiresAt, data.csrfToken);
+      updateSessionExpiry(data.expiresAt);
     },
   });
 }
