@@ -86,9 +86,33 @@ export function useEmployees(params?: {
       }
 
       // Paginated response from external API
+      const data = resData.data.map(transformEmployee);
+      const meta = resData.meta || {
+        page: params?.page || 1,
+        limit: params?.limit || 10,
+        total: data.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrevious: false,
+      };
+
+      // Ensure all meta fields are present and correct
+      const total = meta.total ?? data.length;
+      const metaLimit = meta.limit ?? params?.limit ?? 10;
+      const totalPages = meta.totalPages ?? Math.ceil(total / metaLimit);
+      const page = meta.page ?? params?.page ?? 1;
+
       return {
-        data: resData.data.map(transformEmployee),
-        meta: resData.meta,
+        data,
+        meta: {
+          ...meta,
+          page,
+          limit: metaLimit,
+          total,
+          totalPages,
+          hasNext: meta.hasNext ?? page < totalPages,
+          hasPrevious: meta.hasPrevious ?? page > 1,
+        },
       };
     },
   });

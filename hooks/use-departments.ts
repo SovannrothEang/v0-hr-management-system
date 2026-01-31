@@ -78,15 +78,32 @@ export function useDepartments(params?: {
       // Paginated response from external API
       if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data)) {
         const paginatedData = data as PaginatedResponse<any>;
+        const transformedData = paginatedData.data.map(transformDepartment);
+        const meta = paginatedData.meta || {
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+          total: transformedData.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrevious: false,
+        };
+
+        // Ensure all meta fields are present and correct
+        const total = meta.total ?? transformedData.length;
+        const metaLimit = meta.limit ?? params?.limit ?? 10;
+        const totalPages = meta.totalPages ?? Math.ceil(total / metaLimit);
+        const page = meta.page ?? params?.page ?? 1;
+
         return {
-          data: paginatedData.data.map(transformDepartment),
-          meta: paginatedData.meta || {
-            page: params?.page || 1,
-            limit: params?.limit || 10,
-            total: paginatedData.data.length,
-            totalPages: 1,
-            hasNext: false,
-            hasPrevious: false,
+          data: transformedData,
+          meta: {
+            ...meta,
+            page,
+            limit: metaLimit,
+            total,
+            totalPages,
+            hasNext: meta.hasNext ?? page < totalPages,
+            hasPrevious: meta.hasPrevious ?? page > 1,
           },
         };
       }

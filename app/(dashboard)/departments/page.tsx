@@ -266,58 +266,56 @@ export default function DepartmentsPage() {
       )}
 
       {/* Pagination */}
-      {meta && meta.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-          <p className="text-sm text-muted-foreground">
-            Showing {meta.page * meta.limit - meta.limit + 1} to{" "}
-            {Math.min(meta.page * meta.limit, meta.total)} of {meta.total} departments
-          </p>
+      {meta && (
+        <div className="flex items-center justify-end space-x-6 lg:space-x-8 mt-6 border-t pt-6">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Rows per page:</span>
+            <Select
+              value={limit.toString()}
+              onValueChange={(value) => updatePage(1, parseInt(value))}
+            >
+              <SelectTrigger className="h-8 w-[70px] border-none shadow-none focus:ring-0">
+                <SelectValue placeholder={limit.toString()} />
+              </SelectTrigger>
+              <SelectContent side="top">
+                {[10, 20, 50, 100].map((pageSize) => (
+                  <SelectItem key={pageSize} value={pageSize.toString()}>
+                    {pageSize}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
-              <Select
-                value={limit.toString()}
-                onValueChange={(value) => updatePage(1, parseInt(value))}
-              >
-                <SelectTrigger className="h-8 w-[70px]">
-                  <SelectValue placeholder={limit.toString()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 50, 100].map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center text-sm font-medium text-muted-foreground">
+            {meta.total > 0 ? (
+              `${(meta.page - 1) * meta.limit + 1}–${Math.min(meta.page * meta.limit, meta.total)} of ${meta.total}`
+            ) : (
+              "0–0 of 0"
+            )}
+          </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={!meta.hasPrevious}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-
-              <span className="text-sm text-muted-foreground">
-                Page {meta.page} of {meta.totalPages}
-              </span>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={!meta.hasNext}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handlePreviousPage}
+              disabled={!meta.hasPrevious}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Previous page</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleNextPage}
+              disabled={!meta.hasNext}
+            >
+              <ChevronRight className="h-4 w-4" />
+              <span className="sr-only">Next page</span>
+            </Button>
           </div>
         </div>
       )}
