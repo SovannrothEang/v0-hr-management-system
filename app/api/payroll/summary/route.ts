@@ -3,17 +3,30 @@ import { mockPayrollRecords } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
-export const GET = withRole(async () => {
-  const summary = {
-    totalPayroll: mockPayrollRecords.reduce((acc, p) => acc + p.netPay, 0),
-    totalEmployees: mockPayrollRecords.length,
-    totalOvertimePaid: mockPayrollRecords.reduce((acc, p) => acc + p.allowances, 0),
-    totalBonuses: 0, // No bonus field, set to 0
-    totalDeductions: mockPayrollRecords.reduce((acc, p) => acc + p.deductions, 0),
-    averageSalary:
-      mockPayrollRecords.reduce((acc, p) => acc + p.netPay, 0) /
-      mockPayrollRecords.length,
-  };
+export const GET = withRole(async (request) => {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll/summary`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
 
-  return NextResponse.json({ success: true, data: summary });
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch payroll summary" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

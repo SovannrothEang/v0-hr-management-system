@@ -11,11 +11,13 @@ export const GET = withAuth(async (request) => {
 
     const params = new URLSearchParams();
     params.set("page", page.toString());
+    params.set("pageSize", limit.toString());
     params.set("limit", limit.toString());
+    params.set("childIncluded", "true");
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments?${params.toString()}`, {
       headers: {
-        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
       },
     });
 
@@ -28,12 +30,16 @@ export const GET = withAuth(async (request) => {
 
     const data = await response.json();
 
+    // Handle potential double nesting from external API
+    const rawDepartments = data.data?.data || data.data || [];
+    const rawMeta = data.data?.meta || data.meta;
+
     // Transform external API data to match frontend interface
-    const departments = (data.data || []).map((dept: any) => ({
+    const departments = rawDepartments.map((dept: any) => ({
       id: dept.id,
-      name: dept.name || dept.departmentName,
-      employeeCount: dept.employees?.length || 0,
-      percentage: 0, // Will be calculated on frontend if needed
+      name: dept.name || dept.departmentName || dept.title,
+      employeeCount: dept.employees?.length || dept.employeeCount || 0,
+      percentage: 0,
       createdAt: dept.createdAt,
       updatedAt: dept.updatedAt,
     }));
@@ -42,7 +48,7 @@ export const GET = withAuth(async (request) => {
       success: true,
       data: {
         data: departments,
-        meta: data.meta || {
+        meta: rawMeta || {
           page,
           limit,
           total: departments.length,
@@ -70,7 +76,7 @@ export const POST = withRole(async (request) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
         body: JSON.stringify(body),
       }
@@ -86,106 +92,6 @@ export const POST = withRole(async (request) => {
 
     const data = await response.json();
     return NextResponse.json({ success: true, data: data.data });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
-
-export const PUT = withRole(async (request) => {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "Department ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments/${id}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        },
-        body: JSON.stringify(body),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { success: false, message: errorData.message || "Failed to update department" },
-        { status: response.status }
-      );
-    }
-
-    // PUT returns 204 No Content, so we need to fetch the updated department
-    const getResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments/${id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        },
-      }
-    );
-
-    if (!getResponse.ok) {
-      return NextResponse.json(
-        { success: false, message: "Failed to fetch updated department" },
-        { status: getResponse.status }
-      );
-    }
-
-    const data = await getResponse.json();
-    return NextResponse.json({ success: true, data: data.data });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
-
-export const DELETE = withRole(async (request) => {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "Department ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments/${id}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { success: false, message: errorData.message || "Failed to delete department" },
-        { status: response.status }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: null });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Internal server error" },

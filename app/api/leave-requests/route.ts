@@ -1,44 +1,67 @@
 import { NextResponse } from "next/server";
-import { mockLeaveRequests } from "@/lib/mock-data";
 import { withAuth } from "@/lib/auth/with-auth";
-import { ROLES } from "@/lib/constants/roles";
 
 export const GET = withAuth(async (request) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const employeeId = searchParams.get("employeeId");
 
-  let filtered = [...mockLeaveRequests];
+  try {
+    const params = new URLSearchParams();
+    if (status && status !== "all") params.set("status", status);
+    if (employeeId) params.set("employeeId", employeeId);
 
-  // Employees can only see their own leave requests
-  if (request.user.roles.includes(ROLES.EMPLOYEE) && !request.user.roles.includes(ROLES.ADMIN) && !request.user.roles.includes(ROLES.HR_MANAGER)) {
-    filtered = filtered.filter((l) => l.employeeId === request.user.employeeId);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/leave-requests?${params.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch leave requests" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  if (status && status !== "all") {
-    filtered = filtered.filter((l) => l.status === status);
-  }
-
-  if (employeeId) {
-    filtered = filtered.filter((l) => l.employeeId === employeeId);
-  }
-
-  return NextResponse.json({ success: true, data: filtered });
 });
 
 export const POST = withAuth(async (request) => {
   try {
     const body = await request.json();
 
-    const newRequest = {
-      ...body,
-      id: `leave-${Date.now()}`,
-      employeeId: request.user.employeeId || request.user.id,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/leave-requests`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
-    return NextResponse.json({ success: true, data: newRequest });
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to create leave request" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to create leave request" },

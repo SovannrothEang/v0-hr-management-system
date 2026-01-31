@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -50,8 +51,13 @@ export function EmployeeTable({
   onEdit,
   onDelete,
 }: EmployeeTableProps) {
+  const router = useRouter();
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const { isEmployee } = usePermissions();
+
+  const handleRowClick = (employee: Employee) => {
+    router.push(`/employees/${employee.id}`);
+  };
 
   const toggleRow = (id: string) => {
     const newSelected = new Set(selectedRows);
@@ -110,7 +116,7 @@ export function EmployeeTable({
                   "cursor-pointer",
                   selectedRows.has(employee.id) && "bg-secondary/20"
                 )}
-                onClick={() => onView(employee)}
+                onClick={() => handleRowClick(employee)}
               >
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Checkbox
@@ -164,9 +170,9 @@ export function EmployeeTable({
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onView(employee)}>
+                      <DropdownMenuItem onClick={() => router.push(`/employees/${employee.id}`)}>
                         <Eye className="mr-2 h-4 w-4" />
-                        View Details
+                        View Profile
                       </DropdownMenuItem>
                       {!isEmployee && (
                         <>

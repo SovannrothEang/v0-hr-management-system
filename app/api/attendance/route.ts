@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockAttendanceRecords } from "@/lib/mock-data";
 import { withAuth } from "@/lib/auth/with-auth";
 
 export const GET = withAuth(async (request) => {
@@ -9,19 +8,35 @@ export const GET = withAuth(async (request) => {
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
 
-  let filtered = [...mockAttendanceRecords];
+  try {
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    if (employeeId) params.set("employeeId", employeeId);
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
 
-  if (date) {
-    filtered = filtered.filter((a) => a.date === date);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendance?${params.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch attendance records" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  if (employeeId) {
-    filtered = filtered.filter((a) => a.employeeId === employeeId);
-  }
-
-  if (startDate && endDate) {
-    filtered = filtered.filter((a) => a.date >= startDate && a.date <= endDate);
-  }
-
-  return NextResponse.json({ success: true, data: filtered });
 });

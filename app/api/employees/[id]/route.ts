@@ -13,7 +13,7 @@ export const GET = withRole(async (
       `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
       }
     );
@@ -49,7 +49,7 @@ export const PUT = withRole(async (
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
         body: JSON.stringify(body),
       }
@@ -86,7 +86,7 @@ export const PATCH = withRole(async (
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
         body: JSON.stringify(body),
       }
@@ -121,7 +121,7 @@ export const DELETE = withRole(async (
       {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
       }
     );

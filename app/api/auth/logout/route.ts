@@ -14,6 +14,23 @@ export async function POST(request: NextRequest) {
     // Get current user before clearing session (for audit log)
     const user = getAuthSessionFromRequest(request);
 
+    // Call external API logout if possible
+    if (user?.externalAccessToken) {
+      try {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/auth/logout`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${user.externalAccessToken}`,
+            },
+          }
+        ).catch(() => {}); // Ignore errors on external logout
+      } catch (e) {
+        // Ignore errors
+      }
+    }
+
     // Create response
     const response = NextResponse.json({ 
       success: true, 

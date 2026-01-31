@@ -4,21 +4,29 @@ import { withAuth } from "@/lib/auth/with-auth";
 export const POST = withAuth(async (request) => {
   try {
     const body = await request.json();
-    const { employeeId } = body;
 
-    const now = new Date();
-    const clockOutTime = now.toTimeString().slice(0, 5);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendance/clock-out`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
-    const record = {
-      id: `att-${Date.now()}`,
-      employeeId,
-      date: now.toISOString().split("T")[0],
-      clockOut: clockOutTime,
-      status: "present",
-      workHours: 8,
-    };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        { success: false, message: errorData.message || "Failed to clock out" },
+        { status: response.status }
+      );
+    }
 
-    return NextResponse.json({ success: true, data: record });
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to clock out" },

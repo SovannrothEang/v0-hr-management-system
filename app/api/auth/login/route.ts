@@ -9,35 +9,6 @@ import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log"
 import { checkRateLimit, getClientId, RateLimitPresets } from "@/lib/rate-limit";
 import { createAuthSession, SessionUser } from "@/lib/session";
 
-const mockUsers = [
-  {
-    id: "admin-1",
-    email: "admin@hrflow.com",
-    password: "admin123",
-    name: "Admin User",
-    roles: [ROLES.ADMIN],
-    department: "Administration",
-  },
-  {
-    id: "hr-1",
-    email: "hr@hrflow.com",
-    password: "hr123",
-    name: "Emily Rodriguez",
-    roles: [ROLES.HR_MANAGER],
-    department: "Human Resources",
-    employeeId: "EMP003",
-  },
-  {
-    id: "emp-1",
-    email: "sarah.johnson@hrflow.com",
-    password: "emp123",
-    name: "Sarah Johnson",
-    roles: [ROLES.EMPLOYEE],
-    department: "Engineering",
-    employeeId: "EMP001",
-  },
-];
-
 export async function POST(request: Request) {
   try {
     const metadata = getRequestMetadata(request);
@@ -77,26 +48,31 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password } = body;
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const user = mockUsers.find(
-      (u) => u.email === email && u.password === password
+    // Call external API for login
+    const externalApiResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/auth/login`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      }
     );
 
-    if (!user) {
+    if (!externalApiResponse.ok) {
+      const errorData = await externalApiResponse.json().catch(() => ({}));
+      
       // Log failed login attempt
       logAuditEvent(AuditAction.LOGIN_FAILED, null, {
         ...metadata,
         success: false,
         details: { email },
-        errorMessage: "Invalid email or password",
+        errorMessage: errorData.message || "Invalid email or password",
       });
       
       return NextResponse.json(
-        { success: false, message: "Invalid email or password" },
+        { success: false, message: errorData.message || "Invalid email or password" },
         { 
-          status: 401,
+          status: externalApiResponse.status,
           headers: {
             'X-RateLimit-Limit': RateLimitPresets.AUTH.maxRequests.toString(),
             'X-RateLimit-Remaining': rateLimit.remaining.toString(),
@@ -106,14 +82,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Prepare user data (without password)
+    const loginData = await externalApiResponse.json();
+    const externalUser = loginData.data.user;
+    const externalAccessToken = loginData.data.accessToken;
+
+    // Prepare user data for Next.js session
     const sessionUser: SessionUser = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      roles: user.roles,
-      department: user.department,
-      employeeId: user.employeeId,
+      id: externalUser.id,
+      email: externalUser.email,
+      name: externalUser.name,
+      roles: externalUser.roles,
+      department: externalUser.department,
+      employeeId: externalUser.employeeId,
+      externalAccessToken: externalAccessToken,
     };
 
     // Create response
@@ -121,7 +102,14 @@ export async function POST(request: Request) {
       {
         success: true,
         data: {
-          user: sessionUser,
+          user: {
+            id: sessionUser.id,
+            email: sessionUser.email,
+            name: sessionUser.name,
+            roles: sessionUser.roles,
+            department: sessionUser.department,
+            employeeId: sessionUser.employeeId,
+          },
           // expiresAt and csrfToken will be added below
         },
       },
@@ -142,20 +130,27 @@ export async function POST(request: Request) {
       ...metadata,
       success: true,
       details: { 
-        email: user.email,
-        roles: user.roles,
+        email: sessionUser.email,
+        roles: sessionUser.roles,
       },
     });
 
     // Return response with session info
-    // Note: We need to reconstruct the response to include session data
     const finalResponse = NextResponse.json(
       {
         success: true,
         data: {
-          user: sessionUser,
+          user: {
+            id: sessionUser.id,
+            email: sessionUser.email,
+            name: sessionUser.name,
+            roles: sessionUser.roles,
+            department: sessionUser.department,
+            employeeId: sessionUser.employeeId,
+          },
           expiresAt: sessionData.expiresAt,
           csrfToken: sessionData.csrfToken,
+          accessToken: sessionData.accessToken,
         },
       },
       {

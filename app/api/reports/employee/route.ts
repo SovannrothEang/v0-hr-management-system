@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockEmployees } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
@@ -7,11 +6,30 @@ export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
   const department = searchParams.get("department");
 
-  let employees = [...mockEmployees];
+  try {
+    // Fetch all employees for report (without pagination if possible, or large limit)
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees?limit=1000`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
 
-  if (department && department !== "all") {
-    employees = employees.filter((emp) => emp.department === department);
-  }
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch employee data for report" },
+        { status: response.status }
+      );
+    }
+
+    const resData = await response.json();
+    let employees = resData.data;
+
+    if (department && department !== "all") {
+      employees = employees.filter((emp: any) => emp.department === department);
+    }
 
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter((e) => e.status === "active").length;

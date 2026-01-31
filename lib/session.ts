@@ -43,12 +43,14 @@ export interface SessionUser {
   roles: RoleName[];
   department?: string;
   employeeId?: string;
+  externalAccessToken?: string;
 }
 
 export interface SessionData {
   user: SessionUser;
   expiresAt: number; // Unix timestamp in milliseconds
   csrfToken: string;
+  accessToken: string;
 }
 
 /**
@@ -97,6 +99,7 @@ export function createAuthSession(
     roles: user.roles,
     department: user.department,
     employeeId: user.employeeId,
+    externalAccessToken: user.externalAccessToken,
   };
 
   const accessToken = generateToken(tokenPayload as Omit<JWTPayload, 'iat' | 'exp'>);
@@ -146,6 +149,7 @@ export function createAuthSession(
     user,
     expiresAt,
     csrfToken,
+    accessToken,
   };
 }
 
@@ -170,6 +174,7 @@ export async function getAuthSession(): Promise<SessionUser | null> {
       roles: payload.roles,
       department: payload.department,
       employeeId: payload.employeeId,
+      externalAccessToken: payload.externalAccessToken,
     };
   } catch {
     return null;
@@ -303,6 +308,7 @@ export function refreshAuthSession(
       roles: payload.roles,
       department: payload.department,
       employeeId: payload.employeeId,
+      externalAccessToken: payload.externalAccessToken,
     };
 
     // Create new session (not a new login, so don't clear compromised status)

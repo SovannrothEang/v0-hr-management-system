@@ -1,34 +1,33 @@
 import { NextResponse } from "next/server";
-import { mockEmployees } from "@/lib/mock-data";
-import type { PayrollRecord } from "@/types";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
 export const POST = withRole(async (request) => {
   try {
     const body = await request.json();
-    const { month, year } = body;
-    const period = `${month} ${year}`;
 
-    const payrollRecords: PayrollRecord[] = mockEmployees
-      .filter((emp) => emp.status === "active")
-      .map((emp, index) => ({
-        id: `payroll-gen-${Date.now()}-${index}`,
-        employeeId: emp.id,
-        employee: emp,
-        period,
-        month,
-        year,
-        basicSalary: emp.salary / 12,
-        allowances: Math.random() > 0.7 ? Math.floor(Math.random() * 500) : 0,
-        deductions: Math.floor((emp.salary / 12) * 0.05),
-        netPay: Math.floor((emp.salary / 12) * 0.95),
-        status: "pending" as const,
-        processedAt: undefined,
-        paidAt: undefined,
-      }));
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll/generate`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
-    return NextResponse.json({ success: true, data: payrollRecords });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        { success: false, message: errorData.message || "Failed to generate payroll" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to generate payroll" },

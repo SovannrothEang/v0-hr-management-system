@@ -6,37 +6,55 @@ import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log"
 export const POST = withRole(async (request) => {
   try {
     const body = await request.json();
-    const { ids } = body;
     const metadata = getRequestMetadata(request);
 
-    // Get user from request (set by withRole middleware)
-    const user = (request as any).user;
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll/mark-paid`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, request.user, {
+        ...metadata,
+        resource: 'payroll',
+        success: false,
+        errorMessage: errorData.message || 'Failed to mark as paid',
+      });
+
+      return NextResponse.json(
+        { success: false, message: errorData.message || "Failed to mark payroll as paid" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
 
     // Log the critical action
-    logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, user, {
+    logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, request.user, {
       ...metadata,
       resource: 'payroll',
       details: { 
-        payrollIds: ids,
-        count: ids.length,
+        payrollIds: body.ids,
+        count: body.ids?.length,
       },
       success: true,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: ids.map((id: string) => ({
-        id,
-        status: "paid",
-        paidAt: new Date().toISOString(),
-      })),
-    });
+    return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
     // Log the failed action
-    const user = (request as any).user;
     const metadata = getRequestMetadata(request);
     
-    logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, user, {
+    logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, request.user, {
       ...metadata,
       resource: 'payroll',
       success: false,

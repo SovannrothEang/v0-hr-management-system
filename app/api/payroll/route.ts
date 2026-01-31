@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockPayrollRecords } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
@@ -9,19 +8,34 @@ export const GET = withRole(async (request) => {
   const status = searchParams.get("status");
   const employeeId = searchParams.get("employeeId");
 
-  let filtered = [...mockPayrollRecords];
+  try {
+    const params = new URLSearchParams();
+    if (period) params.set("period", period);
+    if (status && status !== "all") params.set("status", status);
+    if (employeeId) params.set("employeeId", employeeId);
 
-  if (period) {
-    filtered = filtered.filter((p) => p.period === period);
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll?${params.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch payroll records" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  if (status && status !== "all") {
-    filtered = filtered.filter((p) => p.status === status);
-  }
-
-  if (employeeId) {
-    filtered = filtered.filter((p) => p.employeeId === employeeId);
-  }
-
-  return NextResponse.json({ success: true, data: filtered });
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

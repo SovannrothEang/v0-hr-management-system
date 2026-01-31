@@ -67,7 +67,7 @@ export default function DepartmentsPage() {
   const departments = deptResult?.data || [];
   const meta = deptResult?.meta;
   const employees = empResult?.data || [];
-  const totalEmployeesCount = employees.length || 0;
+  const totalEmployeesCount = empResult?.meta?.total || employees.length || 0;
 
   const updatePage = (newPage: number, newLimit?: number) => {
     const params = new URLSearchParams(searchParams);

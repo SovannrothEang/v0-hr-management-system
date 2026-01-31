@@ -4,22 +4,29 @@ import { withAuth } from "@/lib/auth/with-auth";
 export const POST = withAuth(async (request) => {
   try {
     const body = await request.json();
-    const { employeeId } = body;
 
-    const now = new Date();
-    const clockInTime = now.toTimeString().slice(0, 5);
-    const isLate = now.getHours() >= 9 && now.getMinutes() > 15;
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendance/clock-in`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
-    const record = {
-      id: `att-${Date.now()}`,
-      employeeId,
-      date: now.toISOString().split("T")[0],
-      clockIn: clockInTime,
-      status: isLate ? "late" : "present",
-      workHours: 0,
-    };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        { success: false, message: errorData.message || "Failed to clock in" },
+        { status: response.status }
+      );
+    }
 
-    return NextResponse.json({ success: true, data: record });
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to clock in" },

@@ -18,12 +18,13 @@ export const GET = withRole(async (request) => {
     if (status && status !== "all") params.set("status", status);
     params.set("page", page.toString());
     params.set("limit", limit.toString());
+    params.set("pageSize", limit.toString());
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees?${params.toString()}`,
       {
         headers: {
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
       }
     );
@@ -36,11 +37,16 @@ export const GET = withRole(async (request) => {
     }
 
     const data = await response.json();
+    
+    // Handle potential double nesting from external API
+    const rawEmployees = data.data?.data || data.data || [];
+    const rawMeta = data.data?.meta || data.meta;
+
     return NextResponse.json({
       success: true,
       data: {
-        data: data.data,
-        meta: data.meta
+        data: rawEmployees,
+        meta: rawMeta
       }
     });
   } catch (error) {
@@ -61,7 +67,7 @@ export const POST = withRole(async (request) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
         },
         body: JSON.stringify(body),
       }

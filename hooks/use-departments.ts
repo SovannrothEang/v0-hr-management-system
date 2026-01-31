@@ -76,14 +76,14 @@ export function useDepartments(params?: {
       }
 
       // Paginated response from external API
-      if (data && typeof data === 'object' && 'data' in data && typeof (data as any).data === 'object' && 'data' in (data as any).data) {
-        const nestedData = (data as any).data;
+      if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data)) {
+        const paginatedData = data as PaginatedResponse<any>;
         return {
-          data: nestedData.data.map(transformDepartment),
-          meta: nestedData.meta || {
+          data: paginatedData.data.map(transformDepartment),
+          meta: paginatedData.meta || {
             page: params?.page || 1,
             limit: params?.limit || 10,
-            total: nestedData.data.length,
+            total: paginatedData.data.length,
             totalPages: 1,
             hasNext: false,
             hasPrevious: false,
@@ -139,7 +139,8 @@ export function useUpdateDepartment() {
         throw new Error("No changes detected");
       }
 
-      const response = await apiClient.put<Department | { data: Department }>(`/departments?id=${id}`, changes);
+      // Use PATCH endpoint for partial updates
+      const response = await apiClient.patch<Department | { data: Department }>(`/departments/${id}`, changes);
       const resData = response.data;
       return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
@@ -158,7 +159,7 @@ export function useDeleteDepartment() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await apiClient.delete(`/departments?id=${id}`);
+      await apiClient.delete(`/departments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });

@@ -41,53 +41,47 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { 
-    name: "Dashboard", 
-    href: "/dashboard", 
+  {
+    name: "Dashboard",
+    href: "/dashboard",
     icon: LayoutDashboard,
     roles: ['admin', 'hr_manager', 'employee'] // All roles
   },
-  { 
-    name: "Employees", 
-    href: "/employees", 
+  {
+    name: "Employees",
+    href: "/employees",
     icon: Users,
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
-  { 
-    name: "Departments", 
-    href: "/departments", 
+  {
+    name: "Departments",
+    href: "/departments",
     icon: Briefcase,
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
-  { 
-    name: "Attendance", 
-    href: "/attendance", 
+  {
+    name: "Attendance",
+    href: "/attendance",
     icon: Clock,
     roles: ['admin', 'hr_manager', 'employee'] // All roles
   },
-  { 
-    name: "Leave Requests", 
-    href: "/leave-requests", 
+  {
+    name: "Leave Requests",
+    href: "/leave-requests",
     icon: CalendarDays,
     roles: ['admin', 'hr_manager', 'employee'] // All roles
   },
-  { 
-    name: "Payroll", 
-    href: "/payroll", 
+  {
+    name: "Payroll",
+    href: "/payroll",
     icon: DollarSign,
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
-  { 
-    name: "Reports", 
-    href: "/reports", 
+  {
+    name: "Reports",
+    href: "/reports",
     icon: FileText,
     roles: ['admin', 'hr_manager'] // Admin and HR only
-  },
-  { 
-    name: "Settings", 
-    href: "/settings", 
-    icon: Settings,
-    roles: ['admin', 'hr_manager', 'employee'] // All roles
   },
 ];
 
@@ -100,7 +94,7 @@ export function AppSidebar() {
   const { roles } = usePermissions();
 
   // Filter navigation items based on user roles
-  const filteredNavigation = navigation.filter((item) => 
+  const filteredNavigation = navigation.filter((item) =>
     roles && roles.some((role) => item.roles.includes(role.toLowerCase()))
   );
 
@@ -247,8 +241,8 @@ export function AppSidebar() {
                       {user?.roles?.includes("admin")
                         ? "Administrator"
                         : user?.roles?.includes("hr_manager")
-                        ? "HR Manager"
-                        : "Employee"}
+                          ? "HR Manager"
+                          : "Employee"}
                     </p>
                   </div>
                 )}
@@ -257,11 +251,11 @@ export function AppSidebar() {
             <DropdownMenuContent align="end" className="w-56 max-w-[224px]">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
