@@ -10,6 +10,8 @@ import {
   Tooltip,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { useDepartments } from "@/hooks/use-departments";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DepartmentData {
   department: string;
@@ -18,12 +20,13 @@ interface DepartmentData {
 }
 
 interface DepartmentDistributionChartProps {
-  data: DepartmentData[];
+  data?: DepartmentData[];
   showLegend?: boolean;
   size?: "sm" | "md" | "lg";
   variant?: "card" | "inline";
   className?: string;
   title?: string;
+  fetchDepartments?: boolean;
 }
 
 const COLORS = [
@@ -62,15 +65,47 @@ export function DepartmentDistributionChart({
   variant = "card",
   className,
   title = "Department Distribution",
+  fetchDepartments = false,
 }: DepartmentDistributionChartProps) {
+  const { data: departments, isLoading } = useDepartments();
   const { innerRadius, outerRadius, height } = SIZE_CONFIG[size];
+
+  // If fetchDepartments is true, use departments from cache
+  // Ensure data has the correct keys for Recharts (department and count)
+  const chartData = (fetchDepartments && departments
+    ? departments.map((dept) => ({
+      department: dept.name,
+      count: dept.employeeCount || 0,
+    }))
+    : data || []).map((item: any) => ({
+      ...item,
+      // Fallback for department name
+      department: item.department || item.name || "Unknown",
+      // Fallback for employee count
+      count: Number(item.count ?? item.employeeCount ?? 0)
+    }));
+
+  if (isLoading && fetchDepartments) {
+    return (
+      <Card className={cn("bg-card border-border", className)}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium text-card-foreground">
+            {title}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[300px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   const chartContent = (
     <div className={cn("w-full", variant === "inline" && "h-full")} style={{ height: variant === "card" ? height : "100%" }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={data}
+            data={chartData}
             cx={showLegend ? "32%" : "50%"}
             cy="50%"
             innerRadius={innerRadius}
@@ -79,7 +114,7 @@ export function DepartmentDistributionChart({
             dataKey="count"
             nameKey="department"
           >
-            {data.map((_, index) => (
+            {chartData.map((_, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={COLORS[index % COLORS.length]}

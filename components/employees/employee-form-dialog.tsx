@@ -111,8 +111,15 @@ export function EmployeeFormDialog({
 
   const onSubmit = (data: FormData) => {
     if (isEditing && employee) {
+      // Normalize the original date to YYYY-MM-DD to match the form data format
+      // This prevents false positive changes detection due to ISO string vs Date string
+      const normalizedOriginal = {
+        ...employee,
+        hireDate: new Date(employee.hireDate).toISOString().split("T")[0],
+      };
+
       updateEmployee(
-        { id: employee.id, data },
+        { id: employee.id, original: normalizedOriginal, modified: data },
         { onSuccess: () => onOpenChange(false) }
       );
     } else {

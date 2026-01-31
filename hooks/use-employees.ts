@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import type { Employee } from "@/stores/employee-store";
 import { toast } from "sonner";
+import { getChangedFields } from "@/lib/track-changes";
 
 export function useEmployees(params?: {
   search?: string;
@@ -21,10 +22,10 @@ export function useEmployees(params?: {
       const response = await apiClient.get<{ data: Employee[]; meta: any } | Employee[]>(
         `/employees?${queryParams.toString()}`
       );
-      
+
       // Handle both internal API (array) and external API (object with data array)
       const data = Array.isArray(response.data) ? response.data : (response.data as any).data || [];
-      
+
       // Transform external API data to match frontend interface
       return data.map((emp: any) => ({
         id: emp.id,
@@ -91,8 +92,17 @@ export function useUpdateEmployee() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Employee> }) => {
-      const response = await apiClient.put<Employee>(`/employees/${id}`, data);
+    mutationFn: async ({ id, original, modified }: { id: string; original: Employee; modified: Partial<Employee> }) => {
+      // Track only changed fields
+      const changes = getChangedFields(original, modified);
+
+      // Check if there are any changes
+      if (Object.keys(changes).length === 0) {
+        throw new Error("No changes detected");
+      }
+
+      // Use PATCH endpoint for partial updates
+      const response = await apiClient.patch<Employee>(`/employees/${id}`, changes);
       return response.data;
     },
     onSuccess: (_, variables) => {

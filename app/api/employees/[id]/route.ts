@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockEmployees } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
@@ -8,26 +7,32 @@ export const GET = withRole(async (
   context
 ) => {
   const { id } = await context?.params!;
-  const employee = mockEmployees.find((e) => e.id === id);
 
-  if (!employee) {
-    return NextResponse.json(
-      { success: false, message: "Employee not found" },
-      { status: 404 }
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        },
+      }
     );
-  }
 
-  // HR Manager can only view employees in their department
-  if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
-    if (employee.department !== request.user.department) {
+    if (!response.ok) {
       return NextResponse.json(
-        { success: false, message: "Access denied" },
-        { status: 403 }
+        { success: false, message: "Employee not found" },
+        { status: response.status }
       );
     }
-  }
 
-  return NextResponse.json({ success: true, data: employee });
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 
 export const PUT = withRole(async (
@@ -37,32 +42,65 @@ export const PUT = withRole(async (
   try {
     const { id } = await context?.params!;
     const body = await request.json();
-    const employee = mockEmployees.find((e) => e.id === id);
 
-    if (!employee) {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!response.ok) {
       return NextResponse.json(
-        { success: false, message: "Employee not found" },
-        { status: 404 }
+        { success: false, message: "Failed to update employee" },
+        { status: response.status }
       );
     }
 
-    // HR Manager can only update employees in their department
-    if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
-      if (employee.department !== request.user.department) {
-        return NextResponse.json(
-          { success: false, message: "Access denied" },
-          { status: 403 }
-        );
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch {
+    return NextResponse.json(
+      { success: false, message: "Failed to update employee" },
+      { status: 500 }
+    );
+  }
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+
+export const PATCH = withRole(async (
+  request,
+  context
+) => {
+  try {
+    const { id } = await context?.params!;
+    const body = await request.json();
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        },
+        body: JSON.stringify(body),
       }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to update employee" },
+        { status: response.status }
+      );
     }
 
-    const updatedEmployee = {
-      ...employee,
-      ...body,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json({ success: true, data: updatedEmployee });
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to update employee" },
@@ -76,24 +114,30 @@ export const DELETE = withRole(async (
   context
 ) => {
   const { id } = await context?.params!;
-  const employee = mockEmployees.find((e) => e.id === id);
 
-  if (!employee) {
-    return NextResponse.json(
-      { success: false, message: "Employee not found" },
-      { status: 404 }
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        },
+      }
     );
-  }
 
-  // HR Manager can only delete employees in their department
-  if (request.user.roles.includes(ROLES.HR_MANAGER) && !request.user.roles.includes(ROLES.ADMIN) && request.user.department) {
-    if (employee.department !== request.user.department) {
+    if (!response.ok) {
       return NextResponse.json(
-        { success: false, message: "Access denied" },
-        { status: 403 }
+        { success: false, message: "Failed to delete employee" },
+        { status: response.status }
       );
     }
-  }
 
-  return NextResponse.json({ success: true, data: null });
+    return NextResponse.json({ success: true, data: null });
+  } catch {
+    return NextResponse.json(
+      { success: false, message: "Failed to delete employee" },
+      { status: 500 }
+    );
+  }
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

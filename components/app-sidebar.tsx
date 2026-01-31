@@ -37,6 +37,7 @@ import {
   User,
   Building2,
   CalendarDays,
+  Briefcase,
 } from "lucide-react";
 
 const navigation = [
@@ -50,6 +51,12 @@ const navigation = [
     name: "Employees", 
     href: "/employees", 
     icon: Users,
+    roles: ['admin', 'hr_manager'] // Admin and HR only
+  },
+  { 
+    name: "Departments", 
+    href: "/departments", 
+    icon: Briefcase,
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
   { 

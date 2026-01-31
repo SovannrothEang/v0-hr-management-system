@@ -20,12 +20,12 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
               // Allow connections to localhost API (development) and external API domains
-              "connect-src 'self' http://localhost:3001 https://api.hrflow.com https://staging-api.hrflow.com",
+              "connect-src 'self' http://localhost:3001 https://api.hrflow.com https://staging-api.hrflow.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },

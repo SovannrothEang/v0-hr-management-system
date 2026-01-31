@@ -138,7 +138,7 @@ export function PayrollTable({ month, year, onViewPayslip }: PayrollTableProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {payrolls?.map((payroll) => (
+          {payrolls && payrolls.map((payroll) => (
             <TableRow key={payroll.id} className="hover:bg-secondary/30">
               <TableCell>
                 <Checkbox

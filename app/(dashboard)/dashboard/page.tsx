@@ -144,14 +144,14 @@ export default function DashboardPage() {
 
         {deptLoading ? (
           <ChartSkeleton />
-        ) : departmentDist ? (
-          <DepartmentDistributionChart 
-            data={departmentDist} 
+        ) : (
+          <DepartmentDistributionChart
+            data={departmentDist}
             variant="card"
             size="md"
             showLegend={true}
           />
-        ) : null}
+        )}
       </div>
 
       {/* Activity and Actions */}

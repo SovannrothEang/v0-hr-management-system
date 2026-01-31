@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { useEmployeeStore, type EmploymentStatus } from "@/stores/employee-store";
-import { useDepartments } from "@/hooks/use-employees";
+import { useDepartments } from "@/hooks/use-departments";
 
 export function EmployeeFilters() {
   const {
@@ -47,8 +47,8 @@ export function EmployeeFilters() {
         <SelectContent>
           <SelectItem value="all">All Departments</SelectItem>
           {departments?.map((dept) => (
-            <SelectItem key={dept} value={dept}>
-              {dept}
+            <SelectItem key={dept.id} value={dept.name}>
+              {dept.name}
             </SelectItem>
           ))}
         </SelectContent>

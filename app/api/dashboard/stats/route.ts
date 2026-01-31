@@ -1,7 +1,30 @@
 import { NextResponse } from "next/server";
-import { mockDashboardStats } from "@/lib/mock-data";
 import { withAuth } from "@/lib/auth/with-auth";
 
 export const GET = withAuth(async () => {
-  return NextResponse.json({ success: true, data: mockDashboardStats });
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/dashboard/stats`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch dashboard stats" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 });

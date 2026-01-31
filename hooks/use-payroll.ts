@@ -10,17 +10,23 @@ export function usePayrollRecords(params?: {
 }) {
   return useQuery({
     queryKey: ["payroll", params],
-    queryFn: async () => {
+    queryFn: async (): Promise<PayrollRecord[]> => {
       const queryParams = new URLSearchParams();
       if (params?.period) queryParams.set("period", params.period);
       if (params?.status && params.status !== "all")
         queryParams.set("status", params.status);
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
 
-      const response = await apiClient.get<PayrollRecord[]>(
+      const response = await apiClient.get<PayrollRecord[] | { data: PayrollRecord[] }>(
         `/payroll?${queryParams.toString()}`
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with data array)
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
     },
   });
 }
@@ -28,15 +34,21 @@ export function usePayrollRecords(params?: {
 export function usePayroll(month: string, year: number) {
   return useQuery({
     queryKey: ["payroll", month, year],
-    queryFn: async () => {
+    queryFn: async (): Promise<PayrollRecord[]> => {
       const queryParams = new URLSearchParams();
       queryParams.set("month", month);
       queryParams.set("year", year.toString());
 
-      const response = await apiClient.get<PayrollRecord[]>(
+      const response = await apiClient.get<PayrollRecord[] | { data: PayrollRecord[] }>(
         `/payroll?${queryParams.toString()}`
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with data array)
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
     },
   });
 }
