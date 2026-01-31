@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,13 +28,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from "@/hooks/use-departments";
+import { useEmployees } from "@/hooks/use-employees";
 import { usePermissions } from "@/hooks/use-permissions";
-import { Building2, Users, Plus, Pencil, Trash2 } from "lucide-react";
+import { Building2, Users, Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Department } from "@/hooks/use-departments";
 
 export default function DepartmentsPage() {
-  const { data: departments, isLoading } = useDepartments();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get page from URL query parameter, default to 1
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+
+  const { data: deptResult, isLoading: isDeptsLoading } = useDepartments({ page: currentPage, limit });
+  const { data: empResult, isLoading: isEmployeesLoading } = useEmployees();
   const { mutate: createDepartment, isPending: isCreating } = useCreateDepartment();
   const { mutate: updateDepartment, isPending: isUpdating } = useUpdateDepartment();
   const { mutate: deleteDepartment, isPending: isDeleting } = useDeleteDepartment();
@@ -44,7 +61,37 @@ export default function DepartmentsPage() {
   const [deletingDepartment, setDeletingDepartment] = useState<Department | null>(null);
   const [departmentName, setDepartmentName] = useState("");
 
+  const isLoading = isDeptsLoading || isEmployeesLoading;
   const isPending = isCreating || isUpdating || isDeleting;
+
+  const departments = deptResult?.data || [];
+  const meta = deptResult?.meta;
+  const employees = empResult?.data || [];
+  const totalEmployeesCount = employees.length || 0;
+
+  const updatePage = (newPage: number, newLimit?: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage.toString());
+    const finalLimit = newLimit ?? limit;
+    if (finalLimit !== 10) {
+      params.set("limit", finalLimit.toString());
+    } else {
+      params.delete("limit");
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handlePreviousPage = () => {
+    if (meta?.hasPrevious) {
+      updatePage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (meta?.hasNext) {
+      updatePage(currentPage + 1);
+    }
+  };
 
   const handleCreate = () => {
     if (!departmentName.trim()) return;
@@ -201,7 +248,9 @@ export default function DepartmentsPage() {
                 </div>
                 {dept.employeeCount !== undefined && dept.employeeCount > 0 && (
                   <Badge variant="secondary" className="mt-2">
-                    {dept.percentage || 0}% of workforce
+                    {totalEmployeesCount > 0
+                      ? ((dept.employeeCount / totalEmployeesCount) * 100).toFixed(1)
+                      : 0}% of workforce
                   </Badge>
                 )}
               </CardContent>
@@ -214,6 +263,63 @@ export default function DepartmentsPage() {
             No departments found
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {meta && meta.totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+          <p className="text-sm text-muted-foreground">
+            Showing {meta.page * meta.limit - meta.limit + 1} to{" "}
+            {Math.min(meta.page * meta.limit, meta.total)} of {meta.total} departments
+          </p>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
+              <Select
+                value={limit.toString()}
+                onValueChange={(value) => updatePage(1, parseInt(value))}
+              >
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue placeholder={limit.toString()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100].map((pageSize) => (
+                    <SelectItem key={pageSize} value={pageSize.toString()}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={!meta.hasPrevious}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+
+              <span className="text-sm text-muted-foreground">
+                Page {meta.page} of {meta.totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={!meta.hasNext}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Edit Dialog */}

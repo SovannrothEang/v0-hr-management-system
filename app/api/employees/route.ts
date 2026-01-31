@@ -36,7 +36,13 @@ export const GET = withRole(async (request) => {
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data, meta: data.meta });
+    return NextResponse.json({
+      success: true,
+      data: {
+        data: data.data,
+        meta: data.meta
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Internal server error" },

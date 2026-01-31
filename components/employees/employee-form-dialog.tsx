@@ -51,9 +51,11 @@ export function EmployeeFormDialog({
   onOpenChange,
 }: EmployeeFormDialogProps) {
   const isEditing = !!employee;
-  const { data: departments } = useDepartments();
+  const { data: deptResult } = useDepartments();
   const { mutate: createEmployee, isPending: isCreating } = useCreateEmployee();
   const { mutate: updateEmployee, isPending: isUpdating } = useUpdateEmployee();
+
+  const departments = deptResult?.data || [];
 
   const {
     register,

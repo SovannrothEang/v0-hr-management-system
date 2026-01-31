@@ -34,7 +34,8 @@ export function ReportFilters({
   onEndDateChange,
   onDepartmentChange,
 }: ReportFiltersProps) {
-  const { data: departments } = useDepartments();
+  const { data: deptResult } = useDepartments();
+  const departments = deptResult?.data || [];
 
   const setQuickRange = (range: string) => {
     const today = new Date();

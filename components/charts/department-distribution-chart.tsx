@@ -67,8 +67,10 @@ export function DepartmentDistributionChart({
   title = "Department Distribution",
   fetchDepartments = false,
 }: DepartmentDistributionChartProps) {
-  const { data: departments, isLoading } = useDepartments();
+  const { data: deptResult, isLoading } = useDepartments();
   const { innerRadius, outerRadius, height } = SIZE_CONFIG[size];
+
+  const departments = deptResult?.data || [];
 
   // If fetchDepartments is true, use departments from cache
   // Ensure data has the correct keys for Recharts (department and count)

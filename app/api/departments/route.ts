@@ -3,9 +3,17 @@ import { withAuth } from "@/lib/auth/with-auth";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
-export const GET = withAuth(async () => {
+export const GET = withAuth(async (request) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments`, {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+
+    const params = new URLSearchParams();
+    params.set("page", page.toString());
+    params.set("limit", limit.toString());
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments?${params.toString()}`, {
       headers: {
         'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
       },
@@ -19,7 +27,7 @@ export const GET = withAuth(async () => {
     }
 
     const data = await response.json();
-    
+
     // Transform external API data to match frontend interface
     const departments = (data.data || []).map((dept: any) => ({
       id: dept.id,
@@ -30,7 +38,20 @@ export const GET = withAuth(async () => {
       updatedAt: dept.updatedAt,
     }));
 
-    return NextResponse.json({ success: true, data: departments });
+    return NextResponse.json({
+      success: true,
+      data: {
+        data: departments,
+        meta: data.meta || {
+          page,
+          limit,
+          total: departments.length,
+          totalPages: Math.ceil(departments.length / limit),
+          hasNext: false,
+          hasPrevious: false
+        }
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Internal server error" },
@@ -77,7 +98,7 @@ export const PUT = withRole(async (request) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    
+
     if (!id) {
       return NextResponse.json(
         { success: false, message: "Department ID is required" },
@@ -138,7 +159,7 @@ export const DELETE = withRole(async (request) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    
+
     if (!id) {
       return NextResponse.json(
         { success: false, message: "Department ID is required" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,19 +19,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AdminOrHROnly } from "@/components/auth/protected-action";
 import { useEmployees, useDeleteEmployee } from "@/hooks/use-employees";
 import { useEmployeeStore, type Employee } from "@/stores/employee-store";
-import { Plus, Download, Upload } from "lucide-react";
+import { Plus, Download, Upload, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function EmployeesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { searchQuery, filterDepartment, filterStatus, setSelectedEmployee } =
     useEmployeeStore();
-  const { data: employees, isLoading } = useEmployees({
+
+  // Get page from URL query parameter, default to 1
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+
+  const { data: result, isLoading } = useEmployees({
     search: searchQuery,
     department: filterDepartment,
     status: filterStatus,
+    page: currentPage,
+    limit: limit,
   });
+
   const { mutate: deleteEmployee } = useDeleteEmployee();
 
   const [selectedEmployeeDetail, setSelectedEmployeeDetail] = useState<Employee | null>(null);
@@ -39,6 +57,9 @@ export default function EmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+
+  const employees = result?.data || [];
+  const meta = result?.meta;
 
   const handleView = (employee: Employee) => {
     setSelectedEmployeeDetail(employee);
@@ -67,6 +88,30 @@ export default function EmployeesPage() {
   const handleAddNew = () => {
     setEditingEmployee(null);
     setFormDialogOpen(true);
+  };
+
+  const updatePage = (newPage: number, newLimit?: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage.toString());
+    const finalLimit = newLimit ?? limit;
+    if (finalLimit !== 10) {
+      params.set("limit", finalLimit.toString());
+    } else {
+      params.delete("limit");
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handlePreviousPage = () => {
+    if (meta?.hasPrevious) {
+      updatePage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (meta?.hasNext) {
+      updatePage(currentPage + 1);
+    }
   };
 
   return (
@@ -99,22 +144,71 @@ export default function EmployeesPage() {
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
         </div>
       ) : (
         <EmployeeTable
-          employees={employees || []}
+          employees={employees}
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
       )}
 
-      {/* Employee count */}
-      {employees && (
-        <p className="text-sm text-muted-foreground">
-          Showing {employees.length} employee{employees.length !== 1 ? "s" : ""}
-        </p>
+      {/* Pagination and employee count */}
+      {meta && (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {meta.page * meta.limit - meta.limit + 1} to{" "}
+            {Math.min(meta.page * meta.limit, meta.total)} of {meta.total} employees
+          </p>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
+              <Select
+                value={limit.toString()}
+                onValueChange={(value) => updatePage(1, parseInt(value))}
+              >
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue placeholder={limit.toString()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100].map((pageSize) => (
+                    <SelectItem key={pageSize} value={pageSize.toString()}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={!meta.hasPrevious}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+
+              <span className="text-sm text-muted-foreground">
+                Page {meta.page} of {meta.totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={!meta.hasNext}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Detail Sheet */}

@@ -23,8 +23,9 @@ export function EmployeeFilters() {
     setFilterStatus,
     clearFilters,
   } = useEmployeeStore();
-  const { data: departments } = useDepartments();
+  const { data: deptResult } = useDepartments();
 
+  const departments = deptResult?.data || [];
   const hasFilters =
     searchQuery || filterDepartment !== "all" || filterStatus !== "all";
 

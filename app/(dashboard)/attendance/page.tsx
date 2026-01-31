@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,19 +17,50 @@ import { format, addDays, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function AttendancePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { selectedDate, setSelectedDate } = useAttendanceStore();
-  const { data: records, isLoading: recordsLoading } = useAttendanceRecords({
+  
+  // Get page from URL query parameter, default to 1
+  const currentPage = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+  
+  const { data: result, isLoading: recordsLoading } = useAttendanceRecords({
     date: format(selectedDate, "yyyy-MM-dd"),
+    page: currentPage,
+    limit: limit,
   });
-  const { data: employees, isLoading: employeesLoading } = useEmployees();
+  const { data: employeesResult, isLoading: employeesLoading } = useEmployees();
   const { mutate: clockIn } = useClockIn();
   const { mutate: clockOut } = useClockOut();
 
   const isLoading = recordsLoading || employeesLoading;
+  const records = result?.data || [];
+  const meta = result?.meta;
+  const employees = employeesResult?.data || [];
 
   const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1));
   const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
   const handleToday = () => setSelectedDate(new Date());
+
+  const updatePage = (newPage: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage.toString());
+    if (limit !== 10) params.set("limit", limit.toString());
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handlePreviousPage = () => {
+    if (meta?.hasPrevious) {
+      updatePage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (meta?.hasNext) {
+      updatePage(currentPage + 1);
+    }
+  };
 
   const isToday =
     format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
@@ -86,7 +119,8 @@ export default function AttendancePage() {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          {records?.length || 0} employee{(records?.length || 0) !== 1 ? "s" : ""}
+          {meta ? `${meta.total} employee${meta.total !== 1 ? "s" : ""}` : 
+            `${records.length} employee${records.length !== 1 ? "s" : ""}`}
         </div>
       </div>
 
@@ -109,12 +143,43 @@ export default function AttendancePage() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <AttendanceTable
-          records={records || []}
-          employees={employees || []}
-          onClockIn={(employeeId) => clockIn(employeeId)}
-          onClockOut={(employeeId) => clockOut(employeeId)}
-        />
+        <>
+          <AttendanceTable
+            records={records || []}
+            employees={employees || []}
+            onClockIn={(employeeId) => clockIn(employeeId)}
+            onClockOut={(employeeId) => clockOut(employeeId)}
+          />
+          
+          {/* Pagination */}
+          {meta && meta.totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={!meta.hasPrevious}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              
+              <span className="text-sm text-muted-foreground">
+                Page {meta.page} of {meta.totalPages}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={!meta.hasNext}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

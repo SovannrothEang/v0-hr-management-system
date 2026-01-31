@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 import { getChangedFields } from "@/lib/track-changes";
+import type { PaginatedResponse } from "@/types/pagination";
 
 export interface Department {
   id: string;
@@ -12,41 +13,96 @@ export interface Department {
   updatedAt?: string;
 }
 
-export function useDepartments() {
+/**
+ * Transform API department data to frontend interface
+ */
+function transformDepartment(dept: any): Department {
+  if (typeof dept === 'string') {
+    return {
+      id: dept,
+      name: dept,
+      employeeCount: 0,
+      percentage: 0,
+    };
+  }
+  return {
+    id: dept.id || dept.name,
+    name: dept.name || dept.departmentName || dept.title,
+    employeeCount: Number(dept.employeeCount || dept.employees?.length || 0),
+    percentage: dept.percentage !== undefined ? Number(dept.percentage) : 0,
+    createdAt: dept.createdAt,
+    updatedAt: dept.updatedAt,
+  };
+}
+
+export function useDepartments(params?: {
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
-    queryKey: ["departments"],
-    queryFn: async (): Promise<Department[]> => {
-      const response = await apiClient.get<Department[] | { data: Department[] }>("/departments?childIncluded=true");
+    queryKey: ["departments", params],
+    queryFn: async (): Promise<PaginatedResponse<Department>> => {
+      const queryParams = new URLSearchParams();
+      queryParams.set("childIncluded", "true");
+      if (params?.page) queryParams.set("page", params.page.toString());
+      if (params?.limit) queryParams.set("limit", params.limit.toString());
 
-      // Handle both internal API (array) and external API (wrapped or array)
-      let data = response.data;
-      if (data && typeof data === 'object' && 'data' in data) {
-        data = (data as any).data;
+      const response = await apiClient.get<Department[] | PaginatedResponse<Department>>(
+        `/departments?${queryParams.toString()}`
+      );
+
+      const data = response.data;
+
+      // Handle both internal API (array) and external API (paginated response)
+      if (Array.isArray(data)) {
+        // Legacy array response - wrap in paginated structure
+        const transformedData = data.map(transformDepartment);
+        const total = transformedData.length;
+        const limit = params?.limit || 10;
+        const totalPages = Math.ceil(total / limit);
+        const page = params?.page || 1;
+
+        return {
+          data: transformedData,
+          meta: {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrevious: page > 1,
+          },
+        };
       }
 
-      if (Array.isArray(data) && data.length > 0) {
-        // If it's an array of strings, convert to Department objects
-        if (typeof data[0] === 'string') {
-          return (data as unknown as string[]).map((name) => ({
-            id: name,
-            name,
-            employeeCount: 0,
-            percentage: 0,
-          }));
-        }
-
-        // If it's an array of objects, transform to Department interface
-        return (data as any[]).map((dept) => ({
-          id: dept.id || dept.name,
-          name: dept.name || dept.departmentName || dept.title,
-          employeeCount: dept.employeeCount || dept.employees?.length || 0,
-          percentage: dept.percentage || 0,
-          createdAt: dept.createdAt,
-          updatedAt: dept.updatedAt,
-        }));
+      // Paginated response from external API
+      if (data && typeof data === 'object' && 'data' in data && typeof (data as any).data === 'object' && 'data' in (data as any).data) {
+        const nestedData = (data as any).data;
+        return {
+          data: nestedData.data.map(transformDepartment),
+          meta: nestedData.meta || {
+            page: params?.page || 1,
+            limit: params?.limit || 10,
+            total: nestedData.data.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrevious: false,
+          },
+        };
       }
 
-      return [];
+      // Fallback for unexpected response
+      return {
+        data: [],
+        meta: {
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
+      };
     },
   });
 }
