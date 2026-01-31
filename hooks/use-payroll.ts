@@ -56,14 +56,15 @@ export function usePayroll(month: string, year: number) {
 export function usePayrollSummary(period?: string) {
   return useQuery({
     queryKey: ["payroll-summary", period],
-    queryFn: async () => {
+    queryFn: async (): Promise<PayrollSummary> => {
       const queryParams = new URLSearchParams();
       if (period) queryParams.set("period", period);
 
-      const response = await apiClient.get<PayrollSummary>(
+      const response = await apiClient.get<PayrollSummary | { data: PayrollSummary }>(
         `/payroll/summary?${queryParams.toString()}`
       );
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
   });
 }
@@ -72,12 +73,13 @@ export function useGeneratePayroll() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ month, year }: { month: string; year: number }) => {
-      const response = await apiClient.post<PayrollRecord[]>("/payroll/generate", {
+    mutationFn: async ({ month, year }: { month: string; year: number }): Promise<PayrollRecord[]> => {
+      const response = await apiClient.post<PayrollRecord[] | { data: PayrollRecord[] }>("/payroll/generate", {
         month,
         year,
       });
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
@@ -93,11 +95,12 @@ export function useProcessPayroll() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payrollId: string) => {
-      const response = await apiClient.post<PayrollRecord[]>("/payroll/process", {
+    mutationFn: async (payrollId: string): Promise<PayrollRecord[]> => {
+      const response = await apiClient.post<PayrollRecord[] | { data: PayrollRecord[] }>("/payroll/process", {
         ids: [payrollId],
       });
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
@@ -114,11 +117,12 @@ export function useMarkAsPaid() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (ids: string[]) => {
-      const response = await apiClient.post<PayrollRecord[]>("/payroll/mark-paid", {
+    mutationFn: async (ids: string[]): Promise<PayrollRecord[]> => {
+      const response = await apiClient.post<PayrollRecord[] | { data: PayrollRecord[] }>("/payroll/mark-paid", {
         ids,
       });
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payroll"] });
@@ -136,11 +140,12 @@ export function useMarkPayrollPaid() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payrollId: string) => {
-      const response = await apiClient.post<PayrollRecord>("/payroll/mark-paid", {
+    mutationFn: async (payrollId: string): Promise<PayrollRecord> => {
+      const response = await apiClient.post<PayrollRecord | { data: PayrollRecord }>("/payroll/mark-paid", {
         ids: [payrollId],
       });
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payroll"] });

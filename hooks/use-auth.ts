@@ -40,18 +40,18 @@ export function useLogin() {
           body: JSON.stringify(credentials),
         }
       );
-      
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Login failed');
       }
-      
+
       const data = await response.json();
-      
+
       // Extract CSRF token from cookies
       const cookies = response.headers.get('set-cookie');
       const csrfToken = cookies?.match(/csrf_token=([^;]+)/)?.[1] || '';
-      
+
       return {
         ...data.data,
         csrfToken,
@@ -103,12 +103,14 @@ export function useRefreshSession() {
   const updateSessionExpiry = useSessionStore((state) => state.updateSessionExpiry);
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ accessToken: string; expiresAt: number }> => {
       const response = await apiClient.post<{
         accessToken: string;
         expiresAt: number;
-      }>("/auth/refresh");
-      return response.data;
+      } | { data: { accessToken: string; expiresAt: number } }>("/auth/refresh");
+
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
     onSuccess: (data) => {
       updateSessionExpiry(data.expiresAt);

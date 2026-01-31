@@ -15,7 +15,7 @@ import {
 import { CalendarIcon, Filter } from "lucide-react";
 import { format, subDays, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useDepartments } from "@/hooks/use-employees";
+import { useDepartments } from "@/hooks/use-departments";
 
 interface ReportFiltersProps {
   startDate: Date;
@@ -131,9 +131,9 @@ export function ReportFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Departments</SelectItem>
-              {departments?.map((dept) => (
-                <SelectItem key={dept} value={dept}>
-                  {dept}
+              {departments && departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.name}>
+                  {dept.name}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -15,11 +15,14 @@ export interface Department {
 export function useDepartments() {
   return useQuery({
     queryKey: ["departments"],
-    queryFn: async () => {
-      const response = await apiClient.get<Department[] | { id: string; name: string }[]>("/departments?childIncluded=true");
+    queryFn: async (): Promise<Department[]> => {
+      const response = await apiClient.get<Department[] | { data: Department[] }>("/departments?childIncluded=true");
 
-      // Handle both internal API (array of strings) and external API (array of objects)
-      const data = response.data;
+      // Handle both internal API (array) and external API (wrapped or array)
+      let data = response.data;
+      if (data && typeof data === 'object' && 'data' in data) {
+        data = (data as any).data;
+      }
 
       if (Array.isArray(data) && data.length > 0) {
         // If it's an array of strings, convert to Department objects
@@ -52,9 +55,10 @@ export function useCreateDepartment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { name: string }) => {
-      const response = await apiClient.post<Department>("/departments", data);
-      return response.data;
+    mutationFn: async (data: { name: string }): Promise<Department> => {
+      const response = await apiClient.post<Department | { data: Department }>("/departments", data);
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
@@ -70,7 +74,7 @@ export function useUpdateDepartment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, original, modified }: { id: string; original: Department; modified: Partial<Department> }) => {
+    mutationFn: async ({ id, original, modified }: { id: string; original: Department; modified: Partial<Department> }): Promise<Department> => {
       // Track only changed fields
       const changes = getChangedFields(original, modified);
 
@@ -79,8 +83,9 @@ export function useUpdateDepartment() {
         throw new Error("No changes detected");
       }
 
-      const response = await apiClient.put<Department>(`/departments?id=${id}`, changes);
-      return response.data;
+      const response = await apiClient.put<Department | { data: Department }>(`/departments?id=${id}`, changes);
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });

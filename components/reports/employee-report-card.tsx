@@ -40,28 +40,28 @@ export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps)
   const stats = [
     {
       label: "Total Employees",
-      value: data.totalEmployees,
+      value: data.totalEmployees ?? 0,
       icon: Users,
       color: "text-chart-1",
       bgColor: "bg-chart-1/10",
     },
     {
       label: "Active",
-      value: data.activeEmployees,
+      value: data.activeEmployees ?? 0,
       icon: UserCheck,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
       label: "On Leave",
-      value: data.onLeaveEmployees,
+      value: data.onLeaveEmployees ?? 0,
       icon: CalendarOff,
       color: "text-warning",
       bgColor: "bg-warning/10",
     },
     {
       label: "New Hires (30d)",
-      value: data.newHires,
+      value: data.newHires ?? 0,
       icon: UserPlus,
       color: "text-chart-2",
       bgColor: "bg-chart-2/10",
@@ -115,7 +115,7 @@ export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps)
             </h4>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.positionBreakdown.slice(0, 5)} layout="vertical">
+                <BarChart data={(data.positionBreakdown || []).slice(0, 5)} layout="vertical">
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--color-border)"

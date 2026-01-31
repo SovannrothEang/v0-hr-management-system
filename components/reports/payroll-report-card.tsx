@@ -41,28 +41,28 @@ export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
   const stats = [
     {
       label: "Total Payroll",
-      value: `$${data.totalPayroll.toLocaleString()}`,
+      value: `$${(data.totalPayroll ?? 0).toLocaleString()}`,
       icon: DollarSign,
       color: "text-chart-1",
       bgColor: "bg-chart-1/10",
     },
     {
       label: "Average Salary",
-      value: `$${data.averageSalary.toLocaleString()}`,
+      value: `$${(data.averageSalary ?? 0).toLocaleString()}`,
       icon: Calculator,
       color: "text-chart-2",
       bgColor: "bg-chart-2/10",
     },
     {
       label: "Total Allowances",
-      value: `$${data.totalAllowances.toLocaleString()}`,
+      value: `$${(data.totalAllowances ?? 0).toLocaleString()}`,
       icon: TrendingUp,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
       label: "Total Deductions",
-      value: `$${data.totalDeductions.toLocaleString()}`,
+      value: `$${(data.totalDeductions ?? 0).toLocaleString()}`,
       icon: TrendingDown,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
@@ -102,7 +102,7 @@ export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
             </h4>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.payrollTrend}>
+                <AreaChart data={data.payrollTrend || []}>
                   <defs>
                     <linearGradient id="payrollGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="oklch(0.7 0.15 160)" stopOpacity={0.3} />
@@ -156,7 +156,7 @@ export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
             </h4>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.departmentPayroll.slice(0, 6)} layout="vertical">
+                <BarChart data={(data.departmentPayroll || []).slice(0, 6)} layout="vertical">
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--color-border)"

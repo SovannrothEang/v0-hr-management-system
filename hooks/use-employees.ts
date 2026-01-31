@@ -11,7 +11,7 @@ export function useEmployees(params?: {
 }) {
   return useQuery({
     queryKey: ["employees", params],
-    queryFn: async () => {
+    queryFn: async (): Promise<Employee[]> => {
       const queryParams = new URLSearchParams();
       if (params?.search) queryParams.set("search", params.search);
       if (params?.department && params.department !== "all")
@@ -19,12 +19,13 @@ export function useEmployees(params?: {
       if (params?.status && params.status !== "all")
         queryParams.set("status", params.status);
 
-      const response = await apiClient.get<{ data: Employee[]; meta: any } | Employee[]>(
+      const response = await apiClient.get<Employee[] | { data: Employee[]; meta: any }>(
         `/employees?${queryParams.toString()}`
       );
 
       // Handle both internal API (array) and external API (object with data array)
-      const data = Array.isArray(response.data) ? response.data : (response.data as any).data || [];
+      const resData = response.data;
+      const data = Array.isArray(resData) ? resData : (resData as any).data || [];
 
       // Transform external API data to match frontend interface
       return data.map((emp: any) => ({
@@ -61,10 +62,11 @@ export function useEmployees(params?: {
 export function useEmployee(id: string | null) {
   return useQuery({
     queryKey: ["employee", id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Employee | null> => {
       if (!id) return null;
-      const response = await apiClient.get<Employee>(`/employees/${id}`);
-      return response.data;
+      const response = await apiClient.get<Employee | { data: Employee }>(`/employees/${id}`);
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     enabled: !!id,
   });
@@ -74,9 +76,10 @@ export function useCreateEmployee() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: Partial<Employee>) => {
-      const response = await apiClient.post<Employee>("/employees", data);
-      return response.data;
+    mutationFn: async (data: Partial<Employee>): Promise<Employee> => {
+      const response = await apiClient.post<Employee | { data: Employee }>("/employees", data);
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -92,7 +95,7 @@ export function useUpdateEmployee() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, original, modified }: { id: string; original: Employee; modified: Partial<Employee> }) => {
+    mutationFn: async ({ id, original, modified }: { id: string; original: Employee; modified: Partial<Employee> }): Promise<Employee> => {
       // Track only changed fields
       const changes = getChangedFields(original, modified);
 
@@ -102,8 +105,9 @@ export function useUpdateEmployee() {
       }
 
       // Use PATCH endpoint for partial updates
-      const response = await apiClient.patch<Employee>(`/employees/${id}`, changes);
-      return response.data;
+      const response = await apiClient.patch<Employee | { data: Employee }>(`/employees/${id}`, changes);
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -133,18 +137,4 @@ export function useDeleteEmployee() {
   });
 }
 
-export function useDepartments() {
-  return useQuery({
-    queryKey: ["departments"],
-    queryFn: async () => {
-      const response = await apiClient.get<string[] | { id: string; name: string }[]>("/departments");
-      // Handle both internal API (string[]) and external API (object[])
-      const data = response.data;
-      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-        return data as string[];
-      }
-      // Transform external API objects to department names
-      return (data as { id: string; name: string }[]).map((dept) => dept.name);
-    },
-  });
-}
+

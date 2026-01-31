@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { useCreateEmployee, useUpdateEmployee, useDepartments } from "@/hooks/use-employees";
+import { useCreateEmployee, useUpdateEmployee } from "@/hooks/use-employees";
+import { useDepartments } from "@/hooks/use-departments";
 import type { Employee, EmploymentType, EmploymentStatus } from "@/stores/employee-store";
 
 interface EmployeeFormDialogProps {
@@ -200,8 +201,8 @@ export function EmployeeFormDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {departments?.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {dept.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

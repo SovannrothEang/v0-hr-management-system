@@ -51,28 +51,28 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
   const stats = [
     {
       label: "Total Requests",
-      value: data.totalRequests,
+      value: data.totalRequests ?? 0,
       icon: Calendar,
       color: "text-chart-1",
       bgColor: "bg-chart-1/10",
     },
     {
       label: "Approved",
-      value: data.approvedRequests,
+      value: data.approvedRequests ?? 0,
       icon: CheckCircle2,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
       label: "Rejected",
-      value: data.rejectedRequests,
+      value: data.rejectedRequests ?? 0,
       icon: XCircle,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
     },
     {
       label: "Pending",
-      value: data.pendingRequests,
+      value: data.pendingRequests ?? 0,
       icon: Clock,
       color: "text-warning",
       bgColor: "bg-warning/10",
@@ -108,7 +108,7 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
         <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg">
           <p className="text-sm text-muted-foreground">
             Average Leave Duration:{" "}
-            <span className="font-semibold text-accent">{data.averageLeaveDays} days</span>
+            <span className="font-semibold text-accent">{data.averageLeaveDays ?? 0} days</span>
           </p>
         </div>
 
@@ -121,7 +121,7 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={data.leaveTypeBreakdown}
+                    data={data.leaveTypeBreakdown || []}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
@@ -130,7 +130,7 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
                     dataKey="count"
                     nameKey="type"
                   >
-                    {data.leaveTypeBreakdown.map((_, index) => (
+                    {(data.leaveTypeBreakdown || []).map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -161,7 +161,7 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
             </h4>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.monthlyTrend}>
+                <LineChart data={data.monthlyTrend || []}>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="var(--color-border)"

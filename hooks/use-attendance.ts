@@ -11,17 +11,23 @@ export function useAttendanceRecords(params?: {
 }) {
   return useQuery({
     queryKey: ["attendance", params],
-    queryFn: async () => {
+    queryFn: async (): Promise<AttendanceRecord[]> => {
       const queryParams = new URLSearchParams();
       if (params?.date) queryParams.set("date", params.date);
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
       if (params?.startDate) queryParams.set("startDate", params.startDate);
       if (params?.endDate) queryParams.set("endDate", params.endDate);
 
-      const response = await apiClient.get<AttendanceRecord[]>(
+      const response = await apiClient.get<AttendanceRecord[] | { data: AttendanceRecord[] }>(
         `/attendance?${queryParams.toString()}`
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with data array)
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
     },
   });
 }
@@ -30,12 +36,13 @@ export function useClockIn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (employeeId: string) => {
-      const response = await apiClient.post<AttendanceRecord>(
+    mutationFn: async (employeeId: string): Promise<AttendanceRecord> => {
+      const response = await apiClient.post<AttendanceRecord | { data: AttendanceRecord }>(
         "/attendance/clock-in",
         { employeeId }
       );
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? data.data : data as AttendanceRecord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
@@ -52,12 +59,13 @@ export function useClockOut() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (employeeId: string) => {
-      const response = await apiClient.post<AttendanceRecord>(
+    mutationFn: async (employeeId: string): Promise<AttendanceRecord> => {
+      const response = await apiClient.post<AttendanceRecord | { data: AttendanceRecord }>(
         "/attendance/clock-out",
         { employeeId }
       );
-      return response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? data.data : data as AttendanceRecord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
@@ -76,16 +84,22 @@ export function useLeaveRequests(params?: {
 }) {
   return useQuery({
     queryKey: ["leave-requests", params],
-    queryFn: async () => {
+    queryFn: async (): Promise<LeaveRequest[]> => {
       const queryParams = new URLSearchParams();
       if (params?.status && params.status !== "all")
         queryParams.set("status", params.status);
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
 
-      const response = await apiClient.get<LeaveRequest[]>(
+      const response = await apiClient.get<LeaveRequest[] | { data: LeaveRequest[] }>(
         `/leave-requests?${queryParams.toString()}`
       );
-      return response.data;
+      // Handle both internal API (array) and external API (object with data array)
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
     },
   });
 }
@@ -94,9 +108,10 @@ export function useCreateLeaveRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: Partial<LeaveRequest>) => {
-      const response = await apiClient.post<LeaveRequest>("/leave-requests", data);
-      return response.data;
+    mutationFn: async (data: Partial<LeaveRequest>): Promise<LeaveRequest> => {
+      const response = await apiClient.post<LeaveRequest | { data: LeaveRequest }>("/leave-requests", data);
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? resData.data : resData as LeaveRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
@@ -122,12 +137,13 @@ export function useUpdateLeaveRequest() {
       id: string;
       status: "approved" | "rejected";
       approvedBy: string;
-    }) => {
-      const response = await apiClient.put<LeaveRequest>(`/leave-requests/${id}`, {
+    }): Promise<LeaveRequest> => {
+      const response = await apiClient.put<LeaveRequest | { data: LeaveRequest }>(`/leave-requests/${id}`, {
         status,
         approvedBy,
       });
-      return response.data;
+      const resData = response.data;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? resData.data : resData as LeaveRequest;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });

@@ -36,10 +36,11 @@ export interface RecentActivity {
 export function useDashboardStats() {
   return useQuery({
     queryKey: ["dashboard", "stats"],
-    queryFn: async () => {
+    queryFn: async (): Promise<DashboardStats> => {
       const response = await apiClient.get<DashboardStats | { data: DashboardStats }>("/dashboard/stats");
       // Handle both internal API (object) and external API (object with data property)
-      return (response.data as any).data || response.data;
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
   });
 }
@@ -47,12 +48,16 @@ export function useDashboardStats() {
 export function useAttendanceTrend(days: number = 7) {
   return useQuery({
     queryKey: ["dashboard", "attendance-trend", days],
-    queryFn: async () => {
-      const response = await apiClient.get<{ trend: AttendanceTrend[]; days: number } | AttendanceTrend[]>(
+    queryFn: async (): Promise<AttendanceTrend[]> => {
+      const response = await apiClient.get<{ trend: AttendanceTrend[]; days: number } | { data: { trend: AttendanceTrend[] } } | AttendanceTrend[] | { data: AttendanceTrend[] }>(
         `/dashboard/attendance-trend?days=${days}`
       );
       // Handle both internal API (array) and external API (object with trend array)
-      return Array.isArray(response.data) ? response.data : (response.data as any).trend || [];
+      const data = response.data;
+      const actualData = (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
+
+      if (Array.isArray(actualData)) return actualData;
+      return (actualData as any).trend || [];
     },
   });
 }
@@ -60,12 +65,16 @@ export function useAttendanceTrend(days: number = 7) {
 export function useDepartmentDistribution() {
   return useQuery({
     queryKey: ["dashboard", "department-distribution"],
-    queryFn: async () => {
-      const response = await apiClient.get<{ departments: DepartmentDistribution[]; totalEmployees: number } | DepartmentDistribution[]>(
+    queryFn: async (): Promise<DepartmentDistribution[]> => {
+      const response = await apiClient.get<{ departments: DepartmentDistribution[]; totalEmployees: number } | { data: { departments: DepartmentDistribution[] } } | DepartmentDistribution[] | { data: DepartmentDistribution[] }>(
         "/dashboard/department-distribution"
       );
       // Handle both internal API (array) and external API (object with departments array)
-      return Array.isArray(response.data) ? response.data : (response.data as any).departments || [];
+      const data = response.data;
+      const actualData = (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
+
+      if (Array.isArray(actualData)) return actualData;
+      return (actualData as any).departments || [];
     },
   });
 }
@@ -73,12 +82,16 @@ export function useDepartmentDistribution() {
 export function useRecentActivity() {
   return useQuery({
     queryKey: ["dashboard", "recent-activity"],
-    queryFn: async () => {
-      const response = await apiClient.get<{ activities: RecentActivity[]; count: number }>(
+    queryFn: async (): Promise<RecentActivity[]> => {
+      const response = await apiClient.get<{ activities: RecentActivity[]; count: number } | { data: { activities: RecentActivity[] } } | RecentActivity[] | { data: RecentActivity[] }>(
         "/dashboard/recent-activity"
       );
       // Handle both internal API (array) and external API (object with activities array)
-      return Array.isArray(response.data) ? response.data : response.data.activities || [];
+      const data = response.data;
+      const actualData = (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
+
+      if (Array.isArray(actualData)) return actualData;
+      return (actualData as any).activities || [];
     },
   });
 }
