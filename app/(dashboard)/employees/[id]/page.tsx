@@ -375,7 +375,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                       </div>
                     ) : (
                       <PayrollTable 
-                        records={payrollResult?.data || []} 
+                        records={Array.isArray(payrollResult) ? payrollResult : []} 
                         onViewPayslip={() => {}}
                         onProcess={() => {}}
                         onMarkPaid={() => {}}

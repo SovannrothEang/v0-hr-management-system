@@ -46,10 +46,11 @@ class ApiClient {
     this.isRefreshing = true;
     this.refreshPromise = (async () => {
       try {
-        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
+         const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           credentials: 'include',
+         });
 
         if (!response.ok) {
           return false;
@@ -108,6 +109,7 @@ class ApiClient {
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: 'include',
     });
 
     if (!response.ok) {

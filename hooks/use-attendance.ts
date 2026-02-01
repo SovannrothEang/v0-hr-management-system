@@ -1,22 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType } from "@/stores/attendance-store";
+import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType, AttendanceStatus } from "@/stores/attendance-store";
 import type { PaginatedResponse } from "@/types/pagination";
 import { toast } from "sonner";
 
-/**
- * Transform API attendance data to frontend interface
- */
 function transformAttendance(att: any): AttendanceRecord {
   const formatTime = (dateStr?: string) => {
     if (!dateStr) return undefined;
+    // If it's already in HH:mm format, return it
+    if (/^\d{2}:\d{2}$/.test(dateStr)) return dateStr;
+    
     try {
       const date = new Date(dateStr);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return dateStr;
+      
       return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
     } catch {
       return dateStr;
     }
   };
+
+  // Status mapping for attendance
+  const statusMap: Record<string, AttendanceStatus> = {
+    'PRESENT': 'present',
+    'ABSENT': 'absent',
+    'LATE': 'late',
+    'EXCUSED': 'excused',
+    'EARLY_OUT': 'early_out',
+    'OVERTIME': 'overtime',
+    'DID_NOT_CHECKOUT': 'did_not_checkout',
+  };
+
+  const status = statusMap[att.status] || att.status?.toLowerCase() || 'present';
 
   return {
     id: att.id,
@@ -24,7 +40,7 @@ function transformAttendance(att: any): AttendanceRecord {
     date: att.date,
     clockIn: formatTime(att.checkInTime || att.clockIn),
     clockOut: formatTime(att.checkOutTime || att.clockOut),
-    status: att.status?.toLowerCase() || att.status,
+    status: status as AttendanceStatus,
     workHours: att.workHours,
     overtime: att.overtime,
     notes: att.notes,
@@ -63,12 +79,22 @@ function transformLeaveRequest(lr: any): LeaveRequest {
     (emp.firstName ? `${emp.firstName} ${emp.lastName || ''}`.trim() : null) ||
     'Unknown Employee';
 
+  const employeeData = {
+    id: emp.id || lr.employeeId,
+    employeeId: emp.employeeCode || emp.employeeId,
+    firstName: emp.firstname || emp.firstName,
+    lastName: emp.lastname || emp.lastName,
+    email: emp.user?.email || emp.email,
+    department: emp.department?.departmentName || emp.department?.name || emp.department,
+    avatar: emp.profileImage || emp.avatar,
+  };
+
   return {
     id: lr.id,
     employeeId: lr.employeeId,
     employeeName,
-    employeeAvatar: emp.profileImage || emp.avatar,
-    employee: emp,
+    employeeAvatar: employeeData.avatar,
+    employee: employeeData,
     type: type as LeaveType,
     startDate: lr.startDate,
     endDate: lr.endDate,
@@ -130,22 +156,35 @@ export function useAttendanceRecords(params?: {
 
       // Paginated response from external API
       if (data && typeof data === 'object') {
-        const innerData = (data as any).data || data;
-        const meta = (data as any).meta || {
-          page: params?.page || 1,
-          limit: params?.limit || 10,
-          total: Array.isArray(innerData) ? innerData.length : 0,
-          totalPages: 1,
-          hasNext: false,
-          hasPrevious: false,
-        };
+        const paginatedData = data as any;
+        const innerData = paginatedData.data || (Array.isArray(data) ? data : []);
+        const transformedData = Array.isArray(innerData) ? innerData.map(transformAttendance) : [];
 
-        if (Array.isArray(innerData)) {
-          return {
-            data: innerData.map(transformAttendance),
-            meta,
-          };
-        }
+        // Robust metadata extraction: check both .meta and top-level properties
+        const total = paginatedData.meta?.total ??
+          paginatedData.total ??
+          paginatedData.total_count ??
+          paginatedData.totalCount ??
+          paginatedData.count ??
+          transformedData.length;
+
+        const meta = paginatedData.meta || {};
+        const metaLimit = meta.limit ?? paginatedData.limit ?? params?.limit ?? 10;
+        const page = meta.page ?? paginatedData.page ?? params?.page ?? 1;
+        const totalPages = meta.totalPages ?? paginatedData.totalPages ?? Math.ceil(total / metaLimit);
+
+        return {
+          data: transformedData,
+          meta: {
+            ...meta,
+            page,
+            limit: metaLimit,
+            total,
+            totalPages,
+            hasNext: meta.hasNext ?? paginatedData.hasNext ?? page < totalPages,
+            hasPrevious: meta.hasPrevious ?? paginatedData.hasPrevious ?? page > 1,
+          },
+        };
       }
 
       // Fallback for unexpected response
@@ -256,22 +295,35 @@ export function useLeaveRequests(params?: {
 
       // Paginated response from external API
       if (data && typeof data === 'object') {
-        const innerData = (data as any).data || data;
-        const meta = (data as any).meta || {
-          page: params?.page || 1,
-          limit: params?.limit || 10,
-          total: Array.isArray(innerData) ? innerData.length : 0,
-          totalPages: 1,
-          hasNext: false,
-          hasPrevious: false,
-        };
+        const paginatedData = data as any;
+        const innerData = paginatedData.data || (Array.isArray(data) ? data : []);
+        const transformedData = Array.isArray(innerData) ? innerData.map(transformLeaveRequest) : [];
 
-        if (Array.isArray(innerData)) {
-          return {
-            data: innerData.map(transformLeaveRequest),
-            meta,
-          };
-        }
+        // Robust metadata extraction: check both .meta and top-level properties
+        const total = paginatedData.meta?.total ??
+          paginatedData.total ??
+          paginatedData.total_count ??
+          paginatedData.totalCount ??
+          paginatedData.count ??
+          transformedData.length;
+
+        const meta = paginatedData.meta || {};
+        const metaLimit = meta.limit ?? paginatedData.limit ?? params?.limit ?? 10;
+        const page = meta.page ?? paginatedData.page ?? params?.page ?? 1;
+        const totalPages = meta.totalPages ?? paginatedData.totalPages ?? Math.ceil(total / metaLimit);
+
+        return {
+          data: transformedData,
+          meta: {
+            ...meta,
+            page,
+            limit: metaLimit,
+            total,
+            totalPages,
+            hasNext: meta.hasNext ?? paginatedData.hasNext ?? page < totalPages,
+            hasPrevious: meta.hasPrevious ?? paginatedData.hasPrevious ?? page > 1,
+          },
+        };
       }
 
       // Fallback for unexpected response

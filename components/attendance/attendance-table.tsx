@@ -32,6 +32,10 @@ const statusConfig: Record<
   absent: { label: "Absent", className: "bg-destructive/20 text-destructive" },
   half_day: { label: "Half Day", className: "bg-accent/20 text-accent" },
   on_leave: { label: "On Leave", className: "bg-secondary text-secondary-foreground" },
+  excused: { label: "Excused", className: "bg-info/20 text-info" },
+  early_out: { label: "Early Out", className: "bg-warning/20 text-warning" },
+  overtime: { label: "Overtime", className: "bg-success/20 text-success" },
+  did_not_checkout: { label: "Missing Checkout", className: "bg-destructive/20 text-destructive" },
 };
 
 export function AttendanceTable({
@@ -82,8 +86,12 @@ export function AttendanceTable({
             </TableRow>
           ) : (
             records.map((record) => {
-              const employee = getEmployee(record.employeeId);
-              if (!employee) return null;
+              const employee = getEmployee(record.employeeId) || record.employee;
+              
+              const firstName = employee?.firstName || "Unknown";
+              const lastName = employee?.lastName || "";
+              const department = (employee as any)?.department || "N/A";
+              const avatar = (employee as any)?.avatar || (employee as any)?.profileImage;
 
               const canClockIn = !record.clockIn && record.status !== "on_leave";
               const canClockOut =
@@ -94,17 +102,17 @@ export function AttendanceTable({
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.firstName} />
+                        <AvatarImage src={avatar || "/placeholder.svg"} alt={firstName} />
                         <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {getInitials(employee.firstName, employee.lastName)}
+                          {getInitials(firstName, lastName)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium text-card-foreground">
-                          {employee.firstName} {employee.lastName}
+                          {firstName} {lastName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {employee.department}
+                          {typeof department === 'string' ? department : (department as any)?.name || "N/A"}
                         </p>
                       </div>
                     </div>

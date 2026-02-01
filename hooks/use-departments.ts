@@ -47,77 +47,42 @@ export function useDepartments(params?: {
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
 
-      const response = await apiClient.get<Department[] | PaginatedResponse<Department>>(
+      const response = await apiClient.get<any>(
         `/departments?${queryParams.toString()}`
       );
 
-      const data = response.data;
+      const resData = response.data;
 
-      // Handle both internal API (array) and external API (paginated response)
-      if (Array.isArray(data)) {
-        // Legacy array response - wrap in paginated structure
-        const transformedData = data.map(transformDepartment);
-        const total = transformedData.length;
-        const limit = params?.limit || 10;
-        const totalPages = Math.ceil(total / limit);
-        const page = params?.page || 1;
+      // Robust extraction from ResultPagination structure
+      const innerData = (resData as any).data || (Array.isArray(resData) ? resData : []);
+      const transformedData = innerData.map(transformDepartment);
 
-        return {
-          data: transformedData,
-          meta: {
-            page,
-            limit,
-            total,
-            totalPages,
-            hasNext: page < totalPages,
-            hasPrevious: page > 1,
-          },
-        };
-      }
+      // Handle ResultPagination flat properties
+      const total = (resData as any).total ?? 
+                    (resData as any).meta?.total ?? 
+                    transformedData.length;
+      
+      const limit = (resData as any).limit ?? 
+                    (resData as any).meta?.limit ?? 
+                    params?.limit ?? 10;
+      
+      const page = (resData as any).page ?? 
+                   (resData as any).meta?.page ?? 
+                   params?.page ?? 1;
+      
+      const totalPages = (resData as any).totalPages ?? 
+                         (resData as any).meta?.totalPages ?? 
+                         Math.ceil(total / limit);
 
-      // Paginated response from external API
-      if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data)) {
-        const paginatedData = data as PaginatedResponse<any>;
-        const transformedData = paginatedData.data.map(transformDepartment);
-        const meta = paginatedData.meta || {
-          page: params?.page || 1,
-          limit: params?.limit || 10,
-          total: transformedData.length,
-          totalPages: 1,
-          hasNext: false,
-          hasPrevious: false,
-        };
-
-        // Ensure all meta fields are present and correct
-        const total = meta.total ?? transformedData.length;
-        const metaLimit = meta.limit ?? params?.limit ?? 10;
-        const totalPages = meta.totalPages ?? Math.ceil(total / metaLimit);
-        const page = meta.page ?? params?.page ?? 1;
-
-        return {
-          data: transformedData,
-          meta: {
-            ...meta,
-            page,
-            limit: metaLimit,
-            total,
-            totalPages,
-            hasNext: meta.hasNext ?? page < totalPages,
-            hasPrevious: meta.hasPrevious ?? page > 1,
-          },
-        };
-      }
-
-      // Fallback for unexpected response
       return {
-        data: [],
+        data: transformedData,
         meta: {
-          page: params?.page || 1,
-          limit: params?.limit || 10,
-          total: 0,
-          totalPages: 0,
-          hasNext: false,
-          hasPrevious: false,
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNext: (resData as any).hasNext ?? (resData as any).meta?.hasNext ?? page < totalPages,
+          hasPrevious: (resData as any).hasPrevious ?? (resData as any).meta?.hasPrevious ?? page > 1,
         },
       };
     },

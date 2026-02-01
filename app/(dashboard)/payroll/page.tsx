@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { FileSpreadsheet, Download, Search, Plus } from "lucide-react";
+import { usePayroll } from "@/hooks/use-payroll";
 
 const months = [
   "January",
@@ -47,10 +48,17 @@ export default function PayrollPage() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
 
+  const { data: payrolls, isLoading } = usePayroll(selectedMonth, selectedYear);
+
   const handleViewPayslip = (payrollId: string) => {
     setSelectedPayrollId(payrollId);
     setPayslipDialogOpen(true);
   };
+
+  const filteredPayrolls = payrolls?.filter(p => 
+    `${p.employee?.firstName} ${p.employee?.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.employee?.employeeId?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -124,8 +132,8 @@ export default function PayrollPage() {
         </CardHeader>
         <CardContent>
           <PayrollTable
-            month={selectedMonth}
-            year={selectedYear}
+            records={filteredPayrolls}
+            isLoading={isLoading}
             onViewPayslip={handleViewPayslip}
           />
         </CardContent>

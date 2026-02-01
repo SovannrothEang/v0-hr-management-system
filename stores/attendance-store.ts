@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_leave";
+export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_leave" | "excused" | "early_out" | "overtime" | "did_not_checkout";
 export type LeaveType = "annual" | "sick" | "personal" | "maternity" | "paternity" | "unpaid";
 export type LeaveStatus = "pending" | "approved" | "rejected";
 
@@ -28,6 +28,8 @@ export interface AttendanceRecord {
     lastName: string;
     email: string;
     department: string;
+    avatar?: string;
+    profileImage?: string;
   };
   isActive?: boolean;
   createdAt?: string;

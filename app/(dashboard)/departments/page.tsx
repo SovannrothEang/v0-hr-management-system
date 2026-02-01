@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,12 +42,10 @@ import { Building2, Users, Plus, Pencil, Trash2, ChevronLeft, ChevronRight } fro
 import type { Department } from "@/hooks/use-departments";
 
 export default function DepartmentsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  // Use local state for pagination instead of URL parameters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
-  // Get page from URL query parameter, default to 1
-  const currentPage = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
 
   const { data: deptResult, isLoading: isDeptsLoading } = useDepartments({ page: currentPage, limit });
   const { data: empResult, isLoading: isEmployeesLoading } = useEmployees();
@@ -70,15 +68,10 @@ export default function DepartmentsPage() {
   const totalEmployeesCount = empResult?.meta?.total || employees.length || 0;
 
   const updatePage = (newPage: number, newLimit?: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", newPage.toString());
-    const finalLimit = newLimit ?? limit;
-    if (finalLimit !== 10) {
-      params.set("limit", finalLimit.toString());
-    } else {
-      params.delete("limit");
+    setCurrentPage(newPage);
+    if (newLimit !== undefined) {
+      setLimit(newLimit);
     }
-    router.push(`?${params.toString()}`, { scroll: false });
   };
 
   const handlePreviousPage = () => {

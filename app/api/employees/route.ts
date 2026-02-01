@@ -38,31 +38,11 @@ export const GET = withRole(async (request) => {
 
     const data = await response.json();
     
-    // The API returns ResultPagination with flat properties (total, page, etc.)
-    // If the data is nested inside data.data, extract it correctly
-    const rawEmployees = data.data?.data || data.data || [];
-    const rawTotal = data.data?.total ?? data.total;
-    const rawPage = data.data?.page ?? data.page;
-    const rawLimit = data.data?.limit ?? data.limit;
-    const rawTotalPages = data.data?.totalPages ?? data.totalPages;
-    const rawHasNext = data.data?.hasNext ?? data.hasNext;
-    const rawHasPrevious = data.data?.hasPrevious ?? data.hasPrevious;
-
-    const rawMeta = rawTotal !== undefined ? {
-      total: rawTotal,
-      page: rawPage,
-      limit: rawLimit,
-      totalPages: rawTotalPages,
-      hasNext: rawHasNext,
-      hasPrevious: rawHasPrevious,
-    } : data.meta;
-
+    // Return the external API response directly
+    // This ensures ResultPagination flat metadata is preserved
     return NextResponse.json({
       success: true,
-      data: {
-        data: rawEmployees,
-        meta: rawMeta
-      }
+      data: data
     });
   } catch (error) {
     return NextResponse.json(

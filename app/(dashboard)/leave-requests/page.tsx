@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,16 +13,19 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function LeaveRequestsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { user } = useSessionStore();
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const { isAdmin, isHRManager } = usePermissions();
 
-  // Get page from URL query parameter, default to 1
-  const currentPage = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  // Use local state for pagination instead of URL parameters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  // Reset to page 1 when status filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
 
   const { data: result, isLoading } = useLeaveRequests({
     status: statusFilter,
@@ -55,10 +57,7 @@ export default function LeaveRequestsPage() {
   const pendingCount = requests.filter((r) => r.status === "pending").length || 0;
 
   const updatePage = (newPage: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", newPage.toString());
-    if (limit !== 10) params.set("limit", limit.toString());
-    router.push(`?${params.toString()}`, { scroll: false });
+    setCurrentPage(newPage);
   };
 
   const handlePreviousPage = () => {

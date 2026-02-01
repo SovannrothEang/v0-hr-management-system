@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,25 +28,32 @@ import {
 import { AdminOrHROnly } from "@/components/auth/protected-action";
 import { useEmployees, useDeleteEmployee } from "@/hooks/use-employees";
 import { useEmployeeStore, type Employee } from "@/stores/employee-store";
-import { Plus, Download, Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Download, Upload, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function EmployeesPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { searchQuery, filterDepartment, filterStatus, setSelectedEmployee } =
+  const { searchQuery, filterDepartment, filterStatus } =
     useEmployeeStore();
 
-  // Get page from URL query parameter, default to 1
-  const currentPage = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  // Use local state for pagination instead of URL parameters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
-  const { data: result, isLoading } = useEmployees({
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterDepartment, filterStatus]);
+
+  const { data: result, isLoading, isFetching } = useEmployees({
     search: searchQuery,
     department: filterDepartment,
     status: filterStatus,
     page: currentPage,
     limit: limit,
   });
+
+  const isInitialLoading = isLoading;
+  const isBackgroundUpdating = isFetching && !isLoading;
 
   const { mutate: deleteEmployee } = useDeleteEmployee();
 
@@ -91,15 +97,10 @@ export default function EmployeesPage() {
   };
 
   const updatePage = (newPage: number, newLimit?: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", newPage.toString());
-    const finalLimit = newLimit ?? limit;
-    if (finalLimit !== 10) {
-      params.set("limit", finalLimit.toString());
-    } else {
-      params.delete("limit");
+    setCurrentPage(newPage);
+    if (newLimit !== undefined) {
+      setLimit(newLimit);
     }
-    router.push(`?${params.toString()}`, { scroll: false });
   };
 
   const handlePreviousPage = () => {
@@ -138,7 +139,7 @@ export default function EmployeesPage() {
 
       <EmployeeFilters />
 
-      {isLoading ? (
+      {isInitialLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
@@ -146,12 +147,19 @@ export default function EmployeesPage() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <EmployeeTable
-          employees={employees}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <div className={cn("relative", isBackgroundUpdating && "opacity-60 pointer-events-none")}>
+          <EmployeeTable
+            employees={employees}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          {isBackgroundUpdating && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Pagination and employee count */}
@@ -178,9 +186,9 @@ export default function EmployeesPage() {
 
           <div className="flex items-center text-sm font-medium text-muted-foreground">
             {meta.total > 0 ? (
-              `${(meta.page - 1) * meta.limit + 1}–${Math.min(meta.page * meta.limit, meta.total)} of ${meta.total}`
+              `${(meta.page - 1) * meta.limit + 1}-${Math.min(meta.page * meta.limit, meta.total)} of ${meta.total}`
             ) : (
-              "0–0 of 0"
+              "0-0 of 0"
             )}
           </div>
 

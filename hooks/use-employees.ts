@@ -57,61 +57,42 @@ export function useEmployees(params?: {
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
 
-      const response = await apiClient.get<{ data: any[], meta: PaginationMeta }>(
+      const response = await apiClient.get<{ data: any[], meta?: any, total?: number, page?: number, limit?: number, totalPages?: number, hasNext?: boolean, hasPrevious?: boolean }>(
         `/employees?${queryParams.toString()}`
       );
 
       const resData = response.data;
 
-      // Handle both internal API (array) and external API (paginated response)
-      if (Array.isArray(resData)) {
-        // Legacy array response - wrap in paginated structure
-        const data = resData.map(transformEmployee);
-        const total = data.length;
-        const limit = params?.limit || 10;
-        const totalPages = Math.ceil(total / limit);
-        const page = params?.page || 1;
+      // Robust extraction from ResultPagination structure
+      const innerData = (resData as any).data || (Array.isArray(resData) ? resData : []);
+      const transformedData = innerData.map(transformEmployee);
 
-        return {
-          data,
-          meta: {
-            page,
-            limit,
-            total,
-            totalPages,
-            hasNext: page < totalPages,
-            hasPrevious: page > 1,
-          },
-        };
-      }
-
-      // Paginated response from external API
-      const data = resData.data.map(transformEmployee);
-      const meta = resData.meta || {
-        page: params?.page || 1,
-        limit: params?.limit || 10,
-        total: data.length,
-        totalPages: 1,
-        hasNext: false,
-        hasPrevious: false,
-      };
-
-      // Ensure all meta fields are present and correct
-      const total = meta.total ?? data.length;
-      const metaLimit = meta.limit ?? params?.limit ?? 10;
-      const totalPages = meta.totalPages ?? Math.ceil(total / metaLimit);
-      const page = meta.page ?? params?.page ?? 1;
+      // Handle ResultPagination flat properties
+      const total = (resData as any).total ?? 
+                    (resData as any).meta?.total ?? 
+                    transformedData.length;
+      
+      const limit = (resData as any).limit ?? 
+                    (resData as any).meta?.limit ?? 
+                    params?.limit ?? 10;
+      
+      const page = (resData as any).page ?? 
+                   (resData as any).meta?.page ?? 
+                   params?.page ?? 1;
+      
+      const totalPages = (resData as any).totalPages ?? 
+                         (resData as any).meta?.totalPages ?? 
+                         Math.ceil(total / limit);
 
       return {
-        data,
+        data: transformedData,
         meta: {
-          ...meta,
           page,
-          limit: metaLimit,
+          limit,
           total,
           totalPages,
-          hasNext: meta.hasNext ?? page < totalPages,
-          hasPrevious: meta.hasPrevious ?? page > 1,
+          hasNext: (resData as any).hasNext ?? (resData as any).meta?.hasNext ?? page < totalPages,
+          hasPrevious: (resData as any).hasPrevious ?? (resData as any).meta?.hasPrevious ?? page > 1,
         },
       };
     },

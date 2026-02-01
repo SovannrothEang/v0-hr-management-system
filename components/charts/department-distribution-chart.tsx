@@ -67,7 +67,7 @@ export function DepartmentDistributionChart({
   title = "Department Distribution",
   fetchDepartments = false,
 }: DepartmentDistributionChartProps) {
-  const { data: deptResult, isLoading } = useDepartments();
+  const { data: deptResult, isLoading } = useDepartments(fetchDepartments ? { limit: 1000 } : undefined);
   const { innerRadius, outerRadius, height } = SIZE_CONFIG[size];
 
   const departments = deptResult?.data || [];

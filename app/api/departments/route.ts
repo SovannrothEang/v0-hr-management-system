@@ -30,46 +30,11 @@ export const GET = withAuth(async (request) => {
 
     const data = await response.json();
 
-    const rawDepartments = data.data?.data || data.data || [];
-    const rawTotal = data.data?.total ?? data.total;
-    const rawPage = data.data?.page ?? data.page;
-    const rawLimit = data.data?.limit ?? data.limit;
-    const rawTotalPages = data.data?.totalPages ?? data.totalPages;
-    const rawHasNext = data.data?.hasNext ?? data.hasNext;
-    const rawHasPrevious = data.data?.hasPrevious ?? data.hasPrevious;
-
-    const rawMeta = rawTotal !== undefined ? {
-      total: rawTotal,
-      page: rawPage,
-      limit: rawLimit,
-      totalPages: rawTotalPages,
-      hasNext: rawHasNext,
-      hasPrevious: rawHasPrevious,
-    } : data.meta;
-
-    // Transform external API data to match frontend interface
-    const departments = rawDepartments.map((dept: any) => ({
-      id: dept.id,
-      name: dept.name || dept.departmentName || dept.title,
-      employeeCount: dept.employees?.length || dept.employeeCount || 0,
-      percentage: 0,
-      createdAt: dept.createdAt,
-      updatedAt: dept.updatedAt,
-    }));
-
+    // Return the external API response directly
+    // This ensures ResultPagination flat metadata is preserved
     return NextResponse.json({
       success: true,
-      data: {
-        data: departments,
-        meta: rawMeta || {
-          page,
-          limit,
-          total: departments.length,
-          totalPages: Math.ceil(departments.length / limit),
-          hasNext: false,
-          hasPrevious: false
-        }
-      }
+      data: data
     });
   } catch (error) {
     return NextResponse.json(
