@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockLeaveRequests } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
@@ -16,69 +15,34 @@ export const GET = withRole(async (request) => {
     );
   }
 
-  let filteredRequests = mockLeaveRequests.filter(
-    (req) => req.startDate >= startDate && req.startDate <= endDate
-  );
+  try {
+    const params = new URLSearchParams();
+    params.set("startDate", startDate);
+    params.set("endDate", endDate);
+    if (department && department !== "all") params.set("department", department);
 
-  if (department && department !== "all") {
-    filteredRequests = filteredRequests;
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/leave?${params.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch leave report" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  const totalRequests = filteredRequests.length;
-  const approvedRequests = filteredRequests.filter(
-    (r) => r.status === "approved"
-  ).length;
-  const rejectedRequests = filteredRequests.filter(
-    (r) => r.status === "rejected"
-  ).length;
-  const pendingRequests = filteredRequests.filter(
-    (r) => r.status === "pending"
-  ).length;
-
-  const totalDays = filteredRequests.reduce((acc, r) => acc + r.days, 0);
-  const averageLeaveDays = filteredRequests.length
-    ? totalDays / filteredRequests.length
-    : 0;
-
-  const typeMap = new Map<string, number>();
-  filteredRequests.forEach((req) => {
-    typeMap.set(req.type, (typeMap.get(req.type) || 0) + 1);
-  });
-  const leaveTypeBreakdown = Array.from(typeMap.entries()).map(
-    ([type, count]) => ({
-      type: type.charAt(0).toUpperCase() + type.slice(1).replace("_", " "),
-      count,
-    })
-  );
-
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const monthlyTrend = months.slice(0, 6).map((month, idx) => ({
-    month,
-    count: Math.floor(Math.random() * 10) + 2,
-  }));
-
-  const report = {
-    totalRequests,
-    approvedRequests,
-    rejectedRequests,
-    pendingRequests,
-    averageLeaveDays: Math.round(averageLeaveDays * 10) / 10,
-    leaveTypeBreakdown,
-    monthlyTrend,
-  };
-
-  return NextResponse.json({ success: true, data: report });
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

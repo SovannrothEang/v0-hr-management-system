@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { AttendanceRecord, LeaveRequest } from "@/stores/attendance-store";
+import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType } from "@/stores/attendance-store";
 import type { PaginatedResponse } from "@/types/pagination";
 import { toast } from "sonner";
 
@@ -8,12 +8,22 @@ import { toast } from "sonner";
  * Transform API attendance data to frontend interface
  */
 function transformAttendance(att: any): AttendanceRecord {
+  const formatTime = (dateStr?: string) => {
+    if (!dateStr) return undefined;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return {
     id: att.id,
     employeeId: att.employeeId,
     date: att.date,
-    clockIn: att.checkInTime || att.clockIn,
-    clockOut: att.checkOutTime || att.clockOut,
+    clockIn: formatTime(att.checkInTime || att.clockIn),
+    clockOut: formatTime(att.checkOutTime || att.clockOut),
     status: att.status?.toLowerCase() || att.status,
     workHours: att.workHours,
     overtime: att.overtime,
@@ -24,6 +34,50 @@ function transformAttendance(att: any): AttendanceRecord {
     isActive: att.isActive ?? true,
     createdAt: att.createdAt,
     updatedAt: att.updatedAt,
+  };
+}
+
+/**
+ * Transform API leave request data to frontend interface
+ */
+function transformLeaveRequest(lr: any): LeaveRequest {
+  // Map API SICK_LEAVE to sick, etc.
+  const typeMap: Record<string, LeaveType> = {
+    'ANNUAL_LEAVE': 'annual',
+    'SICK_LEAVE': 'sick',
+    'PERSONAL_LEAVE': 'personal',
+    'MATERNITY_LEAVE': 'maternity',
+    'PATERNITY_LEAVE': 'paternity',
+    'UNPAID_LEAVE': 'unpaid'
+  };
+
+  // Status mapping
+  const status = lr.status?.toLowerCase() || 'pending';
+  const type = typeMap[lr.leaveType] || lr.type?.toLowerCase() || 'annual';
+
+  // Robust extraction from the new nested employee object (Priority: API DTO structure)
+  const emp = lr.employee || {};
+  const employeeName = lr.employeeName ||
+    (emp.firstname ? `${emp.firstname} ${emp.lastname || ''}`.trim() : null) ||
+    emp.name ||
+    (emp.firstName ? `${emp.firstName} ${emp.lastName || ''}`.trim() : null) ||
+    'Unknown Employee';
+
+  return {
+    id: lr.id,
+    employeeId: lr.employeeId,
+    employeeName,
+    employeeAvatar: emp.profileImage || emp.avatar,
+    employee: emp,
+    type: type as LeaveType,
+    startDate: lr.startDate,
+    endDate: lr.endDate,
+    days: lr.days || lr.totalDays || 0,
+    reason: lr.reason,
+    status: status as LeaveStatus,
+    reviewedBy: lr.approver?.firstname ? `${lr.approver.firstname} ${lr.approver.lastname || ''}`.trim() : (lr.approver?.name || lr.reviewedBy || lr.approvedBy),
+    reviewedAt: lr.reviewedAt || lr.approvedAt || lr.updatedAt,
+    createdAt: lr.createdAt,
   };
 }
 
@@ -75,18 +129,23 @@ export function useAttendanceRecords(params?: {
       }
 
       // Paginated response from external API
-      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
-        return {
-          data: data.data.map(transformAttendance),
-          meta: data.meta || {
-            page: params?.page || 1,
-            limit: params?.limit || 10,
-            total: data.data.length,
-            totalPages: 1,
-            hasNext: false,
-            hasPrevious: false,
-          },
+      if (data && typeof data === 'object') {
+        const innerData = (data as any).data || data;
+        const meta = (data as any).meta || {
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+          total: Array.isArray(innerData) ? innerData.length : 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrevious: false,
         };
+
+        if (Array.isArray(innerData)) {
+          return {
+            data: innerData.map(transformAttendance),
+            meta,
+          };
+        }
       }
 
       // Fallback for unexpected response
@@ -176,13 +235,14 @@ export function useLeaveRequests(params?: {
       // Handle both internal API (array) and external API (paginated response)
       if (Array.isArray(data)) {
         // Legacy array response - wrap in paginated structure
-        const total = data.length;
+        const transformedData = data.map(transformLeaveRequest);
+        const total = transformedData.length;
         const limit = params?.limit || 10;
         const totalPages = Math.ceil(total / limit);
         const page = params?.page || 1;
 
         return {
-          data,
+          data: transformedData,
           meta: {
             page,
             limit,
@@ -195,18 +255,23 @@ export function useLeaveRequests(params?: {
       }
 
       // Paginated response from external API
-      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
-        return {
-          data: data.data,
-          meta: data.meta || {
-            page: params?.page || 1,
-            limit: params?.limit || 10,
-            total: data.data.length,
-            totalPages: 1,
-            hasNext: false,
-            hasPrevious: false,
-          },
+      if (data && typeof data === 'object') {
+        const innerData = (data as any).data || data;
+        const meta = (data as any).meta || {
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+          total: Array.isArray(innerData) ? innerData.length : 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrevious: false,
         };
+
+        if (Array.isArray(innerData)) {
+          return {
+            data: innerData.map(transformLeaveRequest),
+            meta,
+          };
+        }
       }
 
       // Fallback for unexpected response
@@ -230,9 +295,24 @@ export function useCreateLeaveRequest() {
 
   return useMutation({
     mutationFn: async (data: Partial<LeaveRequest>): Promise<LeaveRequest> => {
-      const response = await apiClient.post<LeaveRequest | { data: LeaveRequest }>("/leave-requests", data);
+      // Map frontend leaveType to backend enum
+      const typeMap: Record<string, string> = {
+        'annual': 'ANNUAL_LEAVE',
+        'sick': 'SICK_LEAVE',
+        'personal': 'PERSONAL_LEAVE',
+        'maternity': 'MATERNITY_LEAVE',
+        'paternity': 'PATERNITY_LEAVE',
+        'unpaid': 'UNPAID_LEAVE'
+      };
+
+      const payload = {
+        ...data,
+        leaveType: typeMap[data.type as string] || data.type,
+      };
+
+      const response = await apiClient.post<LeaveRequest | { data: LeaveRequest }>("/leave-requests", payload);
       const resData = response.data;
-      return (resData && typeof resData === 'object' && 'data' in resData) ? resData.data : resData as LeaveRequest;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });
@@ -253,18 +333,21 @@ export function useUpdateLeaveRequest() {
     mutationFn: async ({
       id,
       status,
-      approvedBy,
+      approverId,
     }: {
       id: string;
       status: "approved" | "rejected";
-      approvedBy: string;
+      approverId?: string;
     }): Promise<LeaveRequest> => {
-      const response = await apiClient.put<LeaveRequest | { data: LeaveRequest }>(`/leave-requests/${id}`, {
-        status,
-        approvedBy,
+      // Backend expects SCREAMING_SNAKE_CASE status
+      const backendStatus = status.toUpperCase();
+
+      const response = await apiClient.patch<LeaveRequest | { data: LeaveRequest }>(`/leave-requests/${id}`, {
+        status: backendStatus,
+        approverId,
       });
       const resData = response.data;
-      return (resData && typeof resData === 'object' && 'data' in resData) ? resData.data : resData as LeaveRequest;
+      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests"] });

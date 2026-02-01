@@ -36,7 +36,7 @@ export default function LeaveRequestsPage() {
     updateRequest({
       id,
       status: "approved",
-      approvedBy: user?.name || "Admin",
+      approverId: user?.id,
     });
   };
 
@@ -44,7 +44,7 @@ export default function LeaveRequestsPage() {
     updateRequest({
       id,
       status: "rejected",
-      approvedBy: user?.name || "Admin",
+      approverId: user?.id,
     });
   };
 
@@ -115,7 +115,7 @@ export default function LeaveRequestsPage() {
                 onReject={handleReject}
                 showActions={isManager}
               />
-              
+
               {/* Pagination */}
               {meta && meta.totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
@@ -123,7 +123,7 @@ export default function LeaveRequestsPage() {
                     Showing {meta.page * meta.limit - meta.limit + 1} to{" "}
                     {Math.min(meta.page * meta.limit, meta.total)} of {meta.total} requests
                   </p>
-                  
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -134,11 +134,11 @@ export default function LeaveRequestsPage() {
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    
+
                     <span className="text-sm text-muted-foreground">
                       Page {meta.page} of {meta.totalPages}
                     </span>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"

@@ -7,6 +7,8 @@ export const GET = withAuth(async (request) => {
   const employeeId = searchParams.get("employeeId");
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const page = searchParams.get("page") || "1";
+  const limit = searchParams.get("limit") || "10";
 
   try {
     const params = new URLSearchParams();
@@ -14,6 +16,9 @@ export const GET = withAuth(async (request) => {
     if (employeeId) params.set("employeeId", employeeId);
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
+    params.set("page", page);
+    params.set("limit", limit);
+    params.set("pageSize", limit);
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendance?${params.toString()}`,
@@ -32,7 +37,31 @@ export const GET = withAuth(async (request) => {
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data });
+    
+    const rawAttendance = data.data?.data || data.data || [];
+    const rawTotal = data.data?.total ?? data.total;
+    const rawPage = data.data?.page ?? data.page;
+    const rawLimit = data.data?.limit ?? data.limit;
+    const rawTotalPages = data.data?.totalPages ?? data.totalPages;
+    const rawHasNext = data.data?.hasNext ?? data.hasNext;
+    const rawHasPrevious = data.data?.hasPrevious ?? data.hasPrevious;
+
+    const rawMeta = rawTotal !== undefined ? {
+      total: rawTotal,
+      page: rawPage,
+      limit: rawLimit,
+      totalPages: rawTotalPages,
+      hasNext: rawHasNext,
+      hasPrevious: rawHasPrevious,
+    } : data.meta;
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        data: rawAttendance,
+        meta: rawMeta
+      }
+    });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Internal server error" },

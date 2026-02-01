@@ -38,13 +38,17 @@ export interface LeaveRequest {
   id: string;
   employeeId: string;
   employeeName: string;
+  employeeAvatar?: string;
+  employee?: any;
   type: LeaveType;
   startDate: string;
   endDate: string;
   days: number;
   reason: string;
   status: LeaveStatus;
-  approvedBy?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  approvedBy?: string; // Kept for backward compatibility if needed
   createdAt: string;
 }
 

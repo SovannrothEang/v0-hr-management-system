@@ -74,18 +74,30 @@ export function DepartmentDistributionChart({
 
   // If fetchDepartments is true, use departments from cache
   // Ensure data has the correct keys for Recharts (department and count)
-  const chartData = (fetchDepartments && departments
+  // Process and sort data
+  const processedData = (fetchDepartments && departments
     ? departments.map((dept) => ({
       department: dept.name,
       count: dept.employeeCount || 0,
     }))
     : data || []).map((item: any) => ({
       ...item,
-      // Fallback for department name
       department: item.department || item.name || "Unknown",
-      // Fallback for employee count
       count: Number(item.count ?? item.employeeCount ?? 0)
-    }));
+    })).sort((a: any, b: any) => b.count - a.count);
+
+  // Group small departments into "Other" if there are too many
+  const MAX_ITEMS = 10;
+  const chartData = processedData.length > MAX_ITEMS
+    ? [
+      ...processedData.slice(0, MAX_ITEMS - 1),
+      {
+        department: "Other",
+        count: processedData.slice(MAX_ITEMS - 1).reduce((sum, item) => sum + item.count, 0),
+        isOther: true
+      }
+    ]
+    : processedData;
 
   if (isLoading && fetchDepartments) {
     return (
@@ -116,10 +128,10 @@ export function DepartmentDistributionChart({
             dataKey="count"
             nameKey="department"
           >
-            {chartData.map((_, index) => (
+            {chartData.map((item: any, index: number) => (
               <Cell
                 key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
+                fill={item.isOther ? "oklch(0.6 0 0)" : COLORS[index % COLORS.length]}
                 stroke="var(--color-background)"
                 strokeWidth={2}
               />

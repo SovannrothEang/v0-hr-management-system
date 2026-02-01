@@ -61,6 +61,8 @@ export interface AttendanceRecord {
 export interface LeaveRequest {
   id: string;
   employeeId: string;
+  employeeName: string;
+  employeeAvatar?: string;
   employee?: Employee;
   type: "annual" | "sick" | "personal" | "unpaid" | "maternity" | "paternity";
   startDate: string;

@@ -16,7 +16,7 @@ function transformEmployee(emp: any): Employee {
     lastName: emp.lastname || emp.lastName,
     email: emp.user?.email || emp.email,
     phone: emp.phoneNumber || emp.phone || '',
-    avatar: emp.avatar,
+    avatar: emp.profileImage || emp.avatar,
     department: emp.department?.name || emp.department || '',
     position: emp.position?.title || emp.position || '',
     employmentType: emp.employmentType?.toLowerCase() || emp.employmentType,

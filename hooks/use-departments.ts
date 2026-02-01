@@ -27,11 +27,11 @@ function transformDepartment(dept: any): Department {
   }
   return {
     id: dept.id || dept.name,
-    name: dept.name || dept.departmentName || dept.title,
-    employeeCount: Number(dept.employeeCount || dept.employees?.length || 0),
+    name: dept.name || dept.departmentName || dept.department_name || dept.title,
+    employeeCount: Number(dept.employeeCount || dept.employee_count || dept.employees?.length || 0),
     percentage: dept.percentage !== undefined ? Number(dept.percentage) : 0,
-    createdAt: dept.createdAt,
-    updatedAt: dept.updatedAt,
+    createdAt: dept.createdAt || dept.created_at,
+    updatedAt: dept.updatedAt || dept.updated_at,
   };
 }
 

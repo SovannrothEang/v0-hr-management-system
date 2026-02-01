@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockAttendanceRecords, mockEmployees } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
@@ -16,58 +15,34 @@ export const GET = withRole(async (request) => {
     );
   }
 
-  let filteredRecords = mockAttendanceRecords.filter(
-    (record) => record.date >= startDate && record.date <= endDate
-  );
+  try {
+    const params = new URLSearchParams();
+    params.set("startDate", startDate);
+    params.set("endDate", endDate);
+    if (department && department !== "all") params.set("department", department);
 
-  if (department && department !== "all") {
-    const deptEmployeeIds = mockEmployees
-      .filter((emp) => emp.department === department)
-      .map((emp) => emp.id);
-    filteredRecords = filteredRecords.filter((record) =>
-      deptEmployeeIds.includes(record.employeeId)
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/attendance?${params.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch attendance report" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
     );
   }
-
-  const totalDays = filteredRecords.length;
-  const presentDays = filteredRecords.filter(
-    (r) => r.status === "present"
-  ).length;
-  const lateDays = filteredRecords.filter((r) => r.status === "late").length;
-  const absentDays = filteredRecords.filter(
-    (r) => r.status === "absent"
-  ).length;
-  const leaveDays = filteredRecords.filter(
-    (r) => r.status === "on_leave"
-  ).length;
-
-  const workHoursRecords = filteredRecords.filter((r) => r.workHours);
-  const totalWorkHours = workHoursRecords.reduce(
-    (acc, r) => acc + (r.workHours || 0),
-    0
-  );
-  const averageWorkHours = workHoursRecords.length
-    ? totalWorkHours / workHoursRecords.length
-    : 0;
-
-  const totalOvertimeHours = filteredRecords.reduce(
-    (acc, r) => acc + (r.overtime || 0),
-    0
-  );
-
-  const attendanceRate =
-    totalDays > 0 ? ((presentDays + lateDays) / totalDays) * 100 : 0;
-
-  const report = {
-    totalDays,
-    presentDays,
-    absentDays,
-    lateDays,
-    leaveDays,
-    attendanceRate: Math.round(attendanceRate * 10) / 10,
-    averageWorkHours: Math.round(averageWorkHours * 10) / 10,
-    totalOvertimeHours: Math.round(totalOvertimeHours * 10) / 10,
-  };
-
-  return NextResponse.json({ success: true, data: report });
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

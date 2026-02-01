@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { mockPayrollRecords } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 
@@ -16,66 +15,34 @@ export const GET = withRole(async (request) => {
     );
   }
 
-  let filteredPayrolls = [...mockPayrollRecords];
+  try {
+    const params = new URLSearchParams();
+    params.set("startDate", startDate);
+    params.set("endDate", endDate);
+    if (department && department !== "all") params.set("department", department);
 
-  if (department && department !== "all") {
-    filteredPayrolls = filteredPayrolls.filter(
-      (p) => p.employee?.department === department
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/payroll?${params.toString()}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, message: "Failed to fetch payroll report" },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
     );
   }
-
-  const totalPayroll = filteredPayrolls.reduce((acc, p) => acc + p.netPay, 0);
-  const averageSalary = filteredPayrolls.length
-    ? totalPayroll / filteredPayrolls.length
-    : 0;
-  const totalDeductions = filteredPayrolls.reduce(
-    (acc, p) => acc + p.deductions,
-    0
-  );
-  const totalAllowances = filteredPayrolls.reduce(
-    (acc, p) => acc + p.allowances,
-    0
-  );
-
-  const deptMap = new Map<string, number>();
-  filteredPayrolls.forEach((p) => {
-    const dept = p.employee?.department || "Unknown";
-    deptMap.set(dept, (deptMap.get(dept) || 0) + p.netPay);
-  });
-  const departmentPayroll = Array.from(deptMap.entries())
-    .map(([department, total]) => ({
-      department,
-      total: Math.round(total),
-    }))
-    .sort((a, b) => b.total - a.total);
-
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const payrollTrend = months.slice(0, 6).map((month) => ({
-    period: month,
-    amount: Math.floor(totalPayroll * (0.9 + Math.random() * 0.2)),
-  }));
-
-  const report = {
-    totalPayroll: Math.round(totalPayroll),
-    averageSalary: Math.round(averageSalary),
-    totalDeductions: Math.round(totalDeductions),
-    totalAllowances: Math.round(totalAllowances),
-    departmentPayroll,
-    payrollTrend,
-  };
-
-  return NextResponse.json({ success: true, data: report });
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

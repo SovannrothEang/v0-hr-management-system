@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -50,6 +51,10 @@ export function LeaveRequestTable({
     });
   };
 
+  const getInitials = (name: string) => {
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <Table>
@@ -78,9 +83,17 @@ export function LeaveRequestTable({
             requests.map((request) => (
               <TableRow key={request.id}>
                 <TableCell>
-                  <p className="font-medium text-card-foreground">
-                    {request.employeeName}
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={request.employeeAvatar} alt={request.employeeName} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+                        {getInitials(request.employeeName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p className="font-medium text-card-foreground">
+                      {request.employeeName}
+                    </p>
+                  </div>
                 </TableCell>
                 <TableCell>{leaveTypeLabels[request.type]}</TableCell>
                 <TableCell className="text-sm">
@@ -127,9 +140,9 @@ export function LeaveRequestTable({
                         </Button>
                       </div>
                     )}
-                    {request.status !== "pending" && request.approvedBy && (
+                    {request.status !== "pending" && (request.reviewedBy || request.approvedBy) && (
                       <span className="text-xs text-muted-foreground">
-                        by {request.approvedBy}
+                        by {request.reviewedBy || request.approvedBy}
                       </span>
                     )}
                   </TableCell>

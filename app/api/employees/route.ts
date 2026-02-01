@@ -38,9 +38,24 @@ export const GET = withRole(async (request) => {
 
     const data = await response.json();
     
-    // Handle potential double nesting from external API
+    // The API returns ResultPagination with flat properties (total, page, etc.)
+    // If the data is nested inside data.data, extract it correctly
     const rawEmployees = data.data?.data || data.data || [];
-    const rawMeta = data.data?.meta || data.meta;
+    const rawTotal = data.data?.total ?? data.total;
+    const rawPage = data.data?.page ?? data.page;
+    const rawLimit = data.data?.limit ?? data.limit;
+    const rawTotalPages = data.data?.totalPages ?? data.totalPages;
+    const rawHasNext = data.data?.hasNext ?? data.hasNext;
+    const rawHasPrevious = data.data?.hasPrevious ?? data.hasPrevious;
+
+    const rawMeta = rawTotal !== undefined ? {
+      total: rawTotal,
+      page: rawPage,
+      limit: rawLimit,
+      totalPages: rawTotalPages,
+      hasNext: rawHasNext,
+      hasPrevious: rawHasPrevious,
+    } : data.meta;
 
     return NextResponse.json({
       success: true,
