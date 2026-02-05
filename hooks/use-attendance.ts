@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType, AttendanceStatus } from "@/stores/attendance-store";
+import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType, AttendanceStatus, AttendanceSummary } from "@/stores/attendance-store";
 import type { PaginatedResponse } from "@/types/pagination";
 import { toast } from "sonner";
 
@@ -9,12 +9,12 @@ function transformAttendance(att: any): AttendanceRecord {
     if (!dateStr) return undefined;
     // If it's already in HH:mm format, return it
     if (/^\d{2}:\d{2}$/.test(dateStr)) return dateStr;
-    
+
     try {
       const date = new Date(dateStr);
       // Check if date is valid
       if (isNaN(date.getTime())) return dateStr;
-      
+
       return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
     } catch {
       return dateStr;
@@ -54,6 +54,24 @@ function transformAttendance(att: any): AttendanceRecord {
 }
 
 /**
+ * Calculate the number of days between two dates (inclusive)
+ */
+function calculateLeaveDays(startDate: string, endDate: string): number {
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    // Check if dates are valid
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
+    // Calculate difference in days (inclusive: add 1)
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  } catch {
+    return 1;
+  }
+}
+
+/**
  * Transform API leave request data to frontend interface
  */
 function transformLeaveRequest(lr: any): LeaveRequest {
@@ -89,6 +107,9 @@ function transformLeaveRequest(lr: any): LeaveRequest {
     avatar: emp.profileImage || emp.avatar,
   };
 
+  // Calculate days if not provided by API
+  const days = lr.days || lr.totalDays || calculateLeaveDays(lr.startDate, lr.endDate);
+
   return {
     id: lr.id,
     employeeId: lr.employeeId,
@@ -98,7 +119,7 @@ function transformLeaveRequest(lr: any): LeaveRequest {
     type: type as LeaveType,
     startDate: lr.startDate,
     endDate: lr.endDate,
-    days: lr.days || lr.totalDays || 0,
+    days,
     reason: lr.reason,
     status: status as LeaveStatus,
     reviewedBy: lr.approver?.firstname ? `${lr.approver.firstname} ${lr.approver.lastname || ''}`.trim() : (lr.approver?.name || lr.reviewedBy || lr.approvedBy),
@@ -117,24 +138,46 @@ export function useAttendanceRecords(params?: {
 }) {
   return useQuery({
     queryKey: ["attendance", params],
-    queryFn: async (): Promise<PaginatedResponse<AttendanceRecord>> => {
+    queryFn: async (): Promise<PaginatedResponse<AttendanceRecord> & { summary?: AttendanceSummary }> => {
       const queryParams = new URLSearchParams();
-      if (params?.date) queryParams.set("date", params.date);
+      if (params?.date) queryParams.set("dateFrom", params.date);
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
       if (params?.startDate) queryParams.set("startDate", params.startDate);
       if (params?.endDate) queryParams.set("endDate", params.endDate);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
 
-      const response = await apiClient.get<AttendanceRecord[] | PaginatedResponse<AttendanceRecord>>(
+      const response = await apiClient.get<any>(
         `/attendance?${queryParams.toString()}`
       );
 
-      const data = response.data;
+      const responseData = response.data;
 
-      // Handle both internal API (array) and external API (paginated response)
+      // Handle the new structure: { data: { data: [], summary: {}, ... }, statusCode: 200 }
+      const nestedData = responseData?.data;
+
+      if (nestedData && typeof nestedData === 'object' && 'data' in nestedData) {
+        const records = Array.isArray(nestedData.data) ? nestedData.data.map(transformAttendance) : [];
+        const summary = nestedData.summary as AttendanceSummary;
+
+        return {
+          data: records,
+          summary,
+          meta: {
+            page: nestedData.page || params?.page || 1,
+            limit: nestedData.limit || params?.limit || 10,
+            total: nestedData.total || records.length,
+            totalPages: nestedData.totalPages || 1,
+            hasNext: nestedData.hasNext ?? false,
+            hasPrevious: nestedData.hasPrevious ?? false,
+          },
+        };
+      }
+
+      // Fallback for previous structures or legacy array response
+      const data = responseData;
+
       if (Array.isArray(data)) {
-        // Legacy array response - wrap in paginated structure
         const transformedData = data.map(transformAttendance);
         const total = transformedData.length;
         const limit = params?.limit || 10;
@@ -154,18 +197,13 @@ export function useAttendanceRecords(params?: {
         };
       }
 
-      // Paginated response from external API
       if (data && typeof data === 'object') {
         const paginatedData = data as any;
-        const innerData = paginatedData.data || (Array.isArray(data) ? data : []);
+        const innerData = paginatedData.data || [];
         const transformedData = Array.isArray(innerData) ? innerData.map(transformAttendance) : [];
 
-        // Robust metadata extraction: check both .meta and top-level properties
         const total = paginatedData.meta?.total ??
           paginatedData.total ??
-          paginatedData.total_count ??
-          paginatedData.totalCount ??
-          paginatedData.count ??
           transformedData.length;
 
         const meta = paginatedData.meta || {};
@@ -187,7 +225,6 @@ export function useAttendanceRecords(params?: {
         };
       }
 
-      // Fallback for unexpected response
       return {
         data: [],
         meta: {

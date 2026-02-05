@@ -55,9 +55,18 @@ export function AttendanceTable({
     return time;
   };
 
-  const formatWorkHours = (hours?: number) => {
+  const formatWorkHours = (hours?: number | string) => {
     if (!hours) return "-";
-    return `${hours.toFixed(1)}h`;
+    const num = typeof hours === 'string' ? parseFloat(hours) : hours;
+    if (isNaN(num)) return "-";
+    return `${num.toFixed(1)}h`;
+  };
+
+  const formatOvertime = (overtime?: number | string) => {
+    if (!overtime) return null;
+    const num = typeof overtime === 'string' ? parseFloat(overtime) : overtime;
+    if (isNaN(num) || num === 0) return null;
+    return `+${num.toFixed(1)}h`;
   };
 
   return (
@@ -87,7 +96,7 @@ export function AttendanceTable({
           ) : (
             records.map((record) => {
               const employee = getEmployee(record.employeeId) || record.employee;
-              
+
               const firstName = employee?.firstName || "Unknown";
               const lastName = employee?.lastName || "";
               const department = (employee as any)?.department || "N/A";
@@ -132,9 +141,9 @@ export function AttendanceTable({
                     {formatWorkHours(record.workHours)}
                   </TableCell>
                   <TableCell>
-                    {record.overtime ? (
+                    {formatOvertime(record.overtime) ? (
                       <span className="text-success font-medium">
-                        +{record.overtime.toFixed(1)}h
+                        {formatOvertime(record.overtime)}
                       </span>
                     ) : (
                       "-"

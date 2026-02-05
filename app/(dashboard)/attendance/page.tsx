@@ -20,13 +20,16 @@ export default function AttendancePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedDate, setSelectedDate } = useAttendanceStore();
-  
-  // Get page from URL query parameter, default to 1
-  const currentPage = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
-  
+
+  // Local state for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const isToday =
+    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+
   const { data: result, isLoading: recordsLoading } = useAttendanceRecords({
-    date: format(selectedDate, "yyyy-MM-dd"),
+    date: !isToday ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
     page: currentPage,
     limit: limit,
   });
@@ -37,33 +40,33 @@ export default function AttendancePage() {
   const isLoading = recordsLoading || employeesLoading;
   const records = result?.data || [];
   const meta = result?.meta;
+  const summary = result?.summary;
   const employees = employeesResult?.data || [];
 
-  const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1));
-  const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
-  const handleToday = () => setSelectedDate(new Date());
-
-  const updatePage = (newPage: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", newPage.toString());
-    if (limit !== 10) params.set("limit", limit.toString());
-    router.push(`?${params.toString()}`, { scroll: false });
+  const handlePrevDay = () => {
+    setSelectedDate(subDays(selectedDate, 1));
+    setCurrentPage(1); // Reset page on date change
+  };
+  const handleNextDay = () => {
+    setSelectedDate(addDays(selectedDate, 1));
+    setCurrentPage(1); // Reset page on date change
+  };
+  const handleToday = () => {
+    setSelectedDate(new Date());
+    setCurrentPage(1); // Reset page on date change
   };
 
   const handlePreviousPage = () => {
     if (meta?.hasPrevious) {
-      updatePage(currentPage - 1);
+      setCurrentPage((prev) => prev - 1);
     }
   };
 
   const handleNextPage = () => {
     if (meta?.hasNext) {
-      updatePage(currentPage + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   };
-
-  const isToday =
-    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -117,11 +120,6 @@ export default function AttendancePage() {
             </Button>
           )}
         </div>
-
-        <div className="text-sm text-muted-foreground">
-          {meta ? `${meta.total} employee${meta.total !== 1 ? "s" : ""}` : 
-            `${records.length} employee${records.length !== 1 ? "s" : ""}`}
-        </div>
       </div>
 
       {/* Overview Stats */}
@@ -132,7 +130,7 @@ export default function AttendancePage() {
           ))}
         </div>
       ) : (
-        <AttendanceOverview records={records || []} />
+        <AttendanceOverview records={records || []} summary={summary} />
       )}
 
       {/* Attendance Table */}
@@ -150,35 +148,41 @@ export default function AttendancePage() {
             onClockIn={(employeeId) => clockIn(employeeId)}
             onClockOut={(employeeId) => clockOut(employeeId)}
           />
-          
+
           {/* Pagination */}
-          {meta && meta.totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={!meta.hasPrevious}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              
-              <span className="text-sm text-muted-foreground">
-                Page {meta.page} of {meta.totalPages}
-              </span>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={!meta.hasNext}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 text-sm text-muted-foreground">
+            <div>
+              {meta ? `Total ${meta.total} records` : `Total ${records.length} records`}
             </div>
-          )}
+
+            {meta && meta.totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPage}
+                  disabled={!meta.hasPrevious}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+
+                <span className="text-sm text-muted-foreground">
+                  Page {meta.page} of {meta.totalPages}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={!meta.hasNext}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

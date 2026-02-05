@@ -4,6 +4,15 @@ export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_
 export type LeaveType = "annual" | "sick" | "personal" | "maternity" | "paternity" | "unpaid";
 export type LeaveStatus = "pending" | "approved" | "rejected";
 
+export interface AttendanceSummary {
+  daysPresent: number;
+  lateCount: number;
+  daysAbsent: number;
+  daysOnLeave: number;
+  totalHoursWorked: number;
+  totalOvertimeHours: number;
+}
+
 export interface AttendanceRecord {
   id: string;
   employeeId: string;

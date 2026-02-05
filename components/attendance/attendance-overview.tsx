@@ -3,17 +3,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { UserCheck, UserX, Clock, CalendarOff } from "lucide-react";
-import type { AttendanceRecord } from "@/stores/attendance-store";
+import type { AttendanceRecord, AttendanceSummary } from "@/stores/attendance-store";
 
 interface AttendanceOverviewProps {
-  records: AttendanceRecord[];
+  records?: AttendanceRecord[];
+  summary?: AttendanceSummary;
 }
 
-export function AttendanceOverview({ records }: AttendanceOverviewProps) {
-  const present = records.filter((r) => r.status === "present").length;
-  const late = records.filter((r) => r.status === "late").length;
-  const absent = records.filter((r) => r.status === "absent").length;
-  const onLeave = records.filter((r) => r.status === "on_leave").length;
+export function AttendanceOverview({ records = [], summary }: AttendanceOverviewProps) {
+  const present = summary?.daysPresent ?? records.filter((r) => r.status === "present").length;
+  const late = summary?.lateCount ?? records.filter((r) => r.status === "late").length;
+  const absent = summary?.daysAbsent ?? records.filter((r) => r.status === "absent").length;
+  const onLeave = summary?.daysOnLeave ?? records.filter((r) => r.status === "on_leave").length;
   const total = records.length;
 
   const stats = [
@@ -50,8 +51,8 @@ export function AttendanceOverview({ records }: AttendanceOverviewProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
-        <Card key={stat.label} className="bg-card border-border">
-          <CardContent className="p-4">
+        <Card key={stat.label} className="bg-card border-border py-2">
+          <CardContent className="p-2">
             <div className="flex items-center gap-3">
               <div
                 className={cn(
