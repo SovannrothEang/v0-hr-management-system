@@ -44,7 +44,7 @@ import type { Department } from "@/hooks/use-departments";
 export default function DepartmentsPage() {
   // Use local state for pagination instead of URL parameters
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(9);
 
 
   const { data: deptResult, isLoading: isDeptsLoading } = useDepartments({ page: currentPage, limit });
@@ -271,7 +271,7 @@ export default function DepartmentsPage() {
                 <SelectValue placeholder={limit.toString()} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[10, 20, 50, 100].map((pageSize) => (
+                {[9, 18, 36, 72].map((pageSize) => (
                   <SelectItem key={pageSize} value={pageSize.toString()}>
                     {pageSize}
                   </SelectItem>
@@ -284,7 +284,7 @@ export default function DepartmentsPage() {
             {meta.total > 0 ? (
               `${(meta.page - 1) * meta.limit + 1}–${Math.min(meta.page * meta.limit, meta.total)} of ${meta.total}`
             ) : (
-              "0–0 of 0"
+              "0-0 of 0"
             )}
           </div>
 

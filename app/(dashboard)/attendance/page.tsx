@@ -69,7 +69,7 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-6 lg:p-8 space-y-4">
       <PageHeader
         title="Attendance"
         description="Track daily attendance and work hours"
@@ -150,7 +150,7 @@ export default function AttendancePage() {
           />
 
           {/* Pagination */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
             <div>
               {meta ? `Total ${meta.total} records` : `Total ${records.length} records`}
             </div>

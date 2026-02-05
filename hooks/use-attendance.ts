@@ -151,25 +151,46 @@ export function useAttendanceRecords(params?: {
         `/attendance?${queryParams.toString()}`
       );
 
-      const responseData = response.data;
+      const root = response as any;
+      const responseData = root.data;
 
-      // Handle the new structure: { data: { data: [], summary: {}, ... }, statusCode: 200 }
-      const nestedData = responseData?.data;
-
-      if (nestedData && typeof nestedData === 'object' && 'data' in nestedData) {
-        const records = Array.isArray(nestedData.data) ? nestedData.data.map(transformAttendance) : [];
-        const summary = nestedData.summary as AttendanceSummary;
+      // Handle the structure: { data: { data: [], summary: {}, meta: {}, ... }, statusCode: 200 }
+      // This matches the actual JSON structure provided by the user.
+      if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray(responseData.data)) {
+        const records = responseData.data.map(transformAttendance);
+        const summary = responseData.summary as AttendanceSummary;
+        const meta = responseData.meta || {};
 
         return {
           data: records,
           summary,
           meta: {
-            page: nestedData.page || params?.page || 1,
-            limit: nestedData.limit || params?.limit || 10,
-            total: nestedData.total || records.length,
-            totalPages: nestedData.totalPages || 1,
-            hasNext: nestedData.hasNext ?? false,
-            hasPrevious: nestedData.hasPrevious ?? false,
+            page: meta.page || responseData.page || params?.page || 1,
+            limit: meta.limit || responseData.limit || params?.limit || 10,
+            total: meta.total || responseData.total || records.length,
+            totalPages: meta.totalPages || responseData.totalPages || 1,
+            hasNext: meta.hasNext ?? responseData.hasNext ?? false,
+            hasPrevious: meta.hasPrevious ?? responseData.hasPrevious ?? false,
+          },
+        };
+      }
+
+      // Handle the structure: { data: [], summary: {}, meta: {}, ... } at root level
+      if (root && Array.isArray(root.data) && root.summary) {
+        const records = root.data.map(transformAttendance);
+        const summary = root.summary as AttendanceSummary;
+        const meta = root.meta || {};
+
+        return {
+          data: records,
+          summary,
+          meta: {
+            page: meta.page || root.page || params?.page || 1,
+            limit: meta.limit || root.limit || params?.limit || 10,
+            total: meta.total || root.total || records.length,
+            totalPages: meta.totalPages || root.totalPages || 1,
+            hasNext: meta.hasNext ?? root.hasNext ?? false,
+            hasPrevious: meta.hasPrevious ?? root.hasPrevious ?? false,
           },
         };
       }
