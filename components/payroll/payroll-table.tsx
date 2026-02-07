@@ -37,13 +37,13 @@ interface PayrollTableProps {
   showActions?: boolean;
 }
 
-export function PayrollTable({ 
-  records, 
-  isLoading, 
+export function PayrollTable({
+  records,
+  isLoading,
   onViewPayslip,
   onProcess,
   onMarkPaid,
-  showActions = true 
+  showActions = true
 }: PayrollTableProps) {
   const processPayroll = useProcessPayroll();
   const markPaid = useMarkPayrollPaid();
@@ -189,16 +189,16 @@ export function PayrollTable({
                   {payroll.period}
                 </TableCell>
                 <TableCell className="text-foreground">
-                  ${payroll.basicSalary.toLocaleString()}
+                  ${(payroll.basicSalary ?? 0).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-success">
-                  +${payroll.allowances.toLocaleString()}
+                  +${(payroll.allowances ?? 0).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-destructive">
-                  -${payroll.deductions.toLocaleString()}
+                  -${(payroll.deductions ?? 0).toLocaleString()}
                 </TableCell>
                 <TableCell className="font-semibold text-foreground">
-                  ${payroll.netPay.toLocaleString()}
+                  ${(payroll.netPay ?? 0).toLocaleString()}
                 </TableCell>
                 <TableCell>{getStatusBadge(payroll.status)}</TableCell>
                 <TableCell>

@@ -5,6 +5,8 @@ export const GET = withAuth(async (request) => {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
   const employeeId = searchParams.get("employeeId");
+  const dateFrom = searchParams.get("dateFrom");
+  const dateTo = searchParams.get("dateTo");
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
   const page = searchParams.get("page") || "1";
@@ -14,14 +16,16 @@ export const GET = withAuth(async (request) => {
     const params = new URLSearchParams();
     if (date) params.set("date", date);
     if (employeeId) params.set("employeeId", employeeId);
-    if (startDate) params.set("startDate", startDate);
-    if (endDate) params.set("endDate", endDate);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    else if (startDate) params.set("dateFrom", startDate);
+    if (dateTo) params.set("dateTo", dateTo);
+    else if (endDate) params.set("dateTo", endDate);
     params.set("page", page);
     params.set("limit", limit);
     params.set("pageSize", limit);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendance?${params.toString()}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendances?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -37,7 +41,7 @@ export const GET = withAuth(async (request) => {
     }
 
     const data = await response.json();
-    
+
     // Return the external API response directly
     return NextResponse.json({
       success: true,

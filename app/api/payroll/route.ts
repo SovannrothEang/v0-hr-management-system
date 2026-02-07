@@ -15,7 +15,7 @@ export const GET = withRole(async (request) => {
     if (employeeId) params.set("employeeId", employeeId);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll?${params.toString()}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payrolls?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

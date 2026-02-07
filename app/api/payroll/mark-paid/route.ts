@@ -9,7 +9,7 @@ export const POST = withRole(async (request) => {
     const metadata = getRequestMetadata(request);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll/mark-paid`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payrolls/mark-paid`,
       {
         method: 'POST',
         headers: {
@@ -22,7 +22,7 @@ export const POST = withRole(async (request) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      
+
       logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, request.user, {
         ...metadata,
         resource: 'payroll',
@@ -42,7 +42,7 @@ export const POST = withRole(async (request) => {
     logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, request.user, {
       ...metadata,
       resource: 'payroll',
-      details: { 
+      details: {
         payrollIds: body.ids,
         count: body.ids?.length,
       },
@@ -53,7 +53,7 @@ export const POST = withRole(async (request) => {
   } catch (error) {
     // Log the failed action
     const metadata = getRequestMetadata(request);
-    
+
     logAuditEvent(AuditAction.PAYROLL_MARKED_PAID, request.user, {
       ...metadata,
       resource: 'payroll',

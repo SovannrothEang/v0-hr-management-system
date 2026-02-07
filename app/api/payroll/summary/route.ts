@@ -6,7 +6,7 @@ import { ROLES } from "@/lib/constants/roles";
 export const GET = withRole(async (request) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payroll/summary`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payrolls/summary`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

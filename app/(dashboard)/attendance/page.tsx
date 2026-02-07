@@ -13,23 +13,21 @@ import { useAttendanceRecords, useClockIn, useClockOut } from "@/hooks/use-atten
 import { useEmployees } from "@/hooks/use-employees";
 import { useAttendanceStore } from "@/stores/attendance-store";
 import { CalendarIcon, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addDays, subDays } from "date-fns";
+import { format, startOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function AttendancePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { selectedDate, setSelectedDate } = useAttendanceStore();
+  const { dateFrom, dateTo, setDateFrom, setDateTo } = useAttendanceStore();
 
   // Local state for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const isToday =
-    format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
-
   const { data: result, isLoading: recordsLoading } = useAttendanceRecords({
-    date: !isToday ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+    dateFrom: format(dateFrom, "yyyy-MM-dd"),
+    dateTo: format(dateTo, "yyyy-MM-dd"),
     page: currentPage,
     limit: limit,
   });
@@ -43,17 +41,10 @@ export default function AttendancePage() {
   const summary = result?.summary;
   const employees = employeesResult?.data || [];
 
-  const handlePrevDay = () => {
-    setSelectedDate(subDays(selectedDate, 1));
-    setCurrentPage(1); // Reset page on date change
-  };
-  const handleNextDay = () => {
-    setSelectedDate(addDays(selectedDate, 1));
-    setCurrentPage(1); // Reset page on date change
-  };
-  const handleToday = () => {
-    setSelectedDate(new Date());
-    setCurrentPage(1); // Reset page on date change
+  const handleResetDates = () => {
+    setDateFrom(startOfMonth(new Date()));
+    setDateTo(new Date());
+    setCurrentPage(1);
   };
 
   const handlePreviousPage = () => {
@@ -80,46 +71,78 @@ export default function AttendancePage() {
         </Button>
       </PageHeader>
 
-      {/* Date Navigation */}
+      {/* Date Range Filters */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handlePrevDay}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Date From */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "min-w-[200px] justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
+                  "min-w-[160px] justify-start text-left font-normal",
+                  !dateFrom && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedDate, "EEEE, MMMM d, yyyy")}
+                {dateFrom ? format(dateFrom, "MMM d, yyyy") : "From Date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
+                selected={dateFrom}
+                onSelect={(date) => {
+                  if (date) {
+                    setDateFrom(date);
+                    setCurrentPage(1);
+                  }
+                }}
                 initialFocus
               />
             </PopoverContent>
           </Popover>
 
-          <Button variant="outline" size="icon" onClick={handleNextDay}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <span className="text-muted-foreground">to</span>
 
-          {!isToday && (
-            <Button variant="ghost" size="sm" onClick={handleToday}>
-              Today
-            </Button>
-          )}
+          {/* Date To */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "min-w-[160px] justify-start text-left font-normal",
+                  !dateTo && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateTo ? format(dateTo, "MMM d, yyyy") : "To Date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateTo}
+                onSelect={(date) => {
+                  if (date) {
+                    setDateTo(date);
+                    setCurrentPage(1);
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button variant="ghost" size="sm" onClick={handleResetDates}>
+            Reset
+          </Button>
         </div>
+      </div>
+
+      {/* Date Range Display */}
+      <div className="text-sm text-muted-foreground">
+        Showing attendance from <span className="font-medium text-foreground">{format(dateFrom, "MMM d, yyyy")}</span> to <span className="font-medium text-foreground">{format(dateTo, "MMM d, yyyy")}</span>
       </div>
 
       {/* Overview Stats */}

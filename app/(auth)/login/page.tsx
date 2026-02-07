@@ -15,8 +15,8 @@ import { Loader2, Building2 } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const { mutate: login, isPending } = useLogin();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@example.com");
+  const [password, setPassword] = useState("Admin123!");
   const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {

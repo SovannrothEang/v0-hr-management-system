@@ -133,6 +133,8 @@ export function useAttendanceRecords(params?: {
   employeeId?: string;
   startDate?: string;
   endDate?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   limit?: number;
 }) {
@@ -142,13 +144,15 @@ export function useAttendanceRecords(params?: {
       const queryParams = new URLSearchParams();
       if (params?.date) queryParams.set("dateFrom", params.date);
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
-      if (params?.startDate) queryParams.set("startDate", params.startDate);
-      if (params?.endDate) queryParams.set("endDate", params.endDate);
+      if (params?.dateFrom) queryParams.set("dateFrom", params.dateFrom);
+      else if (params?.startDate) queryParams.set("dateFrom", params.startDate);
+      if (params?.dateTo) queryParams.set("dateTo", params.dateTo);
+      else if (params?.endDate) queryParams.set("dateTo", params.endDate);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
 
       const response = await apiClient.get<any>(
-        `/attendance?${queryParams.toString()}`
+        `/attendances?${queryParams.toString()}`
       );
 
       const root = response as any;
@@ -267,7 +271,7 @@ export function useClockIn() {
   return useMutation({
     mutationFn: async (employeeId: string): Promise<AttendanceRecord> => {
       const response = await apiClient.post<AttendanceRecord | { data: AttendanceRecord }>(
-        "/attendance/clock-in",
+        "/attendances/clock-in",
         { employeeId }
       );
       const data = response.data;
@@ -290,7 +294,7 @@ export function useClockOut() {
   return useMutation({
     mutationFn: async (employeeId: string): Promise<AttendanceRecord> => {
       const response = await apiClient.post<AttendanceRecord | { data: AttendanceRecord }>(
-        "/attendance/clock-out",
+        "/attendances/clock-out",
         { employeeId }
       );
       const data = response.data;

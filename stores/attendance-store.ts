@@ -65,14 +65,22 @@ export interface LeaveRequest {
 
 interface AttendanceState {
   selectedDate: Date;
+  dateFrom: Date;
+  dateTo: Date;
   viewMode: "day" | "week" | "month";
   setSelectedDate: (date: Date) => void;
+  setDateFrom: (date: Date) => void;
+  setDateTo: (date: Date) => void;
   setViewMode: (mode: "day" | "week" | "month") => void;
 }
 
 export const useAttendanceStore = create<AttendanceState>((set) => ({
   selectedDate: new Date(),
+  dateFrom: new Date(),
+  dateTo: new Date(),
   viewMode: "day",
   setSelectedDate: (date) => set({ selectedDate: date }),
+  setDateFrom: (date) => set({ dateFrom: date }),
+  setDateTo: (date) => set({ dateTo: date }),
   setViewMode: (mode) => set({ viewMode: mode }),
 }));
