@@ -6,10 +6,10 @@ export interface DashboardStats {
   presentToday: number;
   onLeave: number;
   pendingLeaveRequests: number;
-  newHiresThisMonth: number;
-  upcomingPayroll: number;
-  attendanceRate: number;
-  averageWorkHours: number;
+  absentToday: number;
+  lateToday: number;
+  totalDepartments: number;
+  newEmployeesThisMonth: number;
 }
 
 export interface AttendanceTrend {

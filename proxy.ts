@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = [
   '/login',
   '/api/auth/login',
   '/api/auth/session',
+  '/api/auth/refresh',
 ];
 
 // API routes that require authentication
@@ -35,7 +36,7 @@ const PROTECTED_API_ROUTES = [
  * Check if the path is a public route
  */
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => 
+  return PUBLIC_ROUTES.some(route =>
     pathname === route || pathname.startsWith(`${route}/`)
   );
 }

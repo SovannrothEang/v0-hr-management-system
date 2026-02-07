@@ -319,13 +319,13 @@ export const mockPayrollRecords: PayrollRecord[] = mockEmployees.map((emp, index
 
 export const mockDashboardStats: DashboardStats = {
   totalEmployees: mockEmployees.length,
-  presentToday: mockAttendanceRecords.filter((a) => a.status === "present" || a.status === "late").length,
+  presentToday: mockAttendanceRecords.filter((a) => a.status === "present").length,
   onLeave: mockAttendanceRecords.filter((a) => a.status === "on_leave").length,
   pendingLeaveRequests: mockLeaveRequests.filter((l) => l.status === "pending").length,
-  newHiresThisMonth: mockEmployees.filter((e) => e.hireDate.startsWith("2024-01")).length,
-  upcomingPayroll: mockPayrollRecords.reduce((acc, p) => acc + p.netPay, 0),
-  attendanceRate: 91.5,
-  averageWorkHours: 8.2,
+  absentToday: mockAttendanceRecords.filter((a) => a.status === "absent").length,
+  lateToday: mockAttendanceRecords.filter((a) => a.status === "late").length,
+  totalDepartments: new Set(mockEmployees.map((e) => e.department)).size,
+  newEmployeesThisMonth: mockEmployees.filter((e) => e.hireDate.startsWith("2024-01")).length,
 };
 
 export const mockAttendanceTrend: AttendanceTrend[] = Array.from({ length: 7 }, (_, i) => {

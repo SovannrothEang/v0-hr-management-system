@@ -89,7 +89,7 @@ export default function DashboardPage() {
             <StatsCard
               title="Present Today"
               value={stats.presentToday}
-              description={`${stats.attendanceRate}% attendance rate`}
+              description={`${stats.absentToday} absent, ${stats.lateToday} late`}
               icon={UserCheck}
             />
             <StatsCard
@@ -118,14 +118,14 @@ export default function DashboardPage() {
         ) : stats ? (
           <>
             <StatsCard
-              title="Average Work Hours"
-              value={`${stats.averageWorkHours}h`}
-              description="Per day this week"
-              icon={Clock}
+              title="Departments"
+              value={stats.totalDepartments}
+              description="Total departments"
+              icon={Users}
             />
             <StatsCard
               title="New Hires"
-              value={stats.newHiresThisMonth}
+              value={stats.newEmployeesThisMonth}
               description="This month"
               icon={TrendingUp}
               trend={{ value: 12.5, isPositive: true }}
