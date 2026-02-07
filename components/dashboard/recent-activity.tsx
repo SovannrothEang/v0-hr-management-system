@@ -21,6 +21,7 @@ const activityColors = {
   leave: "text-primary bg-primary/10",
   payroll: "text-success bg-success/10",
   employee: "text-chart-3 bg-chart-3/10",
+  fallback: "text-muted-foreground bg-muted/10",
 };
 
 export function RecentActivityList({ activities }: RecentActivityListProps) {
@@ -51,8 +52,8 @@ export function RecentActivityList({ activities }: RecentActivityListProps) {
       <CardContent>
         <div className="space-y-4">
           {activities.map((activity) => {
-            const Icon = activityIcons[activity.type];
-            const colorClass = activityColors[activity.type];
+            const Icon = activityIcons[activity.type] || Clock;
+            const colorClass = activityColors[activity.type] || activityColors.fallback;
 
             return (
               <div
