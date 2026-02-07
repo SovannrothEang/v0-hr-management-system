@@ -243,10 +243,10 @@ export async function checkRateLimit(
 **Files to Update:**
 - `app/api/employees/route.ts`
 - `app/api/employees/[id]/route.ts`
-- `app/api/payroll/route.ts`
-- `app/api/payroll/generate/route.ts`
-- `app/api/payroll/mark-paid/route.ts`
-- `app/api/attendance/route.ts`
+- `app/api/payrolls/route.ts`
+- `app/api/payrolls/generate/route.ts`
+- `app/api/payrolls/mark-paid/route.ts`
+- `app/api/attendances/route.ts`
 - `app/api/leave-requests/route.ts`
 - `app/api/dashboard/stats/route.ts`
 - `app/api/reports/[type]/route.ts`

@@ -43,15 +43,15 @@ let failedTests = 0;
 function parseCookies(setCookieHeaders) {
   const cookies = {};
   if (!setCookieHeaders) return cookies;
-  
+
   const headerArray = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
-  
+
   for (const header of headerArray) {
     const parts = header.split(';')[0]; // Get cookie=value part
     const [name, ...valueParts] = parts.split('=');
     cookies[name.trim()] = valueParts.join('='); // Handle values with = in them
   }
-  
+
   return cookies;
 }
 
@@ -79,11 +79,11 @@ async function login(email, password) {
   }
 
   const data = await response.json();
-  
+
   // Parse cookies from Set-Cookie headers
   const setCookieHeaders = response.headers.getSetCookie?.() || response.headers.get('set-cookie');
   const cookies = parseCookies(setCookieHeaders);
-  
+
   return {
     cookies,
     csrfToken: data.data?.csrfToken || cookies.csrf_token,
@@ -100,13 +100,13 @@ async function authenticatedFetch(endpoint, session, options = {}) {
     'Cookie': cookiesToHeader(session.cookies),
     ...options.headers
   };
-  
+
   // Add CSRF token for state-changing requests
   const method = options.method || 'GET';
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method) && session.csrfToken) {
     headers['X-CSRF-Token'] = session.csrfToken;
   }
-  
+
   return fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers
@@ -183,9 +183,9 @@ async function runTests() {
 
   // Login all users
   console.log('Logging in test users...\n');
-  
+
   let adminSession, hrSession, employeeSession;
-  
+
   try {
     adminSession = await login(TEST_USERS.admin.email, TEST_USERS.admin.password);
     console.log(`✓ Admin logged in (CSRF token: ${adminSession.csrfToken ? 'received' : 'missing'})`);
@@ -214,49 +214,49 @@ async function runTests() {
   console.log('TESTING ADMIN PERMISSIONS');
   console.log('========================================\n');
 
-  await testCanAccess('Admin', '/api/employees', adminSession, 
+  await testCanAccess('Admin', '/api/employees', adminSession,
     'Admin can access employees API');
-  await testCanAccess('Admin', '/api/payroll', adminSession, 
+  await testCanAccess('Admin', '/api/payrolls', adminSession,
     'Admin can access payroll API');
-  await testCanAccess('Admin', '/api/payroll/mark-paid', adminSession, 
+  await testCanAccess('Admin', '/api/payrolls/mark-paid', adminSession,
     'Admin can access mark-paid endpoint', 'POST', { ids: [] });
-  await testCanAccess('Admin', '/api/reports/employee', adminSession, 
+  await testCanAccess('Admin', '/api/reports/employee', adminSession,
     'Admin can access employee reports');
-  await testCanAccess('Admin', '/api/leave-requests', adminSession, 
+  await testCanAccess('Admin', '/api/leave-requests', adminSession,
     'Admin can access leave requests');
 
   console.log('\n========================================');
   console.log('TESTING HR MANAGER PERMISSIONS');
   console.log('========================================\n');
 
-  await testCanAccess('HR Manager', '/api/employees', hrSession, 
+  await testCanAccess('HR Manager', '/api/employees', hrSession,
     'HR Manager can access employees API');
-  await testCanAccess('HR Manager', '/api/payroll', hrSession, 
+  await testCanAccess('HR Manager', '/api/payrolls', hrSession,
     'HR Manager can access payroll API');
-  await testCannotAccess('HR Manager', '/api/payroll/mark-paid', hrSession, 
+  await testCannotAccess('HR Manager', '/api/payrolls/mark-paid', hrSession,
     'HR Manager CANNOT mark payroll as paid (admin only)', 'POST', { ids: [] });
-  await testCanAccess('HR Manager', '/api/reports/employee', hrSession, 
+  await testCanAccess('HR Manager', '/api/reports/employee', hrSession,
     'HR Manager can access employee reports');
-  await testCanAccess('HR Manager', '/api/leave-requests', hrSession, 
+  await testCanAccess('HR Manager', '/api/leave-requests', hrSession,
     'HR Manager can access leave requests');
 
   console.log('\n========================================');
   console.log('TESTING EMPLOYEE PERMISSIONS');
   console.log('========================================\n');
 
-  await testCannotAccess('Employee', '/api/employees', employeeSession, 
+  await testCannotAccess('Employee', '/api/employees', employeeSession,
     'Employee CANNOT access employees API');
-  await testCannotAccess('Employee', '/api/payroll', employeeSession, 
+  await testCannotAccess('Employee', '/api/payrolls', employeeSession,
     'Employee CANNOT access payroll API');
-  await testCannotAccess('Employee', '/api/payroll/mark-paid', employeeSession, 
+  await testCannotAccess('Employee', '/api/payrolls/mark-paid', employeeSession,
     'Employee CANNOT mark payroll as paid', 'POST', { ids: [] });
-  await testCannotAccess('Employee', '/api/reports/employee', employeeSession, 
+  await testCannotAccess('Employee', '/api/reports/employee', employeeSession,
     'Employee CANNOT access employee reports');
-  await testCanAccess('Employee', '/api/leave-requests', employeeSession, 
+  await testCanAccess('Employee', '/api/leave-requests', employeeSession,
     'Employee CAN access leave requests (filtered to their own)');
-  await testCanAccess('Employee', '/api/attendance', employeeSession, 
+  await testCanAccess('Employee', '/api/attendances', employeeSession,
     'Employee CAN access attendance API');
-  await testCanAccess('Employee', '/api/dashboard/stats', employeeSession, 
+  await testCanAccess('Employee', '/api/dashboard/stats', employeeSession,
     'Employee CAN access dashboard stats');
 
   console.log('\n========================================');
@@ -264,19 +264,19 @@ async function runTests() {
   console.log('========================================\n');
 
   // Test payroll generation
-  await testCanAccess('Admin', '/api/payroll/generate', adminSession, 
+  await testCanAccess('Admin', '/api/payrolls/generate', adminSession,
     'Admin can generate payroll', 'POST', { month: 'January', year: 2026 });
-  await testCanAccess('HR Manager', '/api/payroll/generate', hrSession, 
+  await testCanAccess('HR Manager', '/api/payrolls/generate', hrSession,
     'HR Manager can generate payroll', 'POST', { month: 'January', year: 2026 });
-  await testCannotAccess('Employee', '/api/payroll/generate', employeeSession, 
+  await testCannotAccess('Employee', '/api/payrolls/generate', employeeSession,
     'Employee CANNOT generate payroll', 'POST', { month: 'January', year: 2026 });
 
   // Test payroll processing
-  await testCanAccess('Admin', '/api/payroll/process', adminSession, 
+  await testCanAccess('Admin', '/api/payrolls/process', adminSession,
     'Admin can process payroll', 'POST', { ids: [] });
-  await testCanAccess('HR Manager', '/api/payroll/process', hrSession, 
+  await testCanAccess('HR Manager', '/api/payrolls/process', hrSession,
     'HR Manager can process payroll', 'POST', { ids: [] });
-  await testCannotAccess('Employee', '/api/payroll/process', employeeSession, 
+  await testCannotAccess('Employee', '/api/payrolls/process', employeeSession,
     'Employee CANNOT process payroll', 'POST', { ids: [] });
 
   console.log('\n========================================');
@@ -293,8 +293,8 @@ async function runTests() {
 
   const reportEndpoints = [
     '/api/reports/employee?month=January&year=2026',
-    '/api/reports/attendance?startDate=2026-01-01&endDate=2026-01-31',
-    '/api/reports/payroll?month=January&year=2026',
+    '/api/reports/attendances?startDate=2026-01-01&endDate=2026-01-31',
+    '/api/reports/payrolls?month=January&year=2026',
     '/api/reports/leave?startDate=2026-01-01&endDate=2026-01-31',
     '/api/reports/comprehensive?month=January&year=2026'
   ];
@@ -304,11 +304,11 @@ async function runTests() {
   for (let i = 0; i < reportEndpoints.length; i++) {
     const endpoint = reportEndpoints[i];
     const reportType = reportNames[i];
-    await testCanAccess('Admin', endpoint, adminSession, 
+    await testCanAccess('Admin', endpoint, adminSession,
       `Admin can access ${reportType} report`);
-    await testCanAccess('HR Manager', endpoint, hrSession, 
+    await testCanAccess('HR Manager', endpoint, hrSession,
       `HR Manager can access ${reportType} report`);
-    await testCannotAccess('Employee', endpoint, employeeSession, 
+    await testCannotAccess('Employee', endpoint, employeeSession,
       `Employee CANNOT access ${reportType} report`);
   }
 
@@ -319,7 +319,7 @@ async function runTests() {
   console.log(`Total Tests: ${totalTests}`);
   console.log(`✓ Passed: ${passedTests}`);
   console.log(`✗ Failed: ${failedTests}`);
-  
+
   const successRate = ((passedTests / totalTests) * 100).toFixed(1);
   console.log(`Success Rate: ${successRate}%\n`);
 

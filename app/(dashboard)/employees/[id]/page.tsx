@@ -11,9 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeFormDialog } from "@/components/employees/employee-form-dialog";
-import { AttendanceTable } from "@/components/attendance/attendance-table";
-import { LeaveRequestTable } from "@/components/attendance/leave-request-table";
-import { PayrollTable } from "@/components/payroll/payroll-table";
+import { AttendanceTable } from "@/components/attendances/attendance-table";
+import { LeaveRequestTable } from "@/components/attendances/leave-request-table";
+import { PayrollTable } from "@/components/payrolls/payroll-table";
 import { useEmployee } from "@/hooks/use-employees";
 import { useAttendanceRecords } from "@/hooks/use-attendance";
 import { useLeaveRequests } from "@/hooks/use-attendance";
@@ -63,21 +63,24 @@ const employmentTypeLabels = {
 export default function EmployeePage({ params }: EmployeePageProps) {
   const { id } = use(params);
   const router = useRouter();
-  
+
   // Data hooks
   const { data: employee, isLoading: employeeLoading } = useEmployee(id);
   const { data: attendanceResult, isLoading: attendanceLoading } = useAttendanceRecords({ employeeId: id, limit: 10 });
   const { data: leaveResult, isLoading: leaveLoading } = useLeaveRequests({ employeeId: id, limit: 10 });
   const { data: payrollResult, isLoading: payrollLoading } = usePayrollRecords({ employeeId: id });
-  
+
   const { isAdmin, isHRManager, user } = usePermissions();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const canEdit = isAdmin || isHRManager || (user?.employeeId === id);
   const isManager = isAdmin || isHRManager;
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const f = firstName?.[0] ?? "";
+    const l = lastName?.[0] ?? "";
+    const initials = `${f}${l}`.toUpperCase();
+    return initials || "??";
   };
 
   const formatCurrency = (amount: number) => {
@@ -174,8 +177,8 @@ export default function EmployeePage({ params }: EmployeePageProps) {
               <p className="text-sm text-muted-foreground font-medium">
                 {employee.position}
               </p>
-              <Badge className={cn("mt-2 border-0", statusConfig[employee.status].className)}>
-                {statusConfig[employee.status].label}
+              <Badge className={cn("mt-2 border-0", (statusConfig[employee.status] || statusConfig.active).className)}>
+                {(statusConfig[employee.status] || statusConfig.active).label}
               </Badge>
             </div>
           </CardHeader>
@@ -236,11 +239,11 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-border/50">
                       <span className="text-sm text-muted-foreground">Employment Type</span>
-                      <span className="text-sm">{employmentTypeLabels[employee.employmentType]}</span>
+                      <span className="text-sm">{employmentTypeLabels[employee.employmentType as keyof typeof employmentTypeLabels] || employee.employmentType || "Unknown"}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-border/50">
                       <span className="text-sm text-muted-foreground">Hire Date</span>
-                      <span className="text-sm">{new Date(employee.hireDate).toLocaleDateString()}</span>
+                      <span className="text-sm">{employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : "N/A"}</span>
                     </div>
                     {(isAdmin || isHRManager) && (
                       <div className="flex justify-between items-center py-2">
@@ -323,11 +326,11 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                       <Skeleton className="h-10 w-full" />
                     </div>
                   ) : (
-                    <AttendanceTable 
-                      records={attendanceResult?.data || []} 
+                    <AttendanceTable
+                      records={attendanceResult?.data || []}
                       employees={employee ? [employee] : []}
-                      onClockIn={() => {}}
-                      onClockOut={() => {}}
+                      onClockIn={() => { }}
+                      onClockOut={() => { }}
                     />
                   )}
                 </CardContent>
@@ -348,10 +351,10 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                       <Skeleton className="h-10 w-full" />
                     </div>
                   ) : (
-                    <LeaveRequestTable 
-                      requests={leaveResult?.data || []} 
-                      onApprove={() => {}}
-                      onReject={() => {}}
+                    <LeaveRequestTable
+                      requests={leaveResult?.data || []}
+                      onApprove={() => { }}
+                      onReject={() => { }}
                       showActions={isManager}
                     />
                   )}
@@ -374,11 +377,11 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                         <Skeleton className="h-10 w-full" />
                       </div>
                     ) : (
-                      <PayrollTable 
-                        records={Array.isArray(payrollResult) ? payrollResult : []} 
-                        onViewPayslip={() => {}}
-                        onProcess={() => {}}
-                        onMarkPaid={() => {}}
+                      <PayrollTable
+                        records={Array.isArray(payrollResult) ? payrollResult : []}
+                        onViewPayslip={() => { }}
+                        onProcess={() => { }}
+                        onMarkPaid={() => { }}
                         showActions={false}
                       />
                     )}

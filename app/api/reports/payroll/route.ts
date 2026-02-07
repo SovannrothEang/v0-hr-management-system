@@ -22,7 +22,7 @@ export const GET = withRole(async (request) => {
     if (department && department !== "all") params.set("department", department);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/payroll?${params.toString()}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/payrolls?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -32,7 +32,7 @@ export const GET = withRole(async (request) => {
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, message: "Failed to fetch payroll report" },
+        { success: false, message: "Failed to fetch payrolls report" },
         { status: response.status }
       );
     }

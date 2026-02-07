@@ -13,6 +13,7 @@ export const GET = withRole(async (request) => {
   try {
     // Build query params for external API
     const params = new URLSearchParams();
+    params.set("includeDetails", "true");
     if (search) params.set("search", search);
     if (department && department !== "all") params.set("department", department);
     if (status && status !== "all") params.set("status", status);
@@ -21,7 +22,7 @@ export const GET = withRole(async (request) => {
     params.set("pageSize", limit.toString());
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees?${params.toString()}`,
+      `/api/employees?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -37,7 +38,7 @@ export const GET = withRole(async (request) => {
     }
 
     const data = await response.json();
-    
+
     // Return the external API response directly
     // This ensures ResultPagination flat metadata is preserved
     return NextResponse.json({

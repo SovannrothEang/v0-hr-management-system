@@ -37,13 +37,13 @@ const TEST_ROUTES = {
   // Admin & HR Manager only
   adminHrOnly: [
     { method: 'GET', path: '/api/employees', name: 'List Employees' },
-    { method: 'GET', path: '/api/payroll', name: 'List Payroll' },
+    { method: 'GET', path: '/api/payrolls', name: 'List Payrolls' },
     { method: 'GET', path: '/api/reports/employee?startDate=2024-01-01&endDate=2024-12-31', name: 'Employee Report' },
     { method: 'GET', path: '/api/dashboard/attendance-trend', name: 'Attendance Trend' },
   ],
   // Admin only
   adminOnly: [
-    { method: 'POST', path: '/api/payroll/mark-paid', name: 'Mark Payroll Paid', body: { ids: ['test'] } },
+    { method: 'POST', path: '/api/payrolls/mark-paid', name: 'Mark Payrolls Paid', body: { ids: ['test'] } },
   ],
   // All authenticated users
   allAuth: [
@@ -73,15 +73,15 @@ function log(color, message) {
 function parseCookies(setCookieHeaders) {
   const cookies = {};
   if (!setCookieHeaders) return cookies;
-  
+
   const headerArray = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
-  
+
   for (const header of headerArray) {
     const parts = header.split(';')[0]; // Get cookie=value part
     const [name, ...valueParts] = parts.split('=');
     cookies[name.trim()] = valueParts.join('='); // Handle values with = in them
   }
-  
+
   return cookies;
 }
 
@@ -110,11 +110,11 @@ async function login(user) {
     }
 
     const data = await response.json();
-    
+
     // Parse cookies from Set-Cookie headers
     const setCookieHeaders = response.headers.getSetCookie?.() || response.headers.get('set-cookie');
     const cookies = parseCookies(setCookieHeaders);
-    
+
     return {
       cookies,
       csrfToken: data.data?.csrfToken || cookies.csrf_token,
@@ -134,7 +134,7 @@ async function testRoute(route, session, expectSuccess) {
       'Content-Type': 'application/json',
       'Cookie': cookiesToHeader(session.cookies),
     };
-    
+
     // Add CSRF token for state-changing requests (POST, PUT, DELETE, PATCH)
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(route.method) && session.csrfToken) {
       headers['X-CSRF-Token'] = session.csrfToken;
@@ -250,7 +250,7 @@ async function testCsrfProtection() {
   // Test POST without CSRF token
   log('blue', '\n2. Testing POST without CSRF token...');
   try {
-    const response = await fetch(`${BASE_URL}/api/payroll/mark-paid`, {
+    const response = await fetch(`${BASE_URL}/api/payrolls/mark-paid`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -259,7 +259,7 @@ async function testCsrfProtection() {
       },
       body: JSON.stringify({ ids: ['test'] }),
     });
-    
+
     if (response.status === 403) {
       log('green', '   ✓ Correctly rejected (403 - CSRF validation failed)');
     } else if (response.status === 200) {
@@ -274,7 +274,7 @@ async function testCsrfProtection() {
   // Test POST with wrong CSRF token
   log('blue', '\n3. Testing POST with invalid CSRF token...');
   try {
-    const response = await fetch(`${BASE_URL}/api/payroll/mark-paid`, {
+    const response = await fetch(`${BASE_URL}/api/payrolls/mark-paid`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -283,7 +283,7 @@ async function testCsrfProtection() {
       },
       body: JSON.stringify({ ids: ['test'] }),
     });
-    
+
     if (response.status === 403) {
       log('green', '   ✓ Correctly rejected (403 - Invalid CSRF token)');
     } else if (response.status === 200) {
@@ -298,7 +298,7 @@ async function testCsrfProtection() {
   // Test POST with correct CSRF token
   log('blue', '\n4. Testing POST with valid CSRF token...');
   try {
-    const response = await fetch(`${BASE_URL}/api/payroll/mark-paid`, {
+    const response = await fetch(`${BASE_URL}/api/payrolls/mark-paid`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -307,7 +307,7 @@ async function testCsrfProtection() {
       },
       body: JSON.stringify({ ids: ['test'] }),
     });
-    
+
     if (response.status === 200) {
       log('green', '   ✓ Request succeeded with valid CSRF token');
     } else if (response.status === 400) {
@@ -330,7 +330,7 @@ async function testSessionEndpoint() {
   try {
     const response = await fetch(`${BASE_URL}/api/auth/session`);
     const data = await response.json();
-    
+
     if (response.status === 401 || data.authenticated === false) {
       log('green', '   ✓ Correctly returns unauthenticated');
     } else {
@@ -350,7 +350,7 @@ async function testSessionEndpoint() {
       },
     });
     const data = await response.json();
-    
+
     if (response.status === 200 && data.authenticated === true && data.user) {
       log('green', `   ✓ Session validated - User: ${data.user.name}`);
     } else {

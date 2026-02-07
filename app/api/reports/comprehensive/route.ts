@@ -17,16 +17,16 @@ export const GET = withRole(async (request) => {
 
   const baseUrl = new URL(request.url).origin;
   const queryString = searchParams.toString();
-  
+
   // Get auth header to forward to internal requests
   const authHeader = request.headers.get('authorization');
   const headers: Record<string, string> = authHeader ? { 'Authorization': authHeader } : {};
 
   const [attendanceRes, employeeRes, payrollRes, leaveRes] = await Promise.all([
-    fetch(`${baseUrl}/api/reports/attendance?${queryString}`, { headers }),
-    fetch(`${baseUrl}/api/reports/employee?${queryString}`, { headers }),
-    fetch(`${baseUrl}/api/reports/payroll?${queryString}`, { headers }),
-    fetch(`${baseUrl}/api/reports/leave?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/attendances?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/employees?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/payrolls?${queryString}`, { headers }),
+    fetch(`${baseUrl}/api/reports/leaves?${queryString}`, { headers }),
   ]);
 
   const [attendance, employee, payroll, leave] = await Promise.all([

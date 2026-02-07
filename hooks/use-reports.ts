@@ -73,7 +73,7 @@ export function useAttendanceReport(params: {
   department?: string;
 }) {
   return useQuery({
-    queryKey: ["reports", "attendance", params],
+    queryKey: ["reports", "attendances", params],
     queryFn: async (): Promise<AttendanceReport> => {
       const queryParams = new URLSearchParams();
       queryParams.set("startDate", params.startDate);
@@ -83,7 +83,7 @@ export function useAttendanceReport(params: {
       }
 
       const response = await apiClient.get<AttendanceReport | { data: AttendanceReport }>(
-        `/reports/attendance?${queryParams.toString()}`
+        `/reports/attendances?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
@@ -142,7 +142,7 @@ export function usePayrollReport(params: {
   department?: string;
 }) {
   return useQuery({
-    queryKey: ["reports", "payroll", params],
+    queryKey: ["reports", "payrolls", params],
     queryFn: async (): Promise<PayrollReport> => {
       const queryParams = new URLSearchParams();
       queryParams.set("startDate", params.startDate);
@@ -152,7 +152,7 @@ export function usePayrollReport(params: {
       }
 
       const response = await apiClient.get<PayrollReport | { data: PayrollReport }>(
-        `/reports/payroll?${queryParams.toString()}`
+        `/reports/payrolls?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;

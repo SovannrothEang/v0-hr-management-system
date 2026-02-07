@@ -6,7 +6,7 @@ export const POST = withAuth(async (request) => {
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendance/clock-in`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendances/clock-in`,
       {
         method: 'POST',
         headers: {

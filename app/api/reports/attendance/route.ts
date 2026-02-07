@@ -22,7 +22,7 @@ export const GET = withRole(async (request) => {
     if (department && department !== "all") params.set("department", department);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/attendance?${params.toString()}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/reports/attendances?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

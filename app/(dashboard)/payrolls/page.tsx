@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import { PayrollSummaryCards } from "@/components/payroll/payroll-summary-cards";
-import { PayrollTable } from "@/components/payroll/payroll-table";
-import { PayslipDialog } from "@/components/payroll/payslip-dialog";
-import { GeneratePayrollDialog } from "@/components/payroll/generate-payroll-dialog";
+import { PayrollSummaryCards } from "@/components/payrolls/payroll-summary-cards";
+import { PayrollTable } from "@/components/payrolls/payroll-table";
+import { PayslipDialog } from "@/components/payrolls/payslip-dialog";
+import { GeneratePayrollDialog } from "@/components/payrolls/generate-payroll-dialog";
 import { AdminOrHROnly } from "@/components/auth/protected-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +55,7 @@ export default function PayrollPage() {
     setPayslipDialogOpen(true);
   };
 
-  const filteredPayrolls = payrolls?.filter(p => 
+  const filteredPayrolls = payrolls?.filter(p =>
     `${p.employee?.firstName} ${p.employee?.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.employee?.employeeId?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];

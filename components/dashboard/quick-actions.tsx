@@ -20,7 +20,7 @@ const actions = [
   },
   {
     label: "View Attendance",
-    href: "/attendance",
+    href: "/attendances",
     icon: Clock,
     description: "Check today's attendance",
   },
@@ -32,7 +32,7 @@ const actions = [
   },
   {
     label: "Run Payroll",
-    href: "/payroll",
+    href: "/payrolls",
     icon: Calculator,
     description: "Process monthly payroll",
   },

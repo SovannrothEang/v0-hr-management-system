@@ -37,14 +37,14 @@ async function apiRequest(endpoint, options = {}) {
 async function testLogin() {
   console.log('Test 1: Login and get auth token');
   console.log('-----------------------------------');
-  
+
   const response = await apiRequest('/auth/login', {
     method: 'POST',
     body: JSON.stringify(TEST_USER),
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     console.log('❌ FAILED: Login failed');
     console.log('   Error:', data.message || response.statusText);
@@ -69,7 +69,7 @@ async function testLogin() {
 async function testEmployeesPagination() {
   console.log('Test 2: Get employees with pagination');
   console.log('--------------------------------------');
-  
+
   // Test with page=1, limit=5
   const response = await apiRequest('/employees?page=1&limit=5');
   const data = await response.json();
@@ -125,8 +125,8 @@ async function testEmployeesPagination() {
 async function testAttendancePagination() {
   console.log('Test 3: Get attendance with pagination');
   console.log('---------------------------------------');
-  
-  const response = await apiRequest('/attendance?page=1&limit=10');
+
+  const response = await apiRequest('/attendances?page=1&limit=10');
   const data = await response.json();
 
   if (!response.ok) {
@@ -161,7 +161,7 @@ async function testAttendancePagination() {
 async function testDepartmentsPagination() {
   console.log('Test 4: Get departments with pagination');
   console.log('----------------------------------------');
-  
+
   const response = await apiRequest('/departments?page=1&limit=10');
   const data = await response.json();
 
@@ -197,7 +197,7 @@ async function testDepartmentsPagination() {
 async function testLeaveRequestsPagination() {
   console.log('Test 5: Get leave requests with pagination');
   console.log('-------------------------------------------');
-  
+
   const response = await apiRequest('/leave-requests?page=1&limit=10');
   const data = await response.json();
 
@@ -233,7 +233,7 @@ async function testLeaveRequestsPagination() {
 async function testPaginationNavigation() {
   console.log('Test 6: Test pagination navigation (page 2)');
   console.log('--------------------------------------------');
-  
+
   const response = await apiRequest('/employees?page=2&limit=5');
   const data = await response.json();
 
@@ -262,7 +262,7 @@ async function testPaginationNavigation() {
 async function testFilteringWithPagination() {
   console.log('Test 7: Test filtering with pagination');
   console.log('---------------------------------------');
-  
+
   const response = await apiRequest('/employees?page=1&limit=5&status=active');
   const data = await response.json();
 

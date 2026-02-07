@@ -24,13 +24,13 @@ export const PERMISSIONS = {
   EMPLOYEE_DELETE_ALL: 'employee:delete:all',
   EMPLOYEE_DELETE_DEPARTMENT: 'employee:delete:department',
 
-  // Attendance permissions
-  ATTENDANCE_VIEW_ALL: 'attendance:view:all',
-  ATTENDANCE_VIEW_DEPARTMENT: 'attendance:view:department',
-  ATTENDANCE_VIEW_SELF: 'attendance:view:self',
-  ATTENDANCE_MANAGE_ALL: 'attendance:manage:all',
-  ATTENDANCE_MANAGE_DEPARTMENT: 'attendance:manage:department',
-  ATTENDANCE_CLOCK_SELF: 'attendance:clock:self',
+  // attendances permissions
+  ATTENDANCE_VIEW_ALL: 'attendances:view:all',
+  ATTENDANCE_VIEW_DEPARTMENT: 'attendances:view:department',
+  ATTENDANCE_VIEW_SELF: 'attendances:view:self',
+  ATTENDANCE_MANAGE_ALL: 'attendances:manage:all',
+  ATTENDANCE_MANAGE_DEPARTMENT: 'attendances:manage:department',
+  ATTENDANCE_CLOCK_SELF: 'attendances:clock:self',
 
   // Leave request permissions
   LEAVE_VIEW_ALL: 'leave:view:all',
@@ -40,12 +40,12 @@ export const PERMISSIONS = {
   LEAVE_SUBMIT: 'leave:submit',
 
   // Payroll permissions
-  PAYROLL_VIEW_ALL: 'payroll:view:all',
-  PAYROLL_VIEW_DEPARTMENT: 'payroll:view:department',
-  PAYROLL_VIEW_SELF: 'payroll:view:self',
-  PAYROLL_GENERATE: 'payroll:generate',
-  PAYROLL_PROCESS: 'payroll:process',
-  PAYROLL_APPROVE: 'payroll:approve',
+  PAYROLL_VIEW_ALL: 'payrolls:view:all',
+  PAYROLL_VIEW_DEPARTMENT: 'payrolls:view:department',
+  PAYROLL_VIEW_SELF: 'payrolls:view:self',
+  PAYROLL_GENERATE: 'payrolls:generate',
+  PAYROLL_PROCESS: 'payrolls:process',
+  PAYROLL_APPROVE: 'payrolls:approve',
 
   // Reports permissions
   REPORTS_VIEW_ALL: 'reports:view:all',
@@ -125,27 +125,27 @@ export const ROUTE_ROLES: Record<string, RoleName[]> = {
   '/api/employees/[id]': [ROLES.ADMIN, ROLES.HR_MANAGER],
 
   // Payroll routes
-  '/api/payroll': [ROLES.ADMIN, ROLES.HR_MANAGER],
-  '/api/payroll/generate': [ROLES.ADMIN, ROLES.HR_MANAGER],
-  '/api/payroll/process': [ROLES.ADMIN, ROLES.HR_MANAGER],
-  '/api/payroll/mark-paid': [ROLES.ADMIN],
-  '/api/payroll/summary': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/payrolls': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/payrolls/generate': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/payrolls/process': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/payrolls/mark-paid': [ROLES.ADMIN],
+  '/api/payrolls/summary': [ROLES.ADMIN, ROLES.HR_MANAGER],
 
   // Leave request routes
   '/api/leave-requests': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
   '/api/leave-requests/[id]': [ROLES.ADMIN, ROLES.HR_MANAGER],
 
   // Reports routes
-  '/api/reports/attendance': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/attendances': [ROLES.ADMIN, ROLES.HR_MANAGER],
   '/api/reports/employee': [ROLES.ADMIN, ROLES.HR_MANAGER],
-  '/api/reports/payroll': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/payrolls': [ROLES.ADMIN, ROLES.HR_MANAGER],
   '/api/reports/leave': [ROLES.ADMIN, ROLES.HR_MANAGER],
   '/api/reports/comprehensive': [ROLES.ADMIN, ROLES.HR_MANAGER],
 
-  // Attendance routes - all roles can clock in/out
-  '/api/attendance': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
-  '/api/attendance/clock-in': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
-  '/api/attendance/clock-out': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
+  // attendances routes - all roles can clock in/out
+  '/api/attendances': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
+  '/api/attendances/clock-in': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
+  '/api/attendances/clock-out': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
 
   // Dashboard routes - all authenticated users
   '/api/dashboard/stats': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],

@@ -11,7 +11,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "HRFlow - HR Management System",
-  description: "Comprehensive HR Management System for attendance, employee management, and payroll",
+  description: "Comprehensive HR Management System for attendances, employee management, and payroll",
   generator: "v0.app",
 };
 

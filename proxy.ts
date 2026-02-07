@@ -23,10 +23,10 @@ const PUBLIC_ROUTES = [
 // API routes that require authentication
 const PROTECTED_API_ROUTES = [
   '/api/employees',
-  '/api/payroll',
+  '/api/payrolls',
   '/api/leave-requests',
   '/api/reports',
-  '/api/attendance',
+  '/api/attendances',
   '/api/dashboard',
   '/api/departments',
   '/api/audit-logs',

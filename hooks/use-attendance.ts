@@ -139,7 +139,7 @@ export function useAttendanceRecords(params?: {
   limit?: number;
 }) {
   return useQuery({
-    queryKey: ["attendance", params],
+    queryKey: ["attendances", params],
     queryFn: async (): Promise<PaginatedResponse<AttendanceRecord> & { summary?: AttendanceSummary }> => {
       const queryParams = new URLSearchParams();
       if (params?.date) queryParams.set("dateFrom", params.date);
@@ -278,7 +278,7 @@ export function useClockIn() {
       return (data && typeof data === 'object' && 'data' in data) ? data.data : data as AttendanceRecord;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["attendances"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Clocked in successfully");
     },
@@ -301,7 +301,7 @@ export function useClockOut() {
       return (data && typeof data === 'object' && 'data' in data) ? data.data : data as AttendanceRecord;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+      queryClient.invalidateQueries({ queryKey: ["attendances"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Clocked out successfully");
     },
@@ -326,6 +326,8 @@ export function useLeaveRequests(params?: {
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
+      queryParams.set("sortBy", "createdAt");
+      queryParams.set("sortOrder", "desc");
 
       const response = await apiClient.get<LeaveRequest[] | PaginatedResponse<LeaveRequest>>(
         `/leave-requests?${queryParams.toString()}`

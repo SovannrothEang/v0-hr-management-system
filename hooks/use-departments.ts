@@ -43,7 +43,7 @@ export function useDepartments(params?: {
     queryKey: ["departments", params],
     queryFn: async (): Promise<PaginatedResponse<Department>> => {
       const queryParams = new URLSearchParams();
-      queryParams.set("childIncluded", "true");
+      queryParams.set("includeEmployees", "true");
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
 
@@ -58,21 +58,21 @@ export function useDepartments(params?: {
       const transformedData = innerData.map(transformDepartment);
 
       // Handle ResultPagination flat properties
-      const total = (resData as any).total ?? 
-                    (resData as any).meta?.total ?? 
-                    transformedData.length;
-      
-      const limit = (resData as any).limit ?? 
-                    (resData as any).meta?.limit ?? 
-                    params?.limit ?? 10;
-      
-      const page = (resData as any).page ?? 
-                   (resData as any).meta?.page ?? 
-                   params?.page ?? 1;
-      
-      const totalPages = (resData as any).totalPages ?? 
-                         (resData as any).meta?.totalPages ?? 
-                         Math.ceil(total / limit);
+      const total = (resData as any).total ??
+        (resData as any).meta?.total ??
+        transformedData.length;
+
+      const limit = (resData as any).limit ??
+        (resData as any).meta?.limit ??
+        params?.limit ?? 10;
+
+      const page = (resData as any).page ??
+        (resData as any).meta?.page ??
+        params?.page ?? 1;
+
+      const totalPages = (resData as any).totalPages ??
+        (resData as any).meta?.totalPages ??
+        Math.ceil(total / limit);
 
       return {
         data: transformedData,

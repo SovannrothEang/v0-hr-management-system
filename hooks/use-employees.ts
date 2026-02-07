@@ -56,6 +56,7 @@ export function useEmployees(params?: {
         queryParams.set("status", params.status);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
+      queryParams.set("includeDetails", "true");
 
       const response = await apiClient.get<{ data: any[], meta?: any, total?: number, page?: number, limit?: number, totalPages?: number, hasNext?: boolean, hasPrevious?: boolean }>(
         `/employees?${queryParams.toString()}`
@@ -68,21 +69,21 @@ export function useEmployees(params?: {
       const transformedData = innerData.map(transformEmployee);
 
       // Handle ResultPagination flat properties
-      const total = (resData as any).total ?? 
-                    (resData as any).meta?.total ?? 
-                    transformedData.length;
-      
-      const limit = (resData as any).limit ?? 
-                    (resData as any).meta?.limit ?? 
-                    params?.limit ?? 10;
-      
-      const page = (resData as any).page ?? 
-                   (resData as any).meta?.page ?? 
-                   params?.page ?? 1;
-      
-      const totalPages = (resData as any).totalPages ?? 
-                         (resData as any).meta?.totalPages ?? 
-                         Math.ceil(total / limit);
+      const total = (resData as any).total ??
+        (resData as any).meta?.total ??
+        transformedData.length;
+
+      const limit = (resData as any).limit ??
+        (resData as any).meta?.limit ??
+        params?.limit ?? 10;
+
+      const page = (resData as any).page ??
+        (resData as any).meta?.page ??
+        params?.page ?? 1;
+
+      const totalPages = (resData as any).totalPages ??
+        (resData as any).meta?.totalPages ??
+        Math.ceil(total / limit);
 
       return {
         data: transformedData,
@@ -104,9 +105,10 @@ export function useEmployee(id: string | null) {
     queryKey: ["employee", id],
     queryFn: async (): Promise<Employee | null> => {
       if (!id) return null;
-      const response = await apiClient.get<Employee | { data: Employee }>(`/employees/${id}`);
+      const response = await apiClient.get<any>(`/employees/${id}`);
       const resData = response.data;
-      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      return data ? transformEmployee(data) : null;
     },
     enabled: !!id,
   });
@@ -117,9 +119,10 @@ export function useCreateEmployee() {
 
   return useMutation({
     mutationFn: async (data: Partial<Employee>): Promise<Employee> => {
-      const response = await apiClient.post<Employee | { data: Employee }>("/employees", data);
+      const response = await apiClient.post<any>("/employees", data);
       const resData = response.data;
-      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      const result = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      return transformEmployee(result);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -145,9 +148,10 @@ export function useUpdateEmployee() {
       }
 
       // Use PATCH endpoint for partial updates
-      const response = await apiClient.patch<Employee | { data: Employee }>(`/employees/${id}`, changes);
+      const response = await apiClient.patch<any>(`/employees/${id}`, changes);
       const resData = response.data;
-      return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      const result = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      return transformEmployee(result);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });

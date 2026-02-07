@@ -396,26 +396,26 @@ test().catch(console.error);
 - `PUT /api/employees/:id` - Update employee
 
 **Attendance Endpoints:**
-- `GET /api/attendance` - List with search, date, status filters
-- `POST /api/attendance/clock-in` - Clock in
-- `POST /api/attendance/clock-out` - Clock out
+- `GET /api/attendances` - List with search, date, status filters
+- `POST /api/attendances/clock-in` - Clock in
+- `POST /api/attendances/clock-out` - Clock out
 
 **Audit Logs:**
 - `GET /api/audit-logs` - List with filters (limit, offset, userId, action, severity, dates)
 
 **Payroll Endpoints:**
-- `GET /api/payroll` - List with filters
-- `GET /api/payroll/summary` - Summary statistics
-- `POST /api/payroll/generate` - Generate payroll
-- `POST /api/payroll/mark-paid` - Mark payrolls as paid
+- `GET /api/payrolls` - List with filters
+- `GET /api/payrolls/summary` - Summary statistics
+- `POST /api/payrolls/generate` - Generate payroll
+- `POST /api/payrolls/mark-paid` - Mark payrolls as paid
 
 **Reports Endpoints:**
 - `GET /api/reports/employee` - Employee statistics
 - `GET /api/reports/employee/export` - Export employee data (CSV/XLSX)
-- `GET /api/reports/payroll` - Payroll report
-- `GET /api/reports/payroll/export` - Export payroll data (CSV/XLSX)
+- `GET /api/reports/payrolls` - Payroll report
+- `GET /api/reports/payrolls/export` - Export payroll data (CSV/XLSX)
 - `GET /api/reports/comprehensive` - Dashboard data
-- `GET /api/reports/attendance` - Attendance report
+- `GET /api/reports/attendances` - Attendance report
 - `GET /api/reports/leave` - Leave request report
 
 ### Authentication Endpoints

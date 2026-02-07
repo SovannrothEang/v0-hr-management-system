@@ -60,8 +60,8 @@ const navigation = [
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
   {
-    name: "Attendance",
-    href: "/attendance",
+    name: "Attendances",
+    href: "/attendances",
     icon: Clock,
     roles: ['admin', 'hr_manager', 'employee'] // All roles
   },
@@ -72,8 +72,8 @@ const navigation = [
     roles: ['admin', 'hr_manager', 'employee'] // All roles
   },
   {
-    name: "Payroll",
-    href: "/payroll",
+    name: "Payrolls",
+    href: "/payrolls",
     icon: DollarSign,
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
