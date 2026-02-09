@@ -14,13 +14,15 @@ import {
 } from "recharts";
 import { Users, UserCheck, CalendarOff, UserPlus } from "lucide-react";
 import type { EmployeeReport } from "@/hooks/use-reports";
+import { ExportDropdown } from "./export-dropdown";
 
 interface EmployeeReportCardProps {
   data?: EmployeeReport;
   isLoading: boolean;
+  exportParams?: Record<string, string>;
 }
 
-export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps) {
+export function EmployeeReportCard({ data, isLoading, exportParams }: EmployeeReportCardProps) {
   if (isLoading || !data) {
     return (
       <Card className="bg-card border-border">
@@ -70,11 +72,16 @@ export function EmployeeReportCard({ data, isLoading }: EmployeeReportCardProps)
 
   return (
     <Card className="bg-card border-border">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Users className="h-5 w-5 text-primary" />
           Employee Statistics
         </CardTitle>
+        <ExportDropdown
+          endpoint="/reports/employees/export"
+          params={exportParams}
+          reportName="employee_report"
+        />
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

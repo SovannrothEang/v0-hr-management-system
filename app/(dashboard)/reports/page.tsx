@@ -10,15 +10,15 @@ import { AttendanceReportCard } from "@/components/reports/attendance-report-car
 import { EmployeeReportCard } from "@/components/reports/employee-report-card";
 import { PayrollReportCard } from "@/components/reports/payroll-report-card";
 import { LeaveReportCard } from "@/components/reports/leave-report-card";
+import { ExportDropdown } from "@/components/reports/export-dropdown";
 import {
   useAttendanceReport,
   useEmployeeReport,
   usePayrollReport,
   useLeaveReport,
 } from "@/hooks/use-reports";
-import { Download, FileText, Printer } from "lucide-react";
+import { FileText, Printer } from "lucide-react";
 import { format } from "date-fns";
-import { toast } from "sonner";
 
 export default function ReportsPage() {
   const [startDate, setStartDate] = useState(subDays(new Date(), 30));
@@ -41,10 +41,11 @@ export default function ReportsPage() {
     usePayrollReport(dateParams);
   const { data: leaveData, isLoading: leaveLoading } = useLeaveReport(dateParams);
 
-  const handleExport = () => {
-    toast.success("Report export started", {
-      description: "Your report will be downloaded shortly",
-    });
+  // Export params for report cards
+  const exportParams: Record<string, string> = {
+    startDate: dateParams.startDate,
+    endDate: dateParams.endDate,
+    ...(department !== "all" && { department }),
   };
 
   const handlePrint = () => {
@@ -61,10 +62,11 @@ export default function ReportsPage() {
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" />
-          Export PDF
-        </Button>
+        <ExportDropdown
+          endpoint="/reports/comprehensive"
+          params={exportParams}
+          reportName="comprehensive_report"
+        />
       </PageHeader>
 
       <ReportFilters
@@ -92,29 +94,31 @@ export default function ReportsPage() {
           <AttendanceReportCard
             data={attendanceData}
             isLoading={attendanceLoading}
+            exportParams={exportParams}
           />
-          <EmployeeReportCard data={employeeData} isLoading={employeeLoading} />
-          <PayrollReportCard data={payrollData} isLoading={payrollLoading} />
-          <LeaveReportCard data={leaveData} isLoading={leaveLoading} />
+          <EmployeeReportCard data={employeeData} isLoading={employeeLoading} exportParams={exportParams} />
+          <PayrollReportCard data={payrollData} isLoading={payrollLoading} exportParams={exportParams} />
+          <LeaveReportCard data={leaveData} isLoading={leaveLoading} exportParams={exportParams} />
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6">
           <AttendanceReportCard
             data={attendanceData}
             isLoading={attendanceLoading}
+            exportParams={exportParams}
           />
         </TabsContent>
 
         <TabsContent value="employees" className="mt-6">
-          <EmployeeReportCard data={employeeData} isLoading={employeeLoading} />
+          <EmployeeReportCard data={employeeData} isLoading={employeeLoading} exportParams={exportParams} />
         </TabsContent>
 
         <TabsContent value="payroll" className="mt-6">
-          <PayrollReportCard data={payrollData} isLoading={payrollLoading} />
+          <PayrollReportCard data={payrollData} isLoading={payrollLoading} exportParams={exportParams} />
         </TabsContent>
 
         <TabsContent value="leave" className="mt-6">
-          <LeaveReportCard data={leaveData} isLoading={leaveLoading} />
+          <LeaveReportCard data={leaveData} isLoading={leaveLoading} exportParams={exportParams} />
         </TabsContent>
       </Tabs>
 

@@ -4,13 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserCheck, UserX, Clock, CalendarOff, TrendingUp, BarChart3 } from "lucide-react";
 import type { AttendanceReport } from "@/hooks/use-reports";
+import { ExportDropdown } from "./export-dropdown";
 
 interface AttendanceReportCardProps {
   data?: AttendanceReport;
   isLoading: boolean;
+  exportParams?: Record<string, string>;
 }
 
-export function AttendanceReportCard({ data, isLoading }: AttendanceReportCardProps) {
+export function AttendanceReportCard({ data, isLoading, exportParams }: AttendanceReportCardProps) {
   if (isLoading || !data) {
     return (
       <Card className="bg-card border-border">
@@ -76,11 +78,16 @@ export function AttendanceReportCard({ data, isLoading }: AttendanceReportCardPr
 
   return (
     <Card className="bg-card border-border">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Clock className="h-5 w-5 text-primary" />
           Attendance Overview
         </CardTitle>
+        <ExportDropdown
+          endpoint="/reports/attendances/export"
+          params={exportParams}
+          reportName="attendance_report"
+        />
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

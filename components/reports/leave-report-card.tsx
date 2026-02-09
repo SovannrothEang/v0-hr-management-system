@@ -17,10 +17,12 @@ import {
 } from "recharts";
 import { Calendar, CheckCircle2, XCircle, Clock } from "lucide-react";
 import type { LeaveReport } from "@/hooks/use-reports";
+import { ExportDropdown } from "./export-dropdown";
 
 interface LeaveReportCardProps {
   data?: LeaveReport;
   isLoading: boolean;
+  exportParams?: Record<string, string>;
 }
 
 const COLORS = [
@@ -31,7 +33,7 @@ const COLORS = [
   "oklch(0.55 0.2 25)",
 ];
 
-export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
+export function LeaveReportCard({ data, isLoading, exportParams }: LeaveReportCardProps) {
   if (isLoading || !data) {
     return (
       <Card className="bg-card border-border">
@@ -81,11 +83,16 @@ export function LeaveReportCard({ data, isLoading }: LeaveReportCardProps) {
 
   return (
     <Card className="bg-card border-border">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Calendar className="h-5 w-5 text-primary" />
           Leave Analytics
         </CardTitle>
+        <ExportDropdown
+          endpoint="/reports/leaves/export"
+          params={exportParams}
+          reportName="leave_report"
+        />
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

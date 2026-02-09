@@ -15,13 +15,15 @@ import {
 } from "recharts";
 import { DollarSign, TrendingUp, TrendingDown, Calculator } from "lucide-react";
 import type { PayrollReport } from "@/hooks/use-reports";
+import { ExportDropdown } from "./export-dropdown";
 
 interface PayrollReportCardProps {
   data?: PayrollReport;
   isLoading: boolean;
+  exportParams?: Record<string, string>;
 }
 
-export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
+export function PayrollReportCard({ data, isLoading, exportParams }: PayrollReportCardProps) {
   if (isLoading || !data) {
     return (
       <Card className="bg-card border-border">
@@ -71,11 +73,16 @@ export function PayrollReportCard({ data, isLoading }: PayrollReportCardProps) {
 
   return (
     <Card className="bg-card border-border">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-foreground">
           <DollarSign className="h-5 w-5 text-primary" />
           Payroll Analytics
         </CardTitle>
+        <ExportDropdown
+          endpoint="/reports/payrolls/export"
+          params={exportParams}
+          reportName="payroll_report"
+        />
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

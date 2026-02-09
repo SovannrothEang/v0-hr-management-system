@@ -115,7 +115,7 @@ export function useEmployeeReport(params?: { department?: string }) {
       }
 
       const response = await apiClient.get<EmployeeReport | { data: EmployeeReport }>(
-        `/reports/employee?${queryParams.toString()}`
+        `/reports/employees?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
@@ -188,7 +188,7 @@ export function useLeaveReport(params: {
       }
 
       const response = await apiClient.get<LeaveReport | { data: LeaveReport }>(
-        `/reports/leave?${queryParams.toString()}`
+        `/reports/leaves?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
