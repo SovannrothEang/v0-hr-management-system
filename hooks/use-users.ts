@@ -5,6 +5,7 @@ import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
 import { toast } from "sonner";
 import { getChangedFields } from "@/lib/track-changes";
 import { ROLES, type RoleName } from "@/lib/constants/roles";
+import { getEmployeeAvatarUrl } from "@/hooks/use-employees";
 
 /**
  * Transform API user data to frontend interface
@@ -28,6 +29,8 @@ function transformUser(user: any): User {
 
   // Extract employee details if available
   const employee = user.employees || user.employee;
+  const employeeId = employee?.id || user.employeeId;
+  const profileImage = user.profileImage || user.avatar || employee?.profileImage || employee?.avatar;
   const employeeObj = employee ? {
     emergencyContact: employee.emergencyContact || undefined,
     bankDetails: employee.bankDetails || undefined,
@@ -50,7 +53,7 @@ function transformUser(user: any): User {
     username: user.username || user.email, // Use email as fallback for username
     firstName: user.firstname || user.firstName || employee?.firstname || "",
     lastName: user.lastname || user.lastName || employee?.lastname || "",
-    avatar: user.profileImage || user.avatar || employee?.profileImage,
+    avatar: getEmployeeAvatarUrl(employeeId, profileImage),
     roles,
     isActive: user.isActive ?? true,
     createdAt: user.createdAt,

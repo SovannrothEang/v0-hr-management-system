@@ -100,7 +100,7 @@ export function AttendanceTable({
               const firstName = employee?.firstName || "Unknown";
               const lastName = employee?.lastName || "";
               const department = (employee as any)?.department || "N/A";
-              const avatar = (employee as any)?.avatar || (employee as any)?.profileImage;
+              const avatar = (employee as any)?.avatar;
 
               const canClockIn = !record.clockIn && record.status !== "on_leave";
               const canClockOut =

@@ -6,6 +6,19 @@ import { toast } from "sonner";
 import { getChangedFields } from "@/lib/track-changes";
 
 /**
+ * Construct a proxied avatar URL for an employee.
+ * Returns `/api/employees/{id}/image` if the employee has a profile image,
+ * or undefined if there's no image.
+ */
+export function getEmployeeAvatarUrl(
+  employeeId?: string | null,
+  profileImage?: string | null
+): string | undefined {
+  if (!profileImage || !employeeId) return undefined;
+  return `/api/employees/${employeeId}/image`;
+}
+
+/**
  * Transform API employee data to frontend interface
  */
 function transformEmployee(emp: any): Employee {
@@ -18,7 +31,7 @@ function transformEmployee(emp: any): Employee {
     lastName: emp.lastname || emp.lastName,
     email: emp.user?.email || emp.email,
     phone: emp.phoneNumber || emp.phone || '',
-    avatar: emp.profileImage || emp.avatar,
+    avatar: getEmployeeAvatarUrl(emp.id, emp.profileImage || emp.avatar),
     department: emp.department && typeof emp.department === 'object' 
       ? { 
           id: emp.department.id, 

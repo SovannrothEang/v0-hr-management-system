@@ -3,6 +3,7 @@ import { apiClient } from "@/lib/api-client";
 import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType, AttendanceStatus, AttendanceSummary } from "@/stores/attendance-store";
 import type { PaginatedResponse } from "@/types/pagination";
 import { toast } from "sonner";
+import { getEmployeeAvatarUrl } from "@/hooks/use-employees";
 
 function transformAttendance(att: any): AttendanceRecord {
   const formatTime = (dateStr?: string) => {
@@ -46,7 +47,13 @@ function transformAttendance(att: any): AttendanceRecord {
     notes: att.notes,
     performBy: att.performBy,
     performer: att.performer,
-    employee: att.employee,
+    employee: att.employee ? {
+      ...att.employee,
+      firstName: att.employee.firstname || att.employee.firstName,
+      lastName: att.employee.lastname || att.employee.lastName,
+      department: att.employee.department?.departmentName || att.employee.department?.name || att.employee.department,
+      avatar: getEmployeeAvatarUrl(att.employee.id, att.employee.profileImage || att.employee.avatar),
+    } : att.employee,
     isActive: att.isActive ?? true,
     createdAt: att.createdAt,
     updatedAt: att.updatedAt,
@@ -104,7 +111,7 @@ function transformLeaveRequest(lr: any): LeaveRequest {
     lastName: emp.lastname || emp.lastName,
     email: emp.user?.email || emp.email,
     department: emp.department?.departmentName || emp.department?.name || emp.department,
-    avatar: emp.profileImage || emp.avatar,
+    avatar: getEmployeeAvatarUrl(emp.id || lr.employeeId, emp.profileImage || emp.avatar),
   };
 
   // Calculate days if not provided by API

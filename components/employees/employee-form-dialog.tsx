@@ -24,7 +24,6 @@ import { Loader2, Camera } from "lucide-react";
 import { useCreateEmployee, useUpdateEmployee, useUploadEmployeeImage, useRemoveEmployeeImage } from "@/hooks/use-employees";
 import { useAllDepartments } from "@/hooks/use-departments";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { apiClient } from "@/lib/api-client";
 import type { Employee, EmploymentType, EmploymentStatus } from "@/stores/employee-store";
 
 interface EmployeeFormDialogProps {
@@ -149,21 +148,21 @@ export function EmployeeFormDialog({
 
       updateEmployee(
         { id: employee.id, original: normalizedOriginal, modified: data },
-        { 
+        {
           onSuccess: (updatedEmp) => {
             handleImageAction(employee.id);
             onOpenChange(false);
-          } 
+          }
         }
       );
     } else {
-      createEmployee(data, { 
+      createEmployee(data, {
         onSuccess: (newEmp) => {
           if (selectedFile) {
             uploadImage({ id: newEmp.id, file: selectedFile });
           }
           onOpenChange(false);
-        } 
+        }
       });
     }
   };
@@ -196,7 +195,7 @@ export function EmployeeFormDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <ImageUpload
-            value={apiClient.getImageUrl(employee?.avatar)}
+            value={employee?.avatar}
             onChange={setSelectedFile}
             onRemove={() => setShouldRemoveImage(true)}
             fallbackInitials={getInitials(watch("firstName"), watch("lastName"))}
@@ -242,7 +241,7 @@ export function EmployeeFormDialog({
             <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
-              {...register("phone", { required: "Phone is required" })}
+              {...register("phone", {})}
               className="bg-input border-border"
             />
           </div>

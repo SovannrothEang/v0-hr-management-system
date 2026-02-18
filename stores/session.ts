@@ -222,7 +222,17 @@ export function useCsrfToken(): string | null {
 
 /**
  * Get CSRF token synchronously (for use in apiClient)
+ * Falls back to reading the csrf_token cookie if the store value is null
+ * (e.g. after page reload, since csrfToken is not persisted)
  */
 export function getCsrfToken(): string | null {
-  return useSessionStore.getState().csrfToken;
+  const storeToken = useSessionStore.getState().csrfToken;
+  if (storeToken) return storeToken;
+
+  // Fallback: read from cookie (httpOnly: false, so JS can access it)
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  return null;
 }

@@ -1,6 +1,53 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { getAuthSessionFromRequest } from "@/lib/session";
+
+/**
+ * GET /api/employees/[id]/image
+ * Proxy employee profile image binary from the external API.
+ * Extracts the auth token from the cookie and forwards it to the external API.
+ */
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  try {
+    const { id } = await context.params;
+
+    // Extract user session from cookie to get the external access token
+    const user = getAuthSessionFromRequest(request);
+
+    const headers: Record<string, string> = {};
+    if (user?.externalAccessToken) {
+      headers['Authorization'] = `Bearer ${user.externalAccessToken}`;
+    }
+
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL || "http://localhost:3001/api"}/employees/${id}/image`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return new NextResponse(null, { status: response.status });
+    }
+
+    const contentType =
+      response.headers.get("content-type") || "image/jpeg";
+    const body = await response.arrayBuffer();
+
+    return new NextResponse(new Uint8Array(body), {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      },
+    });
+  } catch (error) {
+    console.error("[Employee Image Proxy GET]", error);
+    return new NextResponse(null, { status: 500 });
+  }
+}
 
 export const POST = withRole(async (
   request,

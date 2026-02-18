@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { apiClient } from "@/lib/api-client";
 import {
   Mail,
   Phone,
@@ -80,7 +79,7 @@ export function EmployeeDetailSheet({
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage 
-                  src={apiClient.getImageUrl(employee.avatar)} 
+                  src={employee.avatar} 
                   alt={employee.firstName} 
                   className="object-cover"
                 />

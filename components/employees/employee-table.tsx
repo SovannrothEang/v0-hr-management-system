@@ -25,7 +25,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
-import { apiClient } from "@/lib/api-client";
 import type { Employee, EmploymentStatus } from "@/stores/employee-store";
 
 interface EmployeeTableProps {
@@ -129,7 +128,7 @@ export function EmployeeTable({
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarImage 
-                        src={apiClient.getImageUrl(employee.avatar)} 
+                        src={employee.avatar} 
                         alt={employee.firstName} 
                         className="object-cover"
                       />

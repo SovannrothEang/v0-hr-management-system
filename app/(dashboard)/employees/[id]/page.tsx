@@ -177,10 +177,10 @@ export default function EmployeePage({ params }: EmployeePageProps) {
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Profile Card */}
         <Card className="lg:col-span-1 border-border bg-card shadow-sm h-fit">
-          <CardHeader className="items-center text-center pb-6">
+          <CardHeader className="items-center justify-items-center text-center pb-6">
             <Avatar className="h-24 w-24 ring-4 ring-secondary/50">
               <AvatarImage 
-                src={apiClient.getImageUrl(employee.avatar)} 
+                src={employee.avatar} 
                 alt={employee.firstName} 
                 className="object-cover"
               />
