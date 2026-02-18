@@ -39,7 +39,7 @@ const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 export interface SessionUser {
   id: string;
   email: string;
-  name: string;
+  username: string;
   roles: RoleName[];
   department?: string;
   employeeId?: string;
@@ -95,7 +95,7 @@ export function createAuthSession(
   const tokenPayload = {
     id: user.id,
     email: user.email,
-    name: user.name,
+    username: user.username,
     roles: user.roles,
     department: user.department,
     employeeId: user.employeeId,
@@ -170,7 +170,7 @@ export async function getAuthSession(): Promise<SessionUser | null> {
     return {
       id: payload.id,
       email: payload.email,
-      name: payload.name,
+      username: payload.username,
       roles: payload.roles,
       department: payload.department,
       employeeId: payload.employeeId,
@@ -304,7 +304,7 @@ export function refreshAuthSession(
     const user: SessionUser = {
       id: payload.id,
       email: payload.email,
-      name: payload.name,
+      username: payload.username || (payload as any).name || payload.email,
       roles: payload.roles,
       department: payload.department,
       employeeId: payload.employeeId,

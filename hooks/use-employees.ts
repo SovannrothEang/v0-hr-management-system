@@ -14,7 +14,7 @@ export function getEmployeeAvatarUrl(
   employeeId?: string | null,
   profileImage?: string | null
 ): string | undefined {
-  if (!profileImage || !employeeId) return undefined;
+  if (!employeeId) return undefined;
   return `/api/employees/${employeeId}/image`;
 }
 

@@ -14,20 +14,20 @@ const USERS = {
     email: 'admin@hrflow.com',
     password: 'admin123',
     role: 'admin',
-    name: 'Admin User'
+    username: 'Admin User'
   },
   hrManager: {
     email: 'hr@hrflow.com',
     password: 'hr123',
     role: 'hr_manager',
-    name: 'Emily Rodriguez',
+    username: 'Emily Rodriguez',
     department: 'Human Resources'
   },
   employee: {
     email: 'sarah.johnson@hrflow.com',
     password: 'emp123',
     role: 'employee',
-    name: 'Sarah Johnson',
+    username: 'Sarah Johnson',
     department: 'Engineering'
   }
 };
@@ -166,7 +166,7 @@ async function testRoute(route, session, expectSuccess) {
 
 async function testUser(userType, user) {
   log('cyan', `\n${'='.repeat(60)}`);
-  log('cyan', `Testing: ${user.name} (${user.role})`);
+  log('cyan', `Testing: ${user.username} (${user.role})`);
   log('cyan', '='.repeat(60));
 
   // Login
@@ -352,7 +352,7 @@ async function testSessionEndpoint() {
     const data = await response.json();
 
     if (response.status === 200 && data.authenticated === true && data.user) {
-      log('green', `   ✓ Session validated - User: ${data.user.name}`);
+      log('green', `   ✓ Session validated - User: ${data.user.username}`);
     } else {
       log('red', `   ✗ Unexpected response: ${JSON.stringify(data)}`);
     }

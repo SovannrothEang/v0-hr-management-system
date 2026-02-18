@@ -64,7 +64,7 @@ export default function DashboardPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <PageHeader
-        title={`${greeting()}, ${user?.name?.split(" ")[0] || "User"}`}
+        title={`${greeting()}, ${user?.username || "User"}`}
         description="Here's what's happening with your team today."
       />
 

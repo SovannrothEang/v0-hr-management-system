@@ -67,7 +67,7 @@ export function LeaveRequestForm({ open, onOpenChange }: LeaveRequestFormProps) 
     createRequest(
       {
         employeeId: user.employeeId || user.id,
-        employeeName: user.name,
+        employeeName: user.username,
         type: data.type,
         startDate: format(startDate, "yyyy-MM-dd"),
         endDate: format(endDate, "yyyy-MM-dd"),

@@ -47,8 +47,14 @@ export function UserDetailSheet({
 }: UserDetailSheetProps) {
   if (!user) return null;
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  const getInitials = (firstName: string, lastName: string, username?: string) => {
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+    if (firstName) return firstName.slice(0, 2).toUpperCase();
+    if (lastName) return lastName.slice(0, 2).toUpperCase();
+    if (username) return username.slice(0, 2).toUpperCase();
+    return "??";
   };
 
   return (
@@ -58,14 +64,16 @@ export function UserDetailSheet({
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.firstName} />
+                <AvatarImage src={user.avatar} alt={user.firstName || user.username} className="object-cover" />
                 <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                  {getInitials(user.firstName, user.lastName)}
+                  {getInitials(user.firstName, user.lastName, user.username)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <SheetTitle className="text-xl">
-                  {user.firstName} {user.lastName}
+                  {user.firstName && user.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.username || user.email}
                 </SheetTitle>
                 <SheetDescription className="text-sm">
                   {user.email}

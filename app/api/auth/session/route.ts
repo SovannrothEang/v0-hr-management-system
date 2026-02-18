@@ -37,10 +37,11 @@ export async function GET(request: NextRequest) {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          username: user.username || (user as any).name || user.email,
           roles: user.roles,
           department: user.department,
           employeeId: user.employeeId,
+          avatar: user.employeeId ? `/api/employees/${user.employeeId}/image` : undefined,
         },
         expiresAt,
       },

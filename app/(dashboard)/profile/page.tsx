@@ -41,12 +41,12 @@ export default function ProfilePage() {
         <Card className="md:col-span-1 border-border bg-card">
           <CardHeader className="items-center text-center">
             <Avatar className="h-24 w-24 mb-4 ring-4 ring-primary/10">
-              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                {getInitials(user.name || "User")}
+                {getInitials(user.username || "User")}
               </AvatarFallback>
             </Avatar>
-            <CardTitle>{user.name}</CardTitle>
+            <CardTitle>{user.username}</CardTitle>
             <CardDescription>{user.email}</CardDescription>
             <div className="flex flex-wrap justify-center gap-2 mt-4">
               {user.roles.map(role => (

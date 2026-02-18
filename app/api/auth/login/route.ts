@@ -87,15 +87,11 @@ export async function POST(request: Request) {
     const externalAccessToken = loginData.data.accessToken;
 
     // Prepare user data for Next.js session
-    // External API may return name as a single field or as firstName/lastName
-    const userName = externalUser.name
-      || `${externalUser.firstName || ""} ${externalUser.lastName || ""}`.trim()
-      || externalUser.email;
-
+    // External API provides `username` directly on the user entity
     const sessionUser: SessionUser = {
       id: externalUser.id,
       email: externalUser.email,
-      name: userName,
+      username: externalUser.username || externalUser.email,
       roles: externalUser.roles,
       department: externalUser.department,
       employeeId: externalUser.employeeId,
@@ -110,7 +106,7 @@ export async function POST(request: Request) {
           user: {
             id: sessionUser.id,
             email: sessionUser.email,
-            name: sessionUser.name,
+            username: sessionUser.username,
             roles: sessionUser.roles,
             department: sessionUser.department,
             employeeId: sessionUser.employeeId,
@@ -148,10 +144,11 @@ export async function POST(request: Request) {
           user: {
             id: sessionUser.id,
             email: sessionUser.email,
-            name: sessionUser.name,
+            username: sessionUser.username,
             roles: sessionUser.roles,
             department: sessionUser.department,
             employeeId: sessionUser.employeeId,
+            avatar: sessionUser.employeeId ? `/api/employees/${sessionUser.employeeId}/image` : undefined,
           },
           expiresAt: sessionData.expiresAt,
           csrfToken: sessionData.csrfToken,

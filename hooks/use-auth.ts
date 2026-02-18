@@ -61,7 +61,7 @@ export function useLogin() {
       // Store user info, access token, and CSRF token in memory
       setSession(data.user, data.expiresAt, data.csrfToken || '', data.accessToken);
       toast.success("Login successful", {
-        description: `Welcome back, ${data.user.name || data.user.email}!`,
+        description: `Welcome back, ${data.user.username || data.user.email}!`,
       });
     },
     onError: (error: Error) => {

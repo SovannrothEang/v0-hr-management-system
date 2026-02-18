@@ -13,8 +13,7 @@ export type UserRole = RoleName;
 export interface User {
   id: string;
   email: string;
-  name: string;
-  username?: string;
+  username: string;
   roles: UserRole[];
   avatar?: string;
   department?: string;

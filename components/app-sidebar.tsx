@@ -233,15 +233,15 @@ export function AppSidebar() {
                 )}
               >
                 <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name} />
+                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.username} />
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
-                    {user ? getInitials(user.name ? user.name : "") : "U"}
+                    {user ? getInitials(user.username ? user.username : "") : "U"}
                   </AvatarFallback>
                 </Avatar>
                 {!isCollapsed && (
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-medium text-sidebar-foreground truncate">
-                      {user?.name}
+                      {user?.username}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {user?.roles?.includes("admin")

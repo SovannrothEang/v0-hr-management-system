@@ -36,6 +36,9 @@ export const GET = withRole(async (request) => {
   if (!searchParams.has("page")) params.set("page", "1");
   if (!searchParams.has("limit")) params.set("limit", "10");
 
+  // Always include employee relations so we can resolve avatars
+  params.set("includeEmployees", "true");
+
   try {
     const response = await fetch(
       `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users?${params.toString()}`,

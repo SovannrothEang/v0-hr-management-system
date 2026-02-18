@@ -70,8 +70,14 @@ export function UserTable({
     }
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  const getInitials = (firstName: string, lastName: string, username?: string) => {
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+    if (firstName) return firstName.slice(0, 2).toUpperCase();
+    if (lastName) return lastName.slice(0, 2).toUpperCase();
+    if (username) return username.slice(0, 2).toUpperCase();
+    return "??";
   };
 
   const formatRole = (role: string) => {
@@ -123,14 +129,16 @@ export function UserTable({
                  <TableCell>
                    <div className="flex items-center gap-3">
                      <Avatar className="h-9 w-9">
-                       <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.firstName} />
+                       <AvatarImage src={user.avatar} alt={user.firstName || user.username} className="object-cover" />
                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                         {getInitials(user.firstName, user.lastName)}
+                         {getInitials(user.firstName, user.lastName, user.username)}
                        </AvatarFallback>
                      </Avatar>
                      <div>
                        <p className="font-medium text-card-foreground">
-                         {user.firstName} {user.lastName}
+                         {user.firstName && user.lastName
+                           ? `${user.firstName} ${user.lastName}`
+                           : user.username || user.email}
                        </p>
                        <p className="text-xs text-muted-foreground">
                          @{user.username || user.email.split('@')[0]}

@@ -18,7 +18,7 @@ export const JWT_REFRESH_EXPIRES_IN = '7d'; // Refresh token: 7 days
 export interface JWTPayload {
   id: string;
   email: string;
-  name: string;
+  username: string;
   roles: RoleName[];
   department?: string;
   employeeId?: string;
