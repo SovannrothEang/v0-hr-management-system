@@ -48,7 +48,7 @@ export function PositionTable({
   onDelete,
 }: PositionTableProps) {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const { isAdmin } = usePermissions();
+  const { can } = usePermissions();
 
   const handleRowClick = (position: Position) => {
     onView(position);
@@ -164,20 +164,26 @@ export function PositionTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      {isAdmin && (
+                      {(can.updatePosition || can.deletePosition) && (
                         <>
-                          <DropdownMenuItem onClick={() => onEdit(position)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => onDelete(position)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {can.updatePosition && (
+                            <DropdownMenuItem onClick={() => onEdit(position)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {can.updatePosition && can.deletePosition && (
+                            <DropdownMenuSeparator />
+                          )}
+                          {can.deletePosition && (
+                            <DropdownMenuItem
+                              onClick={() => onDelete(position)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </>
                       )}
                     </DropdownMenuContent>

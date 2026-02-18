@@ -82,6 +82,12 @@ export function usePermissions() {
       // System permissions
       viewAudit: hasPermission(userRoles, PERMISSIONS.AUDIT_VIEW),
       manageRoles: hasPermission(userRoles, PERMISSIONS.ROLES_MANAGE),
+
+      // Position permissions
+      viewAllPositions: hasPermission(userRoles, PERMISSIONS.POSITION_VIEW_ALL),
+      createPosition: hasPermission(userRoles, PERMISSIONS.POSITION_CREATE),
+      updatePosition: hasPermission(userRoles, PERMISSIONS.POSITION_UPDATE_ALL),
+      deletePosition: hasPermission(userRoles, PERMISSIONS.POSITION_DELETE_ALL),
     },
   };
 }

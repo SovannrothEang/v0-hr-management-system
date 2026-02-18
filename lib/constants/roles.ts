@@ -5,9 +5,9 @@
 
 // Role definitions
 export const ROLES = {
-  ADMIN: 'admin',
-  HR_MANAGER: 'hr_manager',
-  EMPLOYEE: 'employee',
+  ADMIN: 'ADMIN',
+  HR_MANAGER: 'HR',
+  EMPLOYEE: 'EMPLOYEE',
 } as const;
 
 export type RoleName = typeof ROLES[keyof typeof ROLES];
@@ -59,6 +59,12 @@ export const PERMISSIONS = {
   // System permissions
   AUDIT_VIEW: 'audit:view',
   ROLES_MANAGE: 'roles:manage',
+
+  // Position permissions
+  POSITION_VIEW_ALL: 'position:view:all',
+  POSITION_CREATE: 'position:create',
+  POSITION_UPDATE_ALL: 'position:update:all',
+  POSITION_DELETE_ALL: 'position:delete:all',
 } as const;
 
 export type PermissionName = typeof PERMISSIONS[keyof typeof PERMISSIONS];
@@ -87,6 +93,10 @@ export const ROLE_PERMISSIONS: Record<RoleName, PermissionName[]> = {
     PERMISSIONS.SETTINGS_MODIFY,
     PERMISSIONS.AUDIT_VIEW,
     PERMISSIONS.ROLES_MANAGE,
+    PERMISSIONS.POSITION_VIEW_ALL,
+    PERMISSIONS.POSITION_CREATE,
+    PERMISSIONS.POSITION_UPDATE_ALL,
+    PERMISSIONS.POSITION_DELETE_ALL,
   ],
   [ROLES.HR_MANAGER]: [
     // HR Manager has department-level permissions
@@ -106,6 +116,10 @@ export const ROLE_PERMISSIONS: Record<RoleName, PermissionName[]> = {
     PERMISSIONS.REPORTS_VIEW_DEPARTMENT,
     PERMISSIONS.REPORTS_GENERATE,
     PERMISSIONS.SETTINGS_VIEW,
+    PERMISSIONS.POSITION_VIEW_ALL,
+    PERMISSIONS.POSITION_CREATE,
+    PERMISSIONS.POSITION_UPDATE_ALL,
+    PERMISSIONS.POSITION_DELETE_ALL,
   ],
   [ROLES.EMPLOYEE]: [
     // Employee has only self permissions
@@ -158,16 +172,20 @@ export const ROUTE_ROLES: Record<string, RoleName[]> = {
 
   // Departments - read-only for all, modify admin only
   '/api/departments': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],
+
+  // Position routes - admin and HR manager can manage positions
+  '/api/positions': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/positions/[id]': [ROLES.ADMIN, ROLES.HR_MANAGER],
 };
 
 // Helper functions
 export function hasRole(userRoles: RoleName[] | undefined, allowedRoles: RoleName[]): boolean {
   if (!userRoles || userRoles.length === 0) return false;
-  
+
   // Normalize roles to lowercase for comparison
   const normalizedUserRoles = userRoles.map(r => r.toLowerCase());
   const normalizedAllowedRoles = allowedRoles.map(r => r.toLowerCase());
-  
+
   return normalizedUserRoles.some((role) => normalizedAllowedRoles.includes(role));
 }
 

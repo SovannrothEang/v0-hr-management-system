@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   DollarSign,
   Calendar,
@@ -43,6 +44,7 @@ export function PositionDetailSheet({
   onOpenChange,
   onEdit,
 }: PositionDetailSheetProps) {
+  const { can } = usePermissions();
   if (!position) return null;
 
   return (
@@ -70,14 +72,16 @@ export function PositionDetailSheet({
               </div>
             </div>
           </div>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => onEdit(position)}
-          >
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Position
-          </Button>
+          {can.updatePosition && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => onEdit(position)}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Position
+            </Button>
+          )}
         </SheetHeader>
 
         <Separator />

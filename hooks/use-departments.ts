@@ -55,7 +55,7 @@ export function useDepartments(params?: {
     queryKey: ["departments", params],
     queryFn: async (): Promise<PaginatedResponse<Department>> => {
       const queryParams = new URLSearchParams();
-      queryParams.set("includeEmployees", "true");
+      // queryParams.set("includeEmployees", "true");
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
 

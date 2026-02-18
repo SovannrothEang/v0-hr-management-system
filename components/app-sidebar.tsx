@@ -70,7 +70,7 @@ const navigation = [
     name: "Positions",
     href: "/positions",
     icon: Award,
-    roles: ['admin'] // Admin only
+    roles: ['admin', 'hr_manager'] // Admin and HR only
   },
   {
     name: "Attendances",

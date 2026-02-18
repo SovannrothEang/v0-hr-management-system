@@ -67,24 +67,33 @@ export function usePositions(params?: {
       const resData = response.data;
 
       // Robust extraction from ResultPagination structure
-      const innerData = (resData as any).data || (Array.isArray(resData) ? resData : []);
+      const dataWrapper = (resData as any)?.data;
+      const innerData = Array.isArray(dataWrapper?.data)
+        ? dataWrapper.data
+        : Array.isArray(dataWrapper)
+          ? dataWrapper
+          : Array.isArray(resData)
+            ? resData
+            : [];
       const transformedData = innerData.map(transformPosition);
+
+      const metaWrapper = dataWrapper?.meta ?? (resData as any).meta ?? {};
 
       // Handle ResultPagination flat properties
       const total = (resData as any).total ??
-        (resData as any).meta?.total ??
+        metaWrapper.total ??
         transformedData.length;
 
       const limit = (resData as any).limit ??
-        (resData as any).meta?.limit ??
+        metaWrapper.limit ??
         params?.limit ?? 10;
 
       const page = (resData as any).page ??
-        (resData as any).meta?.page ??
+        metaWrapper.page ??
         params?.page ?? 1;
 
       const totalPages = (resData as any).totalPages ??
-        (resData as any).meta?.totalPages ??
+        metaWrapper.totalPages ??
         Math.ceil(total / limit);
 
       return {
@@ -94,8 +103,8 @@ export function usePositions(params?: {
           limit,
           total,
           totalPages,
-          hasNext: (resData as any).hasNext ?? (resData as any).meta?.hasNext ?? page < totalPages,
-          hasPrevious: (resData as any).hasPrevious ?? (resData as any).meta?.hasPrevious ?? page > 1,
+          hasNext: (resData as any).hasNext ?? metaWrapper.hasNext ?? page < totalPages,
+          hasPrevious: (resData as any).hasPrevious ?? metaWrapper.hasPrevious ?? page > 1,
         },
       };
     },
@@ -108,7 +117,14 @@ export function useAllPositions() {
     queryFn: async (): Promise<Position[]> => {
       const response = await apiClient.get<any>("/positions?limit=100");
       const resData = response.data;
-      const innerData = (resData as any).data || (Array.isArray(resData) ? resData : []);
+      const dataWrapper = (resData as any)?.data;
+      const innerData = Array.isArray(dataWrapper?.data)
+        ? dataWrapper.data
+        : Array.isArray(dataWrapper)
+          ? dataWrapper
+          : Array.isArray(resData)
+            ? resData
+            : [];
       return innerData.map(transformPosition);
     },
   });

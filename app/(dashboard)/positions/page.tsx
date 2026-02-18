@@ -49,7 +49,7 @@ export default function PositionsPage() {
   const { mutate: createPosition, isPending: isCreating } = useCreatePosition();
   const { mutate: updatePosition, isPending: isUpdating } = useUpdatePosition();
   const { mutate: deletePosition, isPending: isDeleting } = useDeletePosition();
-  const { isAdmin } = usePermissions();
+  const { can } = usePermissions();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
@@ -149,7 +149,7 @@ export default function PositionsPage() {
         title="Employee Positions"
         description="Manage job positions and salary ranges"
       >
-        {isAdmin && (
+        {can.createPosition && (
           <Button size="sm" onClick={handleCreate} disabled={isPending}>
             <Plus className="mr-2 h-4 w-4" />
             Add Position
