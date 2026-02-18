@@ -88,9 +88,13 @@ class ApiClient {
     
     // Build headers
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
       ...(options?.headers as Record<string, string>),
     };
+    
+    // Default to JSON if not FormData
+    if (!(options?.body instanceof FormData) && !headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
     
     // Add Bearer token for authenticated requests
     const accessToken = getAccessToken();
@@ -173,6 +177,25 @@ class ApiClient {
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: "DELETE" });
+  }
+
+  async postFormData<T>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  /**
+   * Get full URL for an image relative path
+   */
+  getImageUrl(relativePath?: string | null): string | undefined {
+    if (!relativePath) return undefined;
+    if (relativePath.startsWith('http')) return relativePath;
+    
+    // The images are served from the backend root, not the /api path
+    const backendRoot = this.baseUrl.replace(/\/api$/, '');
+    return `${backendRoot}/${relativePath}`;
   }
 }
 

@@ -35,6 +35,18 @@ function transformDepartment(dept: any): Department {
   };
 }
 
+export function useAllDepartments() {
+  return useQuery({
+    queryKey: ["departments", "all"],
+    queryFn: async (): Promise<Department[]> => {
+      const response = await apiClient.get<any>("/departments/all");
+      const resData = response.data;
+      const innerData = (resData as any).data || (Array.isArray(resData) ? resData : []);
+      return innerData.map(transformDepartment);
+    },
+  });
+}
+
 export function useDepartments(params?: {
   page?: number;
   limit?: number;

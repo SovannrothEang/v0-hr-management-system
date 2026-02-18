@@ -123,6 +123,9 @@ export const ROUTE_ROLES: Record<string, RoleName[]> = {
   // Employee routes
   '/api/employees': [ROLES.ADMIN, ROLES.HR_MANAGER],
   '/api/employees/[id]': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  // User routes (admin only)
+  '/api/users': [ROLES.ADMIN],
+  '/api/users/[id]': [ROLES.ADMIN],
 
   // Payroll routes
   '/api/payrolls': [ROLES.ADMIN, ROLES.HR_MANAGER],

@@ -17,7 +17,12 @@ function transformEmployee(emp: any): Employee {
     email: emp.user?.email || emp.email,
     phone: emp.phoneNumber || emp.phone || '',
     avatar: emp.profileImage || emp.avatar,
-    department: emp.department?.name || emp.department || '',
+    department: emp.department && typeof emp.department === 'object' 
+      ? { 
+          id: emp.department.id, 
+          departmentName: emp.department.name || emp.department.departmentName || '' 
+        } 
+      : { id: '', departmentName: emp.department || '' },
     position: emp.position?.title || emp.position || '',
     employmentType: emp.employmentType?.toLowerCase() || emp.employmentType,
     status: emp.status?.toLowerCase() || emp.status,
@@ -177,6 +182,47 @@ export function useDeleteEmployee() {
     },
     onError: (error: Error) => {
       toast.error("Failed to delete employee", { description: error.message });
+    },
+  });
+}
+
+export function useUploadEmployeeImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await apiClient.postFormData<{ imagePath: string }>(
+        `/employees/${id}/image`,
+        formData
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["employee", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to upload image", { description: error.message });
+    },
+  });
+}
+
+export function useRemoveEmployeeImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/employees/${id}/image`);
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["employee", id] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      toast.success("Image removed successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to remove image", { description: error.message });
     },
   });
 }

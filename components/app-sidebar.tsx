@@ -54,6 +54,12 @@ const navigation = [
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
   {
+    name: "Users",
+    href: "/users",
+    icon: User,
+    roles: ['admin'] // Admin only
+  },
+  {
     name: "Departments",
     href: "/departments",
     icon: Briefcase,

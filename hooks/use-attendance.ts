@@ -449,18 +449,15 @@ export function useUpdateLeaveRequest() {
     mutationFn: async ({
       id,
       status,
-      approverId,
     }: {
       id: string;
       status: "approved" | "rejected";
-      approverId?: string;
     }): Promise<LeaveRequest> => {
       // Backend expects SCREAMING_SNAKE_CASE status
       const backendStatus = status.toUpperCase();
 
-      const response = await apiClient.patch<LeaveRequest | { data: LeaveRequest }>(`/leave-requests/${id}`, {
+      const response = await apiClient.patch<LeaveRequest | { data: LeaveRequest }>(`/leave-requests/${id}/status`, {
         status: backendStatus,
-        approverId,
       });
       const resData = response.data;
       return (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;

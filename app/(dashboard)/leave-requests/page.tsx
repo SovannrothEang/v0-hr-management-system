@@ -7,15 +7,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeaveRequestTable } from "@/components/attendances/leave-request-table";
 import { LeaveRequestForm } from "@/components/attendances/leave-request-form";
+import { LeaveRequestDetailsDialog } from "@/components/attendances/leave-request-details-dialog";
 import { useLeaveRequests, useUpdateLeaveRequest } from "@/hooks/use-attendance";
 import { useSessionStore } from "@/stores/session";
 import { usePermissions } from "@/hooks/use-permissions";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import type { LeaveRequest } from "@/stores/attendance-store";
 
 export default function LeaveRequestsPage() {
   const { user } = useSessionStore();
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const { isAdmin, isHRManager } = usePermissions();
 
   // Use local state for pagination instead of URL parameters
@@ -38,7 +42,6 @@ export default function LeaveRequestsPage() {
     updateRequest({
       id,
       status: "approved",
-      approverId: user?.id,
     });
   };
 
@@ -46,8 +49,12 @@ export default function LeaveRequestsPage() {
     updateRequest({
       id,
       status: "rejected",
-      approverId: user?.id,
     });
+  };
+
+  const handleViewDetails = (request: LeaveRequest) => {
+    setSelectedRequest(request);
+    setDetailsOpen(true);
   };
 
   const isManager = isAdmin || isHRManager;
@@ -112,6 +119,7 @@ export default function LeaveRequestsPage() {
                 requests={requests || []}
                 onApprove={handleApprove}
                 onReject={handleReject}
+                onViewDetails={handleViewDetails}
                 showActions={isManager}
               />
 
@@ -156,6 +164,13 @@ export default function LeaveRequestsPage() {
       </Tabs>
 
       <LeaveRequestForm open={formOpen} onOpenChange={setFormOpen} />
+
+      <LeaveRequestDetailsDialog
+        request={selectedRequest}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        canManage={true}
+      />
     </div>
   );
 }

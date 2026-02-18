@@ -13,13 +13,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeFormDialog } from "@/components/employees/employee-form-dialog";
 import { AttendanceTable } from "@/components/attendances/attendance-table";
 import { LeaveRequestTable } from "@/components/attendances/leave-request-table";
+import { LeaveRequestDetailsDialog } from "@/components/attendances/leave-request-details-dialog";
 import { PayrollTable } from "@/components/payrolls/payroll-table";
+import { PayslipDialog } from "@/components/payrolls/payslip-dialog";
 import { useEmployee } from "@/hooks/use-employees";
-import { useAttendanceRecords } from "@/hooks/use-attendance";
+import { useAttendanceRecords, useClockIn, useClockOut, useUpdateLeaveRequest } from "@/hooks/use-attendance";
 import { useLeaveRequests } from "@/hooks/use-attendance";
-import { usePayrollRecords } from "@/hooks/use-payroll";
+import { usePayrollRecords, useProcessPayroll, useMarkPayrollPaid } from "@/hooks/use-payroll";
 import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api-client";
 import {
   Mail,
   Phone,
@@ -72,6 +75,17 @@ export default function EmployeePage({ params }: EmployeePageProps) {
 
   const { isAdmin, isHRManager, user } = usePermissions();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<any>(null);
+  const [isLeaveDetailsOpen, setIsLeaveDetailsOpen] = useState(false);
+  const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
+  const [isPayslipOpen, setIsPayslipOpen] = useState(false);
+
+  // Mutations
+  const { mutate: clockIn } = useClockIn();
+  const { mutate: clockOut } = useClockOut();
+  const { mutate: updateLeaveRequest } = useUpdateLeaveRequest();
+  const { mutate: processPayroll } = useProcessPayroll();
+  const { mutate: markPaid } = useMarkPayrollPaid();
 
   const canEdit = isAdmin || isHRManager || (user?.employeeId === id);
   const isManager = isAdmin || isHRManager;
@@ -165,7 +179,11 @@ export default function EmployeePage({ params }: EmployeePageProps) {
         <Card className="lg:col-span-1 border-border bg-card shadow-sm h-fit">
           <CardHeader className="items-center text-center pb-6">
             <Avatar className="h-24 w-24 ring-4 ring-secondary/50">
-              <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.firstName} />
+              <AvatarImage 
+                src={apiClient.getImageUrl(employee.avatar)} 
+                alt={employee.firstName} 
+                className="object-cover"
+              />
               <AvatarFallback className="bg-primary/10 text-primary text-2xl">
                 {getInitials(employee.firstName, employee.lastName)}
               </AvatarFallback>
@@ -200,7 +218,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
               <div className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center shrink-0">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span>{employee.department}</span>
+              <span>{employee.department.departmentName}</span>
             </div>
             {employee.address && (
               <div className="flex items-start gap-3">
@@ -278,6 +296,31 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     </CardContent>
                   </Card>
                 )}
+
+                {employee.bankDetails && (
+                  <Card className="border-border bg-card shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                        Banking Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex justify-between items-center py-2 border-b border-border/50">
+                        <span className="text-sm text-muted-foreground">Bank Name</span>
+                        <span className="text-sm">{employee.bankDetails.bankName}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-border/50">
+                        <span className="text-sm text-muted-foreground">Account Number</span>
+                        <span className="text-sm font-mono">{employee.bankDetails.accountNumber}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-sm text-muted-foreground">Account Name</span>
+                        <span className="text-sm">{employee.bankDetails.accountName}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -329,8 +372,8 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     <AttendanceTable
                       records={attendanceResult?.data || []}
                       employees={employee ? [employee] : []}
-                      onClockIn={() => { }}
-                      onClockOut={() => { }}
+                      onClockIn={() => clockIn(id)}
+                      onClockOut={() => clockOut(id)}
                     />
                   )}
                 </CardContent>
@@ -353,8 +396,12 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                   ) : (
                     <LeaveRequestTable
                       requests={leaveResult?.data || []}
-                      onApprove={() => { }}
-                      onReject={() => { }}
+                      onApprove={(requestId) => updateLeaveRequest({ id: requestId, status: "approved" })}
+                      onReject={(requestId) => updateLeaveRequest({ id: requestId, status: "rejected" })}
+                      onViewDetails={(request) => {
+                        setSelectedLeaveRequest(request);
+                        setIsLeaveDetailsOpen(true);
+                      }}
                       showActions={isManager}
                     />
                   )}
@@ -379,10 +426,13 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     ) : (
                       <PayrollTable
                         records={Array.isArray(payrollResult) ? payrollResult : []}
-                        onViewPayslip={() => { }}
-                        onProcess={() => { }}
-                        onMarkPaid={() => { }}
-                        showActions={false}
+                        onViewPayslip={(payrollId) => {
+                          setSelectedPayrollId(payrollId);
+                          setIsPayslipOpen(true);
+                        }}
+                        onProcess={(payrollId) => processPayroll(payrollId)}
+                        onMarkPaid={(payrollId) => markPaid(payrollId)}
+                        showActions={true}
                       />
                     )}
                   </CardContent>
@@ -397,6 +447,19 @@ export default function EmployeePage({ params }: EmployeePageProps) {
         employee={employee}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
+      />
+
+      <LeaveRequestDetailsDialog
+        request={selectedLeaveRequest}
+        open={isLeaveDetailsOpen}
+        onOpenChange={setIsLeaveDetailsOpen}
+        canManage={isManager}
+      />
+
+      <PayslipDialog
+        payrollId={selectedPayrollId}
+        open={isPayslipOpen}
+        onOpenChange={setIsPayslipOpen}
       />
     </div>
   );

@@ -24,7 +24,10 @@ export interface Employee {
   email: string;
   phone: string;
   avatar?: string;
-  department: string;
+  department: {
+    id: string;
+    departmentName: string;
+  };
   position: string;
   employmentType: EmploymentType;
   status: EmploymentStatus;

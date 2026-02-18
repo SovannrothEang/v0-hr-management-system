@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api-client";
 import {
   Mail,
   Phone,
@@ -78,7 +79,11 @@ export function EmployeeDetailSheet({
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.firstName} />
+                <AvatarImage 
+                  src={apiClient.getImageUrl(employee.avatar)} 
+                  alt={employee.firstName} 
+                  className="object-cover"
+                />
                 <AvatarFallback className="bg-primary/10 text-primary text-lg">
                   {getInitials(employee.firstName, employee.lastName)}
                 </AvatarFallback>
@@ -152,7 +157,7 @@ export function EmployeeDetailSheet({
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Department</span>
                 </div>
-                <span className="text-sm">{employee.department}</span>
+                <span className="text-sm">{employee.department.departmentName}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                 <div className="flex items-center gap-2">

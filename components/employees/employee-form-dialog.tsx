@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -20,9 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
-import { useCreateEmployee, useUpdateEmployee } from "@/hooks/use-employees";
-import { useDepartments } from "@/hooks/use-departments";
+import { Loader2, Camera } from "lucide-react";
+import { useCreateEmployee, useUpdateEmployee, useUploadEmployeeImage, useRemoveEmployeeImage } from "@/hooks/use-employees";
+import { useAllDepartments } from "@/hooks/use-departments";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { apiClient } from "@/lib/api-client";
 import type { Employee, EmploymentType, EmploymentStatus } from "@/stores/employee-store";
 
 interface EmployeeFormDialogProps {
@@ -36,7 +38,10 @@ interface FormData {
   lastName: string;
   email: string;
   phone: string;
-  department: string;
+  department: {
+    id: string;
+    departmentName: string;
+  };
   position: string;
   employmentType: EmploymentType;
   status: EmploymentStatus;
@@ -51,11 +56,18 @@ export function EmployeeFormDialog({
   onOpenChange,
 }: EmployeeFormDialogProps) {
   const isEditing = !!employee;
-  const { data: deptResult } = useDepartments();
+  const { data: deptResult } = useAllDepartments();
   const { mutate: createEmployee, isPending: isCreating } = useCreateEmployee();
   const { mutate: updateEmployee, isPending: isUpdating } = useUpdateEmployee();
+  const { mutate: uploadImage } = useUploadEmployeeImage();
+  const { mutate: removeImage } = useRemoveEmployeeImage();
 
-  const departments = deptResult?.data || [];
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [shouldRemoveImage, setShouldRemoveImage] = useState(false);
+
+  const departments = [...(deptResult || [])].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   const {
     register,
@@ -70,7 +82,10 @@ export function EmployeeFormDialog({
       lastName: "",
       email: "",
       phone: "",
-      department: "",
+      department: {
+        id: "",
+        departmentName: "",
+      },
       position: "",
       employmentType: "full_time",
       status: "active",
@@ -101,7 +116,10 @@ export function EmployeeFormDialog({
         lastName: "",
         email: "",
         phone: "",
-        department: "",
+        department: {
+          id: "",
+          departmentName: "",
+        },
         position: "",
         employmentType: "full_time",
         status: "active",
@@ -113,6 +131,14 @@ export function EmployeeFormDialog({
   }, [employee, reset]);
 
   const onSubmit = (data: FormData) => {
+    const handleImageAction = (empId: string) => {
+      if (shouldRemoveImage) {
+        removeImage(empId);
+      } else if (selectedFile) {
+        uploadImage({ id: empId, file: selectedFile });
+      }
+    };
+
     if (isEditing && employee) {
       // Normalize the original date to YYYY-MM-DD to match the form data format
       // This prevents false positive changes detection due to ISO string vs Date string
@@ -123,17 +149,39 @@ export function EmployeeFormDialog({
 
       updateEmployee(
         { id: employee.id, original: normalizedOriginal, modified: data },
-        { onSuccess: () => onOpenChange(false) }
+        { 
+          onSuccess: (updatedEmp) => {
+            handleImageAction(employee.id);
+            onOpenChange(false);
+          } 
+        }
       );
     } else {
-      createEmployee(data, { onSuccess: () => onOpenChange(false) });
+      createEmployee(data, { 
+        onSuccess: (newEmp) => {
+          if (selectedFile) {
+            uploadImage({ id: newEmp.id, file: selectedFile });
+          }
+          onOpenChange(false);
+        } 
+      });
     }
   };
 
   const isPending = isCreating || isUpdating;
 
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      if (!val) {
+        setSelectedFile(null);
+        setShouldRemoveImage(false);
+      }
+      onOpenChange(val);
+    }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -146,7 +194,15 @@ export function EmployeeFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <ImageUpload
+            value={apiClient.getImageUrl(employee?.avatar)}
+            onChange={setSelectedFile}
+            onRemove={() => setShouldRemoveImage(true)}
+            fallbackInitials={getInitials(watch("firstName"), watch("lastName"))}
+            disabled={isPending}
+          />
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
@@ -195,13 +251,13 @@ export function EmployeeFormDialog({
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
-                value={watch("department")}
-                onValueChange={(value) => setValue("department", value)}
+                value={watch("department.departmentName")}
+                onValueChange={(value) => setValue("department.departmentName", value)}
               >
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-80">
                   {departments?.map((dept) => (
                     <SelectItem key={dept.id} value={dept.name}>
                       {dept.name}

@@ -19,6 +19,7 @@ interface LeaveRequestTableProps {
   requests: LeaveRequest[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onViewDetails: (request: LeaveRequest) => void;
   showActions?: boolean;
 }
 
@@ -41,6 +42,7 @@ export function LeaveRequestTable({
   requests,
   onApprove,
   onReject,
+  onViewDetails,
   showActions = true,
 }: LeaveRequestTableProps) {
   const formatDate = (dateStr: string) => {
@@ -81,7 +83,11 @@ export function LeaveRequestTable({
             </TableRow>
           ) : (
             requests.map((request) => (
-              <TableRow key={request.id}>
+              <TableRow 
+                key={request.id} 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => onViewDetails(request)}
+              >
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -124,7 +130,10 @@ export function LeaveRequestTable({
                           size="sm"
                           variant="outline"
                           className="text-success hover:text-success border-success/30 hover:bg-success/10"
-                          onClick={() => onApprove(request.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onApprove(request.id);
+                          }}
                         >
                           <Check className="mr-1 h-4 w-4" />
                           Approve
@@ -133,7 +142,10 @@ export function LeaveRequestTable({
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                          onClick={() => onReject(request.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onReject(request.id);
+                          }}
                         >
                           <X className="mr-1 h-4 w-4" />
                           Reject

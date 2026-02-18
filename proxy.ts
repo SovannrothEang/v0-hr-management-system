@@ -30,6 +30,7 @@ const PROTECTED_API_ROUTES = [
   '/api/dashboard',
   '/api/departments',
   '/api/audit-logs',
+  '/api/users',
 ];
 
 /**

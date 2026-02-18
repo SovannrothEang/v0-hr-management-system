@@ -22,7 +22,7 @@ export const GET = withRole(async (request) => {
     params.set("pageSize", limit.toString());
 
     const response = await fetch(
-      `/api/employees?${params.toString()}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
