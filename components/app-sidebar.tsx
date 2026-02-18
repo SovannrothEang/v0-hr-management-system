@@ -38,6 +38,7 @@ import {
   Building2,
   CalendarDays,
   Briefcase,
+  Award,
 } from "lucide-react";
 
 const navigation = [
@@ -64,6 +65,12 @@ const navigation = [
     href: "/departments",
     icon: Briefcase,
     roles: ['admin', 'hr_manager'] // Admin and HR only
+  },
+  {
+    name: "Positions",
+    href: "/positions",
+    icon: Award,
+    roles: ['admin'] // Admin only
   },
   {
     name: "Attendances",
