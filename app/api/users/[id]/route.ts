@@ -112,7 +112,8 @@ export const PATCH = withRole(async (
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data });
+    const result = data.data !== undefined ? data.data : data;
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error("PATCH user error:", error);
     return NextResponse.json(

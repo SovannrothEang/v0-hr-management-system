@@ -57,10 +57,12 @@ export const GET = withRole(async (request) => {
 
     const data = await response.json();
 
-    // Return the external API response directly
+    // Unwrap NestJS TransformInterceptor wrapper if present
+    const result = data.data !== undefined ? data.data : data;
+
     return NextResponse.json({
       success: true,
-      data: data
+      data: result
     });
   } catch (error) {
     console.error("Fetch users error:", error);
@@ -119,7 +121,8 @@ export const POST = withRole(async (request) => {
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data });
+    const result = data.data !== undefined ? data.data : data;
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error("Create user error:", error);
     return NextResponse.json(

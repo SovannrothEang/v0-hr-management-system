@@ -87,10 +87,15 @@ export async function POST(request: Request) {
     const externalAccessToken = loginData.data.accessToken;
 
     // Prepare user data for Next.js session
+    // External API may return name as a single field or as firstName/lastName
+    const userName = externalUser.name
+      || `${externalUser.firstName || ""} ${externalUser.lastName || ""}`.trim()
+      || externalUser.email;
+
     const sessionUser: SessionUser = {
       id: externalUser.id,
       email: externalUser.email,
-      name: externalUser.name,
+      name: userName,
       roles: externalUser.roles,
       department: externalUser.department,
       employeeId: externalUser.employeeId,

@@ -142,12 +142,12 @@ export const useSessionStore = create<SessionState>()(
 
           const data = await response.json();
 
-          if (data.data) {
+          if (data.data?.user) {
             set({
-              user: data.data,
+              user: data.data.user,
               isAuthenticated: true,
               isLoading: false,
-              sessionExpiresAt: state.sessionExpiresAt, // Keep existing expiry from login
+              sessionExpiresAt: data.data.expiresAt || state.sessionExpiresAt,
               accessToken: state.accessToken,
             });
             return true;

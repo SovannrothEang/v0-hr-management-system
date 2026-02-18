@@ -43,10 +43,12 @@ export const GET = withAuth(async (request) => {
 
     const data = await response.json();
 
-    // Return the external API response directly
+    // Unwrap NestJS TransformInterceptor wrapper if present
+    const result = data.data !== undefined ? data.data : data;
+
     return NextResponse.json({
       success: true,
-      data: data
+      data: result
     });
   } catch (error) {
     return NextResponse.json(
