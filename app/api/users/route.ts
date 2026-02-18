@@ -58,6 +58,17 @@ export const GET = withRole(async (request) => {
       );
     }
 
+    // Handle empty response (should not happen for GET, but guard)
+    const responseContentType = response.headers.get('content-type');
+    const contentLength = response.headers.get('content-length');
+    if (response.status === 204 || contentLength === '0' || !responseContentType?.includes('application/json')) {
+      // Return empty array for list endpoint
+      return NextResponse.json({
+        success: true,
+        data: []
+      });
+    }
+
     const data = await response.json();
 
     // Unwrap NestJS TransformInterceptor wrapper if present
@@ -78,7 +89,33 @@ export const GET = withRole(async (request) => {
 
 export const POST = withRole(async (request) => {
   try {
-    const body = await request.json();
+    // Check if request body exists
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return NextResponse.json(
+        { success: false, message: "Content-Type must be application/json" },
+        { status: 415 }
+      );
+    }
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error("Invalid JSON in request body:", jsonError);
+      return NextResponse.json(
+        { success: false, message: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+    
+    // Validate required fields
+    if (!body.email) {
+      return NextResponse.json(
+        { success: false, message: "Email is required" },
+        { status: 400 }
+      );
+    }
 
     // Transform frontend payload to backend UserCreateDto
     const backendPayload: any = {
@@ -121,6 +158,14 @@ export const POST = withRole(async (request) => {
         { success: false, message: "Failed to create user" },
         { status: response.status }
       );
+    }
+
+    // Handle empty response (e.g., 204 No Content)
+    const responseContentType = response.headers.get('content-type');
+    const contentLength = response.headers.get('content-length');
+    if (response.status === 204 || contentLength === '0' || !responseContentType?.includes('application/json')) {
+      // Return success with null data (unlikely for POST, but handle gracefully)
+      return NextResponse.json({ success: true, data: null });
     }
 
     const data = await response.json();
