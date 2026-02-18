@@ -22,6 +22,8 @@ export const GET = withRole(async (request) => {
     }
 
     const data = await response.json();
+    // The backend returns { data: PayrollSummaryDto, statusCode: 200 }
+    // So data.data is the PayrollSummaryDto
     return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
     return NextResponse.json(

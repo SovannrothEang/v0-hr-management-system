@@ -3,22 +3,19 @@ import { create } from "zustand";
 export type PayrollStatus = "pending" | "processed" | "paid";
 
 export interface PayrollSummary {
-  totalPayroll: number;
-  totalEmployees: number;
-  totalOvertimePaid: number;
-  totalBonuses: number;
+  totalPayrolls: number;
+  totalGrossSalary: number;
   totalDeductions: number;
-  averageSalary: number;
-  // Additional fields for alignment with external API spec
-  totalGrossSalary?: number;
-  totalTax?: number;
-  totalNetSalary?: number;
-  byStatus?: Array<{
-    status: PayrollStatus;
+  totalNetSalary: number;
+  totalTax: number;
+  totalOvertimePay: number;
+  totalBonus: number;
+  byStatus: Array<{
+    status: string;
     count: number;
     totalAmount: number;
   }>;
-  byDepartment?: Array<{
+  byDepartment: Array<{
     department: string;
     employeeCount: number;
     totalSalary: number;

@@ -123,11 +123,38 @@ export interface RecentActivity {
 }
 
 export interface PayrollSummary {
-  totalPayroll: number;
-  totalEmployees: number;
-  pendingPayments: number;
-  processedPayments: number;
-  paidPayments: number;
+  totalPayrolls: number;
+  totalGrossSalary: number;
+  totalDeductions: number;
+  totalNetSalary: number;
+  totalTax: number;
+  totalOvertimePay: number;
+  totalBonus: number;
+  byStatus: Array<{
+    status: string;
+    count: number;
+    totalAmount: number;
+  }>;
+  byDepartment: Array<{
+    department: string;
+    employeeCount: number;
+    totalSalary: number;
+    totalDeductions: number;
+    totalNetSalary: number;
+  }>;
+}
+
+export interface PayrollApiResponse {
+  data: PayrollRecord[];
+  summary: PayrollSummary;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
 }
 
 export interface ApiResponse<T> {

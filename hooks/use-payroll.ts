@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { PayrollRecord, PayrollSummary } from "@/types";
+import type { PayrollRecord, PayrollSummary, PayrollApiResponse, ApiResponse } from "@/types";
 import { toast } from "sonner";
 
 const MONTH_MAP: Record<string, string> = {
@@ -32,16 +32,11 @@ export function usePayrollRecords(params?: {
         queryParams.set("status", params.status);
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
 
-      const response = await apiClient.get<PayrollRecord[] | { data: PayrollRecord[] }>(
+      const response = await apiClient.get<PayrollApiResponse>(
         `/payrolls?${queryParams.toString()}`
       );
-      // Handle both internal API (array) and external API (object with data array)
-      const data = response.data;
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
-        return data.data;
-      }
-      return [];
+      
+      return response.data.data || [];
     },
   });
 }
@@ -49,40 +44,20 @@ export function usePayrollRecords(params?: {
 export function usePayroll(month: string, year: number) {
   return useQuery({
     queryKey: ["payrolls", month, year],
-    queryFn: async (): Promise<PayrollRecord[]> => {
+    queryFn: async (): Promise<PayrollApiResponse> => {
       const queryParams = new URLSearchParams();
       queryParams.set("month", MONTH_MAP[month] || month);
       queryParams.set("year", year.toString());
 
-      const response = await apiClient.get<PayrollRecord[] | { data: PayrollRecord[] }>(
+      const response = await apiClient.get<PayrollApiResponse>(
         `/payrolls?${queryParams.toString()}`
       );
-      // Handle both internal API (array) and external API (object with data array)
-      const data = response.data;
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
-        return data.data;
-      }
-      return [];
+      return response.data;
     },
   });
 }
 
-export function usePayrollSummary(period?: string) {
-  return useQuery({
-    queryKey: ["payrolls-summary", period],
-    queryFn: async (): Promise<PayrollSummary> => {
-      const queryParams = new URLSearchParams();
-      if (period) queryParams.set("period", period);
 
-      const response = await apiClient.get<PayrollSummary | { data: PayrollSummary }>(
-        `/payrolls/summary?${queryParams.toString()}`
-      );
-      const data = response.data;
-      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
-    },
-  });
-}
 
 export function useGeneratePayroll() {
   const queryClient = useQueryClient();

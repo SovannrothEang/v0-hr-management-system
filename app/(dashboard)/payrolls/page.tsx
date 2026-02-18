@@ -48,7 +48,9 @@ export default function PayrollPage() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
 
-  const { data: payrolls, isLoading } = usePayroll(selectedMonth, selectedYear);
+  const { data: payrollResponse, isLoading } = usePayroll(selectedMonth, selectedYear);
+  const payrolls = payrollResponse?.data || [];
+  const summary = payrollResponse?.summary;
 
   const handleViewPayslip = (payrollId: string) => {
     setSelectedPayrollId(payrollId);
@@ -81,7 +83,7 @@ export default function PayrollPage() {
         </AdminOrHROnly>
       </PageHeader>
 
-      <PayrollSummaryCards />
+       <PayrollSummaryCards summary={summary} />
 
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
