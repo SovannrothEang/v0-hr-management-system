@@ -10,7 +10,7 @@ export const GET = withRole(async (
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/users/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users/${id}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -44,7 +44,7 @@ export const PUT = withRole(async (
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/users/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users/${id}`,
       {
         method: 'PUT',
         headers: {
@@ -91,7 +91,7 @@ export const PATCH = withRole(async (
     // Could be extended in future
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/users/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users/${id}`,
       {
         method: 'PATCH',
         headers: {
@@ -130,7 +130,7 @@ export const DELETE = withRole(async (
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/users/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users/${id}`,
       {
         method: 'DELETE',
         headers: {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
 import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const POST = withRole(async (request) => {
   try {
@@ -9,7 +10,7 @@ export const POST = withRole(async (request) => {
     const metadata = getRequestMetadata(request);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payrolls/mark-paid`,
+      `${getExternalApiUrl()}/payrolls/mark-paid`,
       {
         method: 'POST',
         headers: {

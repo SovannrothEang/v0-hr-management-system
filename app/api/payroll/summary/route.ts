@@ -1,34 +1,7 @@
-import { NextResponse } from "next/server";
-import { mockPayrollRecords } from "@/lib/mock-data";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { proxyGet } from "@/lib/proxy";
 
 export const GET = withRole(async (request) => {
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payrolls/summary`,
-      {
-        headers: {
-          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, message: "Failed to fetch payroll summary" },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    // The backend returns { data: PayrollSummaryDto, statusCode: 200 }
-    // So data.data is the PayrollSummaryDto
-    return NextResponse.json({ success: true, data: data.data });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
-    );
-  }
+  return proxyGet(request, "/payrolls/summary", "Failed to fetch payroll summary");
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);

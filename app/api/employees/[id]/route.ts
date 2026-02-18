@@ -10,7 +10,7 @@ export const GET = withRole(async (
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees/${id}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -26,7 +26,9 @@ export const GET = withRole(async (
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data });
+    // Use data.data if it exists (from NestJS TransformInterceptor)
+    const result = data.data !== undefined ? data.data : data;
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Internal server error" },
@@ -44,7 +46,7 @@ export const PUT = withRole(async (
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees/${id}`,
       {
         method: 'PUT',
         headers: {
@@ -63,7 +65,9 @@ export const PUT = withRole(async (
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data });
+    // Use data.data if it exists (from NestJS TransformInterceptor)
+    const result = data.data !== undefined ? data.data : data;
+    return NextResponse.json({ success: true, data: result });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to update employee" },
@@ -81,7 +85,7 @@ export const PATCH = withRole(async (
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees/${id}`,
       {
         method: 'PATCH',
         headers: {
@@ -100,7 +104,9 @@ export const PATCH = withRole(async (
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data });
+    // Use data.data if it exists (from NestJS TransformInterceptor)
+    const result = data.data !== undefined ? data.data : data;
+    return NextResponse.json({ success: true, data: result });
   } catch {
     return NextResponse.json(
       { success: false, message: "Failed to update employee" },
@@ -117,7 +123,7 @@ export const DELETE = withRole(async (
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees/${id}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees/${id}`,
       {
         method: 'DELETE',
         headers: {

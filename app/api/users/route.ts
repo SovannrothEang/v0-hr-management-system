@@ -38,7 +38,7 @@ export const GET = withRole(async (request) => {
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/users?${params.toString()}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -96,7 +96,7 @@ export const POST = withRole(async (request) => {
 
     // Build URL with role query parameter
     const url = new URL(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/users`
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users`
     );
     url.searchParams.set("role", role);
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-auth";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withAuth(async (request) => {
   const { searchParams } = new URL(request.url);
@@ -25,7 +26,7 @@ export const GET = withAuth(async (request) => {
     params.set("pageSize", limit);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/attendances?${params.toString()}`,
+      `${getExternalApiUrl()}/attendances?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

@@ -163,7 +163,12 @@ export const ROUTE_ROLES: Record<string, RoleName[]> = {
 // Helper functions
 export function hasRole(userRoles: RoleName[] | undefined, allowedRoles: RoleName[]): boolean {
   if (!userRoles || userRoles.length === 0) return false;
-  return userRoles.some((role) => allowedRoles.includes(role));
+  
+  // Normalize roles to lowercase for comparison
+  const normalizedUserRoles = userRoles.map(r => r.toLowerCase());
+  const normalizedAllowedRoles = allowedRoles.map(r => r.toLowerCase());
+  
+  return normalizedUserRoles.some((role) => normalizedAllowedRoles.includes(role));
 }
 
 export function hasPermission(userRoles: RoleName[] | undefined, permission: PermissionName): boolean {

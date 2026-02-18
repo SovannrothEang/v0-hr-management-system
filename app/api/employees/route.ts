@@ -22,7 +22,7 @@ export const GET = withRole(async (request) => {
     params.set("pageSize", limit.toString());
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees?${params.toString()}`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -39,11 +39,14 @@ export const GET = withRole(async (request) => {
 
     const data = await response.json();
 
-    // Return the external API response directly
-    // This ensures ResultPagination flat metadata is preserved
+    // The backend uses TransformInterceptor which wraps data in { data, statusCode }
+    // but ResultPagination already has its own structure.
+    // Let's ensure we handle both NestJS wrapper and ResultPagination correctly.
+    const result = data.data || data;
+
     return NextResponse.json({
       success: true,
-      data: data
+      data: result
     });
   } catch (error) {
     return NextResponse.json(
@@ -58,7 +61,7 @@ export const POST = withRole(async (request) => {
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees`,
       {
         method: 'POST',
         headers: {

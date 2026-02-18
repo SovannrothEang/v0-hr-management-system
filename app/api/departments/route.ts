@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-auth";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withAuth(async (request) => {
   try {
@@ -15,7 +16,7 @@ export const GET = withAuth(async (request) => {
     params.set("limit", limit.toString());
     params.set("childIncluded", "true");
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments?${params.toString()}`, {
+    const response = await fetch(`${getExternalApiUrl()}/departments?${params.toString()}`, {
       headers: {
         'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
       },
@@ -49,7 +50,7 @@ export const POST = withRole(async (request) => {
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/departments`,
+      `${getExternalApiUrl()}/departments`,
       {
         method: 'POST',
         headers: {

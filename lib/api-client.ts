@@ -187,15 +187,17 @@ class ApiClient {
   }
 
   /**
-   * Get full URL for an image relative path
+   * Get full URL for an image relative path.
+   * Routes through the Next.js image proxy (/api/images/...) to avoid
+   * exposing the external backend URL to the browser.
    */
   getImageUrl(relativePath?: string | null): string | undefined {
     if (!relativePath) return undefined;
     if (relativePath.startsWith('http')) return relativePath;
-    
-    // The images are served from the backend root, not the /api path
-    const backendRoot = this.baseUrl.replace(/\/api$/, '');
-    return `${backendRoot}/${relativePath}`;
+
+    // Strip leading slash to avoid double-slashes
+    const cleanPath = relativePath.replace(/^\/+/, '');
+    return `/api/images/${cleanPath}`;
   }
 }
 

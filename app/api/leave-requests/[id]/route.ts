@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/auth/with-auth";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { proxyGet, proxyDelete, getExternalApiUrl } from "@/lib/proxy";
+
+export const GET = withAuth(async (request, context) => {
+  const { id } = await context?.params!;
+  return proxyGet(request, `/leave-requests/${id}`, "Failed to fetch leave request");
+});
 
 export const PATCH = withRole(async (
   request,
@@ -11,7 +18,7 @@ export const PATCH = withRole(async (
     const body = await request.json();
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/takeleave/${id}/status`,
+      `${getExternalApiUrl()}/leave-requests/${id}/status`,
       {
         method: 'PATCH',
         headers: {
@@ -41,3 +48,8 @@ export const PATCH = withRole(async (
 }, [ROLES.ADMIN, ROLES.HR_MANAGER]);
 
 export const PUT = PATCH;
+
+export const DELETE = withAuth(async (request, context) => {
+  const { id } = await context?.params!;
+  return proxyDelete(request, `/leave-requests/${id}`, "Failed to delete leave request");
+});

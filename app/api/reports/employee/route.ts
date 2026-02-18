@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
@@ -9,7 +10,7 @@ export const GET = withRole(async (request) => {
   try {
     // Fetch all employees for report (without pagination if possible, or large limit)
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/employees?limit=1000`,
+      `${getExternalApiUrl()}/employees?limit=1000`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

@@ -10,6 +10,8 @@ import { ROLES, type RoleName } from "@/lib/constants/roles";
  * Transform API user data to frontend interface
  */
 function transformUser(user: any): User {
+  if (!user) return {} as User;
+
   // Handle role mapping: ensure it's an array of RoleName
   let roles: RoleName[] = [];
   if (Array.isArray(user.roles)) {
@@ -166,6 +168,12 @@ export function useUpdateUser() {
       const response = await apiClient.patch<any>(`/users/${id}`, changes);
       const resData = response.data;
       const result = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      
+      // If server returns no data (204 or void response), return merged original with changes
+      if (!result) {
+        return { ...original, ...modified } as User;
+      }
+
       return transformUser(result);
     },
     onSuccess: (_, variables) => {

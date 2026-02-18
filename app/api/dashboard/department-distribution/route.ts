@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withRole(async (request) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/dashboard/department-distribution`,
+      `${getExternalApiUrl()}/dashboard/department-distribution`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

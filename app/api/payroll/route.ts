@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
@@ -19,7 +20,7 @@ export const GET = withRole(async (request) => {
     if (year) params.set("year", year);
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/payrolls?${params.toString()}`,
+      `${getExternalApiUrl()}/payrolls?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

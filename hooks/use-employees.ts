@@ -9,6 +9,8 @@ import { getChangedFields } from "@/lib/track-changes";
  * Transform API employee data to frontend interface
  */
 function transformEmployee(emp: any): Employee {
+  if (!emp) return {} as Employee;
+  
   return {
     id: emp.id,
     employeeId: emp.employeeCode || emp.employeeId,
@@ -156,6 +158,12 @@ export function useUpdateEmployee() {
       const response = await apiClient.patch<any>(`/employees/${id}`, changes);
       const resData = response.data;
       const result = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
+      
+      // If server returns no data (204 or void response), return merged original with changes
+      if (!result) {
+        return { ...original, ...modified } as Employee;
+      }
+      
       return transformEmployee(result);
     },
     onSuccess: (_, variables) => {

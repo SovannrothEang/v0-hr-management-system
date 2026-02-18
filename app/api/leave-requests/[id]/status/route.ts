@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export const PATCH = withRole(async (
   request,
@@ -28,7 +29,7 @@ export const PATCH = withRole(async (
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api'}/takeleave/${id}/status`,
+      `${getExternalApiUrl()}/leave-requests/${id}/status`,
       {
         method: 'PATCH',
         headers: {
