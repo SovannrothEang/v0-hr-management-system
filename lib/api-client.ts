@@ -147,7 +147,16 @@ class ApiClient {
       throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    if (response.status === 204) {
+      return { data: null as T, success: true };
+    }
+
+    const responseText = await response.text();
+    if (!responseText) {
+      return { data: null as T, success: true };
+    }
+
+    return JSON.parse(responseText) as ApiResponse<T>;
   }
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {

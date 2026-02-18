@@ -6,7 +6,7 @@
 // Role definitions
 export const ROLES = {
   ADMIN: 'ADMIN',
-  HR_MANAGER: 'HR',
+  HR_MANAGER: 'HR_MANAGER',
   EMPLOYEE: 'EMPLOYEE',
 } as const;
 

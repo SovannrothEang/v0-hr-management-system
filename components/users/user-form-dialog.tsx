@@ -97,12 +97,14 @@ export function UserFormDialog({
   const onSubmit = (data: FormData) => {
     // For editing, don't send password if empty
     const payload: any = {
-      firstName: data.firstName,
-      lastName: data.lastName,
       email: data.email,
       roles: [data.role],
       isActive: data.isActive,
     };
+    if (!isEditing) {
+      payload.firstName = data.firstName;
+      payload.lastName = data.lastName;
+    }
     if (!isEditing && data.password) {
       payload.password = data.password;
     }
@@ -136,30 +138,32 @@ export function UserFormDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  {...register("firstName", { required: "First name is required" })}
-                  placeholder="John"
-                />
-                {errors.firstName && (
-                  <p className="text-xs text-destructive">{errors.firstName.message}</p>
-                )}
+            {!isEditing && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    {...register("firstName", { required: "First name is required" })}
+                    placeholder="John"
+                  />
+                  {errors.firstName && (
+                    <p className="text-xs text-destructive">{errors.firstName.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    {...register("lastName", { required: "Last name is required" })}
+                    placeholder="Doe"
+                  />
+                  {errors.lastName && (
+                    <p className="text-xs text-destructive">{errors.lastName.message}</p>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  {...register("lastName", { required: "Last name is required" })}
-                  placeholder="Doe"
-                />
-                {errors.lastName && (
-                  <p className="text-xs text-destructive">{errors.lastName.message}</p>
-                )}
-              </div>
-            </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
