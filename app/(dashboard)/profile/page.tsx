@@ -8,11 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
-import { 
-  User, 
-  Mail, 
-  Shield, 
-  Building2, 
+import {
+  User,
+  Mail,
+  Shield,
+  Building2,
   ExternalLink,
   Clock,
   Calendar,
@@ -31,15 +31,15 @@ export default function ProfilePage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <PageHeader 
-        title="My Profile" 
+      <PageHeader
+        title="My Profile"
         description="View and manage your account information"
       />
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* User Account Card */}
         <Card className="md:col-span-1 border-border bg-card">
-          <CardHeader className="items-center text-center">
+          <CardHeader className="items-center justify-items-center text-center">
             <Avatar className="h-24 w-24 mb-4 ring-4 ring-primary/10">
               <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">
@@ -75,19 +75,19 @@ export default function ProfilePage() {
                 <span className="font-mono">{user.employeeId || "N/A"}</span>
               </div>
             </div>
-            
+
             <div className="pt-4 space-y-2">
-              <Button 
-                variant="outline" 
-                className="w-full" 
+              <Button
+                variant="outline"
+                className="w-full"
                 onClick={() => router.push("/settings")}
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Account Settings
               </Button>
               {user.employeeId && (
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={() => router.push(`/employees/${user.employeeId}`)}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />

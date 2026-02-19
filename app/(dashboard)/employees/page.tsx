@@ -8,6 +8,7 @@ import { EmployeeTable } from "@/components/employees/employee-table";
 import { EmployeeFilters } from "@/components/employees/employee-filters";
 import { EmployeeDetailSheet } from "@/components/employees/employee-detail-sheet";
 import { EmployeeFormDialog } from "@/components/employees/employee-form-dialog";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,17 +36,20 @@ export default function EmployeesPage() {
   const { searchQuery, filterDepartment, filterStatus } =
     useEmployeeStore();
 
+  // Debounce the search query to avoid excessive API calls on every keystroke
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   // Use local state for pagination instead of URL parameters
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when debounced search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterDepartment, filterStatus]);
+  }, [debouncedSearch, filterDepartment, filterStatus]);
 
   const { data: result, isLoading, isFetching } = useEmployees({
-    search: searchQuery,
+    search: debouncedSearch,
     department: filterDepartment,
     status: filterStatus,
     page: currentPage,

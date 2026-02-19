@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import type { Employee } from "@/stores/employee-store";
 import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
@@ -76,7 +76,6 @@ export function useEmployees(params?: {
         queryParams.set("status", params.status);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
-      queryParams.set("includeDetails", "true");
 
       const response = await apiClient.get<{ data: any[], meta?: any, total?: number, page?: number, limit?: number, totalPages?: number, hasNext?: boolean, hasPrevious?: boolean }>(
         `/employees?${queryParams.toString()}`
@@ -117,6 +116,7 @@ export function useEmployees(params?: {
         },
       };
     },
+    placeholderData: keepPreviousData,
   });
 }
 
