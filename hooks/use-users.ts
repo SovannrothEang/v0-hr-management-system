@@ -5,7 +5,7 @@ import type { PaginatedResponse, PaginationMeta } from "@/types/pagination";
 import { toast } from "sonner";
 import { getChangedFields } from "@/lib/track-changes";
 import { ROLES, type RoleName } from "@/lib/constants/roles";
-import { getEmployeeAvatarUrl } from "@/hooks/use-employees";
+import { getUserAvatarUrl } from "@/hooks/use-employees";
 
 /**
  * Transform API user data to frontend interface
@@ -29,7 +29,6 @@ function transformUser(user: any): User {
 
   // Extract employee details if available
   const employee = user.employees || user.employee;
-  const employeeId = employee?.id || user.employeeId;
   const profileImage = user.profileImage || user.avatar || employee?.profileImage || employee?.avatar;
   const employeeObj = employee ? {
     emergencyContact: employee.emergencyContact || undefined,
@@ -53,7 +52,7 @@ function transformUser(user: any): User {
     username: user.username || user.email, // Use email as fallback for username
     firstName: user.firstname || user.firstName || employee?.firstname || "",
     lastName: user.lastname || user.lastName || employee?.lastname || "",
-    avatar: getEmployeeAvatarUrl(employeeId, profileImage),
+    avatar: getUserAvatarUrl(user.id, profileImage),
     roles,
     isActive: user.isActive ?? true,
     createdAt: user.createdAt,
@@ -203,6 +202,49 @@ export function useDeleteUser() {
     },
     onError: (error: Error) => {
       toast.error("Failed to delete user", { description: error.message });
+    },
+  });
+}
+
+export function useUploadUserImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await apiClient.postFormData<{ imagePath: string }>(
+        `/users/${id}/image`,
+        formData
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["user", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["session"] }); // Session user might have changed avatar
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to upload image", { description: error.message });
+    },
+  });
+}
+
+export function useRemoveUserImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/users/${id}/image`);
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["user", id] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      toast.success("Image removed successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to remove image", { description: error.message });
     },
   });
 }

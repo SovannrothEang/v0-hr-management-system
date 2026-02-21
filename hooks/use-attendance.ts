@@ -52,7 +52,7 @@ function transformAttendance(att: any): AttendanceRecord {
       firstName: att.employee.firstname || att.employee.firstName,
       lastName: att.employee.lastname || att.employee.lastName,
       department: att.employee.department?.departmentName || att.employee.department?.name || att.employee.department,
-      avatar: getEmployeeAvatarUrl(att.employee.id, att.employee.profileImage || att.employee.avatar),
+      avatar: getEmployeeAvatarUrl(att.employee.userId || att.employee.user?.id, att.employee.user?.profileImage || att.employee.profileImage || att.employee.avatar),
     } : att.employee,
     isActive: att.isActive ?? true,
     createdAt: att.createdAt,
@@ -111,7 +111,7 @@ function transformLeaveRequest(lr: any): LeaveRequest {
     lastName: emp.lastname || emp.lastName,
     email: emp.user?.email || emp.email,
     department: emp.department?.departmentName || emp.department?.name || emp.department,
-    avatar: getEmployeeAvatarUrl(emp.id || lr.employeeId, emp.profileImage || emp.avatar),
+    avatar: getEmployeeAvatarUrl(emp.userId || emp.user?.id, emp.user?.profileImage || emp.profileImage || emp.avatar),
   };
 
   // Calculate days if not provided by API

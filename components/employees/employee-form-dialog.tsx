@@ -130,17 +130,16 @@ export function EmployeeFormDialog({
   }, [employee, reset]);
 
   const onSubmit = (data: FormData) => {
-    const handleImageAction = (empId: string) => {
+    const handleImageAction = (userId: string) => {
+      if (!userId) return;
       if (shouldRemoveImage) {
-        removeImage(empId);
+        removeImage(userId);
       } else if (selectedFile) {
-        uploadImage({ id: empId, file: selectedFile });
+        uploadImage({ userId, file: selectedFile });
       }
     };
 
     if (isEditing && employee) {
-      // Normalize the original date to YYYY-MM-DD to match the form data format
-      // This prevents false positive changes detection due to ISO string vs Date string
       const normalizedOriginal = {
         ...employee,
         hireDate: new Date(employee.hireDate).toISOString().split("T")[0],
@@ -150,7 +149,9 @@ export function EmployeeFormDialog({
         { id: employee.id, original: normalizedOriginal, modified: data },
         {
           onSuccess: (updatedEmp) => {
-            handleImageAction(employee.id);
+            if (employee.userId) {
+              handleImageAction(employee.userId);
+            }
             onOpenChange(false);
           }
         }
@@ -158,8 +159,8 @@ export function EmployeeFormDialog({
     } else {
       createEmployee(data, {
         onSuccess: (newEmp) => {
-          if (selectedFile) {
-            uploadImage({ id: newEmp.id, file: selectedFile });
+          if (selectedFile && newEmp.userId) {
+            uploadImage({ userId: newEmp.userId, file: selectedFile });
           }
           onOpenChange(false);
         }

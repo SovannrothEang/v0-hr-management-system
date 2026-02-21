@@ -94,7 +94,6 @@ export function SessionTimeoutWarning() {
   const handleLogout = () => {
     logout.mutate();
     setShowWarning(false);
-    window.location.href = '/login';
   };
 
   const formatTime = (seconds: number) => {

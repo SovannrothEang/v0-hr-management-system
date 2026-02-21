@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
           roles: user.roles,
           department: user.department,
           employeeId: user.employeeId,
-          avatar: user.employeeId ? `/api/employees/${user.employeeId}/image` : undefined,
+          avatar: `/api/users/${user.id}/image`,
         },
         expiresAt,
       },

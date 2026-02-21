@@ -59,7 +59,7 @@ export const GET = withRole(async (request) => {
             department: payroll.employee.department?.departmentName || 'N/A',
             position: payroll.employee.position?.title || 'N/A',
             status: payroll.employee.status?.toLowerCase() || 'active',
-            avatar: payroll.employee.profileImage ? `/api/employees/${payroll.employee.id}/image` : undefined,
+            avatar: (payroll.employee.userId || payroll.employee.user?.id) ? `/api/users/${payroll.employee.userId || payroll.employee.user?.id}/image` : undefined,
             salary: Number(payroll.employee.position?.salaryRangeMin || 0),
           } : undefined,
           period: `${monthName} ${year}`,

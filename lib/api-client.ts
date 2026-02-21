@@ -118,6 +118,9 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
+      const errorMessage = typeof error.message === 'object' && error.message !== null
+        ? (error.message as any).message 
+        : error.message;
       
       // Handle 401 - session expired, try to refresh
       if (response.status === 401 && retryCount === 0) {
@@ -127,7 +130,7 @@ class ApiClient {
             const refreshed = await this.refreshSession();
             if (refreshed) {
               // Retry the request with new session
-              return this.request<T>(endpoint, options, retryCount + 1);
+              return this.request(endpoint, options, retryCount + 1);
             }
           } catch {
             // Refresh failed
@@ -141,10 +144,10 @@ class ApiClient {
       
       // Handle 403 - permission denied or invalid CSRF
       if (response.status === 403) {
-        throw new Error(error.message || 'You do not have permission to perform this action');
+        throw new Error(errorMessage || 'You do not have permission to perform this action');
       }
       
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
     }
 
     if (response.status === 204) {

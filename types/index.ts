@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   role: "admin" | "hr_manager" | "employee";
   avatar?: string;
+  profileImage?: string;
   department?: string;
 }
 

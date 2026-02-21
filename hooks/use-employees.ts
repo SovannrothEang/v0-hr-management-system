@@ -7,15 +7,25 @@ import { getChangedFields } from "@/lib/track-changes";
 
 /**
  * Construct a proxied avatar URL for an employee.
- * Returns `/api/employees/{id}/image` if the employee has a profile image,
- * or undefined if there's no image.
+ * Uses the user ID since profileImage is on the user entity.
  */
 export function getEmployeeAvatarUrl(
-  employeeId?: string | null,
+  userId?: string | null,
   profileImage?: string | null
 ): string | undefined {
-  if (!employeeId || !profileImage) return undefined;
-  return `/api/employees/${employeeId}/image`;
+  if (!userId || !profileImage) return undefined;
+  return `/api/users/${userId}/image`;
+}
+
+/**
+ * Construct a proxied avatar URL for a user.
+ */
+export function getUserAvatarUrl(
+  userId?: string | null,
+  profileImage?: string | null
+): string | undefined {
+  if (!userId || !profileImage) return undefined;
+  return `/api/users/${userId}/image`;
 }
 
 /**
@@ -23,7 +33,7 @@ export function getEmployeeAvatarUrl(
  */
 function transformEmployee(emp: any): Employee {
   if (!emp) return {} as Employee;
-  
+
   return {
     id: emp.id,
     employeeId: emp.employeeCode || emp.employeeId,
@@ -31,12 +41,12 @@ function transformEmployee(emp: any): Employee {
     lastName: emp.lastname || emp.lastName,
     email: emp.user?.email || emp.email,
     phone: emp.phoneNumber || emp.phone || '',
-    avatar: getEmployeeAvatarUrl(emp.id, emp.profileImage || emp.avatar),
-    department: emp.department && typeof emp.department === 'object' 
-      ? { 
-          id: emp.department.id, 
-          departmentName: emp.department.name || emp.department.departmentName || '' 
-        } 
+    avatar: getEmployeeAvatarUrl(emp.user?.id || emp.userId, emp.user?.profileImage || emp.profileImage || emp.avatar),
+    department: emp.department && typeof emp.department === 'object'
+      ? {
+        id: emp.department.id,
+        departmentName: emp.department.name || emp.department.departmentName || ''
+      }
       : { id: '', departmentName: emp.department || '' },
     position: emp.position?.title || emp.position || '',
     employmentType: emp.employmentType?.toLowerCase() || emp.employmentType,
@@ -171,12 +181,12 @@ export function useUpdateEmployee() {
       const response = await apiClient.patch<any>(`/employees/${id}`, changes);
       const resData = response.data;
       const result = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
-      
+
       // If server returns no data (204 or void response), return merged original with changes
       if (!result) {
         return { ...original, ...modified } as Employee;
       }
-      
+
       return transformEmployee(result);
     },
     onSuccess: (_, variables) => {
@@ -211,18 +221,21 @@ export function useUploadEmployeeImage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+    mutationFn: async ({ userId, file }: { userId: string; file: File }) => {
       const formData = new FormData();
       formData.append("file", file);
+
       const response = await apiClient.postFormData<{ imagePath: string }>(
-        `/employees/${id}/image`,
+        `/users/${userId}/image`,
         formData
       );
       return response.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["employee", variables.id] });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["session"] });
     },
     onError: (error: Error) => {
       toast.error("Failed to upload image", { description: error.message });
@@ -234,12 +247,14 @@ export function useRemoveEmployeeImage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/employees/${id}/image`);
+    mutationFn: async (userId: string) => {
+      await apiClient.delete(`/api/users/${userId}/image`);
     },
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ["employee", id] });
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["user", userId] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["session"] });
       toast.success("Image removed successfully");
     },
     onError: (error: Error) => {

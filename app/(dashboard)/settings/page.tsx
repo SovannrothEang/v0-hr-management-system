@@ -22,6 +22,8 @@ export default function SettingsPage() {
     <div className="p-6 lg:p-8 space-y-6">
       <PageHeader
         title="Settings"
+        backHref="/profile"
+        children={<Button>Save Changes</Button>}
         description="Manage your organization settings, preferences, and configurations."
       />
 

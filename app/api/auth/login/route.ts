@@ -148,7 +148,7 @@ export async function POST(request: Request) {
             roles: sessionUser.roles,
             department: sessionUser.department,
             employeeId: sessionUser.employeeId,
-            avatar: sessionUser.employeeId ? `/api/employees/${sessionUser.employeeId}/image` : undefined,
+            avatar: `/api/users/${sessionUser.id}/image`,
           },
           expiresAt: sessionData.expiresAt,
           csrfToken: sessionData.csrfToken,

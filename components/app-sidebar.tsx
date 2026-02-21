@@ -112,9 +112,7 @@ export function AppSidebar() {
   );
 
   const handleLogout = () => {
-    logout(undefined, {
-      onSuccess: () => router.push("/login"),
-    });
+    logout();
   };
 
   const getInitials = (name: string) => {
@@ -240,7 +238,7 @@ export function AppSidebar() {
                 )}
               >
                 <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.username} />
+                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.username} className="object-cover w-full" />
                   <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
                     {user ? getInitials(user.username ? user.username : "") : "U"}
                   </AvatarFallback>
@@ -251,9 +249,9 @@ export function AppSidebar() {
                       {user?.username}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {user?.roles?.includes("admin")
+                      {user?.roles?.some(r => r.toLowerCase() === "admin")
                         ? "Administrator"
-                        : user?.roles?.includes("hr_manager")
+                        : user?.roles?.some(r => r.toLowerCase() === "hr_manager")
                           ? "HR Manager"
                           : "Employee"}
                     </p>

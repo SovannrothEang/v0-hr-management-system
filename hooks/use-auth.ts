@@ -5,6 +5,7 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useSessionStore, type User } from "@/stores/session";
 import { toast } from "sonner";
@@ -43,7 +44,10 @@ export function useLogin() {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Login failed');
+        const errorMessage = typeof error.message === 'object' && error.message !== null
+          ? error.message.message 
+          : error.message;
+        throw new Error(errorMessage || 'Login failed');
       }
 
       const data = await response.json();
@@ -78,6 +82,7 @@ export function useLogin() {
  */
 export function useLogout() {
   const clearSession = useSessionStore((state) => state.clearSession);
+  const router = useRouter();
 
   return useMutation({
     mutationFn: async () => {
@@ -87,10 +92,12 @@ export function useLogout() {
     onSuccess: () => {
       clearSession();
       toast.success("Logged out successfully");
+      router.replace("/login");
     },
     onError: () => {
       // Clear session anyway on error
       clearSession();
+      router.replace("/login");
     },
   });
 }

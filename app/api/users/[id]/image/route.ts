@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withRole } from "@/lib/auth/with-role";
-import { ROLES } from "@/lib/constants/roles";
+import { withAuth } from "@/lib/auth/with-auth";
+import { ROLES, hasRole } from "@/lib/constants/roles";
 import { getAuthSessionFromRequest } from "@/lib/session";
 
 /**
- * GET /api/employees/[id]/image
- * Proxy employee profile image binary from the external API.
- * Extracts the auth token from the cookie and forwards it to the external API.
+ * GET /api/users/[id]/image
+ * Proxy user profile image binary from the external API.
  */
 export async function GET(
   request: NextRequest,
@@ -24,7 +23,7 @@ export async function GET(
     }
 
     const response = await fetch(
-      `${process.env.EXTERNAL_API_URL || "http://localhost:3001/api"}/employees/${id}/image`,
+      `${process.env.EXTERNAL_API_URL || "http://localhost:3001/api"}/users/${id}/image`,
       { headers }
     );
 
@@ -44,23 +43,38 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[Employee Image Proxy GET]", error);
+    console.error("[User Image Proxy GET]", error);
     return new NextResponse(null, { status: 500 });
   }
 }
 
-export const POST = withRole(async (
+export const POST = withAuth(async (
   request,
   context
 ) => {
   try {
     const { id } = await context?.params!;
+    
+    // Authorization check: Admin, HR Manager, or self
+    const isSelf = request.user.id === id;
+    const isAuthorized = isSelf || hasRole(request.user.roles, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "Unauthorized to update this image",
+        },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file');
 
-    if (!file) {
+    if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { success: false, message: "File is required" },
+        { success: false, message: "Valid file is required" },
         { status: 400 }
       );
     }
@@ -69,9 +83,9 @@ export const POST = withRole(async (
     const backendFormData = new FormData();
     backendFormData.append('file', file);
 
-    const response = await fetch(
-      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees/${id}/image`,
-      {
+    const backendUrl = `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users/${id}/image`;
+
+    const response = await fetch(backendUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -82,9 +96,17 @@ export const POST = withRole(async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Backend image upload error:", response.status, errorText);
+      let errorMessage = "Failed to upload image";
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+
       return NextResponse.json(
-        { success: false, message: "Failed to upload image" },
+        { success: false, message: errorMessage },
         { status: response.status }
       );
     }
@@ -93,24 +115,35 @@ export const POST = withRole(async (
     const result = data.data !== undefined ? data.data : data;
     
     return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error("Image upload proxy error:", error);
+  } catch (error: any) {
+    console.error("[User Image Proxy POST]", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: error.message || "Internal server error" },
       { status: 500 }
     );
   }
-}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+});
 
-export const DELETE = withRole(async (
+export const DELETE = withAuth(async (
   request,
   context
 ) => {
   try {
     const { id } = await context?.params!;
 
+    // Authorization check: Admin, HR Manager, or self
+    const isSelf = request.user.id === id;
+    const isAuthorized = isSelf || hasRole(request.user.roles, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized to remove this image" },
+        { status: 403 }
+      );
+    }
+
     const response = await fetch(
-      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees/${id}/image`,
+      `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/users/${id}/image`,
       {
         method: 'DELETE',
         headers: {
@@ -128,10 +161,10 @@ export const DELETE = withRole(async (
 
     return NextResponse.json({ success: true, data: null });
   } catch (error) {
-    console.error("Image delete proxy error:", error);
+    console.error("User image delete proxy error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 }
     );
   }
-}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+});
