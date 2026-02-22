@@ -5,12 +5,18 @@ import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
   const department = searchParams.get("department");
 
   try {
-    // Fetch all employees for report (without pagination if possible, or large limit)
+    const params = new URLSearchParams();
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    if (department && department !== "all") params.set("department", department);
+
     const response = await fetch(
-      `${getExternalApiUrl()}/employees?limit=1000`,
+      `${getExternalApiUrl()}/reports/employees?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
@@ -20,68 +26,13 @@ export const GET = withRole(async (request) => {
 
     if (!response.ok) {
       return NextResponse.json(
-        { success: false, message: "Failed to fetch employee data for report" },
+        { success: false, message: "Failed to fetch employee report" },
         { status: response.status }
       );
     }
 
-    const resData = await response.json();
-    let employees = resData.data;
-
-    if (department && department !== "all") {
-      employees = employees.filter((emp: any) => emp.department === department);
-    }
-
-    const totalEmployees = employees.length;
-    const activeEmployees = employees.filter((e: any) => e.status === "active").length;
-    const onLeaveEmployees = employees.filter(
-      (e: any) => e.status === "on_leave"
-    ).length;
-
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const newHires = employees.filter(
-      (e: any) => new Date(e.hireDate) >= thirtyDaysAgo
-    ).length;
-
-    const terminatedEmployees = employees.filter(
-      (e: any) => e.status === "inactive"
-    ).length;
-
-    const departmentMap = new Map<string, number>();
-    employees.forEach((emp: any) => {
-      departmentMap.set(emp.department, (departmentMap.get(emp.department) || 0) + 1);
-    });
-    const departmentBreakdown = Array.from(departmentMap.entries()).map(
-      ([department, count]) => ({
-        department,
-        count,
-      })
-    );
-
-    const positionMap = new Map<string, number>();
-    employees.forEach((emp: any) => {
-      positionMap.set(emp.position, (positionMap.get(emp.position) || 0) + 1);
-    });
-    const positionBreakdown = Array.from(positionMap.entries())
-      .map(([position, count]) => ({
-        position,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    const report = {
-      totalEmployees,
-      activeEmployees,
-      onLeaveEmployees,
-      newHires,
-      terminatedEmployees,
-      departmentBreakdown,
-      positionBreakdown,
-    };
-
-    return NextResponse.json({ success: true, data: report });
+    const data = await response.json();
+    return NextResponse.json({ success: true, data: data.data || data });
   } catch (error) {
     return NextResponse.json(
       { success: false, message: "Internal server error" },

@@ -59,8 +59,15 @@ export interface LeaveRequest {
   status: LeaveStatus;
   reviewedBy?: string;
   reviewedAt?: string;
-  approvedBy?: string; // Kept for backward compatibility if needed
+  approvedBy?: string;
   createdAt: string;
+}
+
+export interface LeaveRequestSummary {
+  total_requests: number;
+  pending_count: number;
+  approved_count: number;
+  rejected_count: number;
 }
 
 interface AttendanceState {

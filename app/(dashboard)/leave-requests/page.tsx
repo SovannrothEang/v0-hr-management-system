@@ -9,30 +9,71 @@ import { LeaveRequestTable } from "@/components/attendances/leave-request-table"
 import { LeaveRequestForm } from "@/components/attendances/leave-request-form";
 import { LeaveRequestDetailsDialog } from "@/components/attendances/leave-request-details-dialog";
 import { useLeaveRequests, useUpdateLeaveRequest } from "@/hooks/use-attendance";
-import { useSessionStore } from "@/stores/session";
 import { usePermissions } from "@/hooks/use-permissions";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, X, Search } from "lucide-react";
 import type { LeaveRequest } from "@/stores/attendance-store";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useDebounce } from "@/hooks/use-debounce";
+
+const LEAVE_TYPES: { value: string; label: string }[] = [
+  { value: "all", label: "All Types" },
+  { value: "ANNUAL_LEAVE", label: "Annual Leave" },
+  { value: "SICK_LEAVE", label: "Sick Leave" },
+  { value: "PARENTAL_LEAVE", label: "Parental Leave" },
+  { value: "BEREAVEMENT_LEAVE", label: "Bereavement Leave" },
+  { value: "CASUAL_LEAVE", label: "Casual Leave" },
+  { value: "UNPAID_LEAVE", label: "Unpaid Leave" },
+  { value: "STUDY_LEAVE", label: "Study Leave" },
+];
 
 export default function LeaveRequestsPage() {
-  const { user } = useSessionStore();
   const [statusFilter, setStatusFilter] = useState("all");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [dateFromFilter, setDateFromFilter] = useState("");
+  const [dateToFilter, setDateToFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const { isAdmin, isHRManager } = usePermissions();
 
-  // Use local state for pagination instead of URL parameters
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // Reset to page 1 when status filter changes
+  const debouncedSearch = useDebounce(searchInput, 300);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, leaveTypeFilter, debouncedSearch, dateFromFilter, dateToFilter]);
+
+  const hasActiveFilters = 
+    leaveTypeFilter !== "all" || 
+    searchInput !== "" || 
+    dateFromFilter !== "" || 
+    dateToFilter !== "";
+
+  const clearFilters = () => {
+    setLeaveTypeFilter("all");
+    setSearchInput("");
+    setDateFromFilter("");
+    setDateToFilter("");
+  };
 
   const { data: result, isLoading } = useLeaveRequests({
     status: statusFilter,
+    leaveType: leaveTypeFilter !== "all" ? leaveTypeFilter : undefined,
+    search: debouncedSearch || undefined,
+    dateFrom: dateFromFilter || undefined,
+    dateTo: dateToFilter || undefined,
     page: currentPage,
     limit: limit,
   });
@@ -61,7 +102,7 @@ export default function LeaveRequestsPage() {
 
   const requests = result?.data || [];
   const meta = result?.meta;
-  const pendingCount = requests.filter((r) => r.status === "pending").length || 0;
+  const summary = result?.summary;
 
   const updatePage = (newPage: number) => {
     setCurrentPage(newPage);
@@ -91,14 +132,113 @@ export default function LeaveRequestsPage() {
         </Button>
       </PageHeader>
 
+      {summary && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-secondary/30">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Total Requests</p>
+              <p className="text-2xl font-semibold">{summary.total_requests}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-warning/10">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Pending</p>
+              <p className="text-2xl font-semibold text-warning">{summary.pending_count}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-success/10">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Approved</p>
+              <p className="text-2xl font-semibold text-success">{summary.approved_count}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-destructive/10">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Rejected</p>
+              <p className="text-2xl font-semibold text-destructive">{summary.rejected_count}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px] space-y-2">
+              <Label>Search Employee</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Code, name, username, email..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-9"
+                />
+                {searchInput && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                    onClick={() => setSearchInput("")}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="min-w-[160px] space-y-2">
+              <Label>Leave Type</Label>
+              <Select value={leaveTypeFilter} onValueChange={setLeaveTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAVE_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="min-w-[140px] space-y-2">
+              <Label>From Date</Label>
+              <Input
+                type="date"
+                value={dateFromFilter}
+                onChange={(e) => setDateFromFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="min-w-[140px] space-y-2">
+              <Label>To Date</Label>
+              <Input
+                type="date"
+                value={dateToFilter}
+                onChange={(e) => setDateToFilter(e.target.value)}
+              />
+            </div>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="mb-0.5">
+                <X className="mr-2 h-4 w-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
         <TabsList className="bg-secondary/50">
           <TabsTrigger value="all">All Requests</TabsTrigger>
           <TabsTrigger value="pending" className="relative">
             Pending
-            {pendingCount > 0 && (
+            {summary && summary.pending_count > 0 && (
               <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-warning text-warning-foreground text-xs font-medium">
-                {pendingCount}
+                {summary.pending_count}
               </span>
             )}
           </TabsTrigger>

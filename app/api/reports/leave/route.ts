@@ -23,7 +23,7 @@ export const GET = withRole(async (request) => {
     if (department && department !== "all") params.set("department", department);
 
     const response = await fetch(
-      `${getExternalApiUrl()}/reports/leave?${params.toString()}`,
+      `${getExternalApiUrl()}/reports/leaves?${params.toString()}`,
       {
         headers: {
           'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,

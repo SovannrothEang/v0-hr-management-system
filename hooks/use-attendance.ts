@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType, AttendanceStatus, AttendanceSummary } from "@/stores/attendance-store";
+import type { AttendanceRecord, LeaveRequest, LeaveStatus, LeaveType, AttendanceStatus, AttendanceSummary, LeaveRequestSummary } from "@/stores/attendance-store";
 import type { PaginatedResponse } from "@/types/pagination";
 import { toast } from "sonner";
 import { getEmployeeAvatarUrl } from "@/hooks/use-employees";
@@ -321,16 +321,24 @@ export function useClockOut() {
 export function useLeaveRequests(params?: {
   status?: string;
   employeeId?: string;
+  search?: string;
+  leaveType?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   limit?: number;
 }) {
   return useQuery({
     queryKey: ["leave-requests", params],
-    queryFn: async (): Promise<PaginatedResponse<LeaveRequest>> => {
+    queryFn: async (): Promise<PaginatedResponse<LeaveRequest> & { summary?: LeaveRequestSummary }> => {
       const queryParams = new URLSearchParams();
       if (params?.status && params.status !== "all")
-        queryParams.set("status", params.status);
+        queryParams.set("status", params.status.toUpperCase());
       if (params?.employeeId) queryParams.set("employeeId", params.employeeId);
+      if (params?.search) queryParams.set("search", params.search);
+      if (params?.leaveType) queryParams.set("leaveType", params.leaveType);
+      if (params?.dateFrom) queryParams.set("dateFrom", params.dateFrom);
+      if (params?.dateTo) queryParams.set("dateTo", params.dateTo);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
       queryParams.set("sortBy", "createdAt");
@@ -342,9 +350,7 @@ export function useLeaveRequests(params?: {
 
       const data = response.data;
 
-      // Handle both internal API (array) and external API (paginated response)
       if (Array.isArray(data)) {
-        // Legacy array response - wrap in paginated structure
         const transformedData = data.map(transformLeaveRequest);
         const total = transformedData.length;
         const limit = params?.limit || 10;
@@ -364,13 +370,11 @@ export function useLeaveRequests(params?: {
         };
       }
 
-      // Paginated response from external API
       if (data && typeof data === 'object') {
         const paginatedData = data as any;
         const innerData = paginatedData.data || (Array.isArray(data) ? data : []);
         const transformedData = Array.isArray(innerData) ? innerData.map(transformLeaveRequest) : [];
 
-        // Robust metadata extraction: check both .meta and top-level properties
         const total = paginatedData.meta?.total ??
           paginatedData.total ??
           paginatedData.total_count ??
@@ -383,6 +387,8 @@ export function useLeaveRequests(params?: {
         const page = meta.page ?? paginatedData.page ?? params?.page ?? 1;
         const totalPages = meta.totalPages ?? paginatedData.totalPages ?? Math.ceil(total / metaLimit);
 
+        const summary = paginatedData.summary as LeaveRequestSummary | undefined;
+
         return {
           data: transformedData,
           meta: {
@@ -394,10 +400,10 @@ export function useLeaveRequests(params?: {
             hasNext: meta.hasNext ?? paginatedData.hasNext ?? page < totalPages,
             hasPrevious: meta.hasPrevious ?? paginatedData.hasPrevious ?? page > 1,
           },
+          summary,
         };
       }
 
-      // Fallback for unexpected response
       return {
         data: [],
         meta: {

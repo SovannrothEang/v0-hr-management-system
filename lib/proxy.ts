@@ -47,12 +47,17 @@ export async function proxyGet(
     const qs = params.toString();
     const url = `${getExternalApiUrl()}${externalPath}${qs ? `?${qs}` : ""}`;
 
+    console.log(`[Proxy GET] ${url}`);
+
     const response = await fetch(url, {
       headers: getAuthHeaders(request),
     });
 
+    console.log(`[Proxy GET] ${externalPath} -> ${response.status}`);
+
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
+      console.error(`[Proxy GET] ${externalPath} error:`, errBody);
       return NextResponse.json(
         { success: false, message: errBody.message || errorMessage },
         { status: response.status }
@@ -171,13 +176,19 @@ export async function proxyExport(
     const qs = searchParams.toString();
     const url = `${getExternalApiUrl()}${externalPath}${qs ? `?${qs}` : ""}`;
 
+    console.log(`[Proxy Export] ${url}`);
+
     const response = await fetch(url, {
       headers: getAuthHeaders(request),
     });
 
+    console.log(`[Proxy Export] ${externalPath} -> ${response.status}`);
+
     if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      console.error(`[Proxy Export] ${externalPath} error:`, errBody);
       return NextResponse.json(
-        { success: false, message: errorMessage },
+        { success: false, message: errBody.message || errorMessage },
         { status: response.status }
       );
     }
