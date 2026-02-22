@@ -22,10 +22,11 @@ export interface JWTPayload {
   roles: RoleName[];
   department?: string;
   employeeId?: string;
-  externalAccessToken?: string; // Access token from external API
-  iat?: number; // issued at
-  exp?: number; // expiration
-  jti?: string; // JWT ID (for refresh token rotation)
+  externalAccessToken?: string;
+  externalRefreshToken?: string;
+  iat?: number;
+  exp?: number;
+  jti?: string;
 }
 
 /**

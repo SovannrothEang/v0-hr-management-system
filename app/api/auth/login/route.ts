@@ -85,9 +85,8 @@ export async function POST(request: Request) {
     const loginData = await externalApiResponse.json();
     const externalUser = loginData.data.user;
     const externalAccessToken = loginData.data.accessToken;
+    const externalRefreshToken = loginData.data.refreshToken;
 
-    // Prepare user data for Next.js session
-    // External API provides `username` directly on the user entity
     const sessionUser: SessionUser = {
       id: externalUser.id,
       email: externalUser.email,
@@ -96,6 +95,7 @@ export async function POST(request: Request) {
       department: externalUser.department,
       employeeId: externalUser.employeeId,
       externalAccessToken: externalAccessToken,
+      externalRefreshToken: externalRefreshToken,
     };
 
     // Create response

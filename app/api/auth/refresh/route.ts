@@ -1,26 +1,33 @@
 /**
  * Token Refresh Endpoint
  * Refreshes session using refresh token from httpOnly cookie
- * Implements token rotation for security
+ * Also refreshes the external API token using stored external refresh token
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { refreshAuthSession, clearAuthSession, getAuthSessionFromRequest } from "@/lib/session";
+import { 
+  refreshAuthSession, 
+  clearAuthSession, 
+  getAuthSessionFromRequest,
+  createAuthSession,
+  SessionUser,
+  AUTH_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+} from "@/lib/session";
 import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
 import { checkRateLimit, getClientId, RateLimitPresets } from "@/lib/rate-limit";
+import { getExternalApiUrl } from "@/lib/proxy";
 
 export async function POST(request: NextRequest) {
   try {
     const metadata = getRequestMetadata(request);
     const clientId = getClientId(request);
-
-    // Get user info for rate limiting (if available)
     const currentSession = getAuthSessionFromRequest(request);
     const rateLimitKey = currentSession 
-      ? `refresh:${currentSession.id}` // Per-user rate limit
-      : `refresh:${clientId}`; // Per-IP rate limit for unauthenticated
+      ? `refresh:${currentSession.id}`
+      : `refresh:${clientId}`;
 
-    // Apply rate limiting
     const rateLimit = checkRateLimit(rateLimitKey, RateLimitPresets.REFRESH);
     
     if (!rateLimit.allowed) {
@@ -30,111 +37,112 @@ export async function POST(request: NextRequest) {
         ...metadata,
         success: false,
         details: { reason: 'rate_limited' },
-        errorMessage: 'Too many refresh attempts',
       });
 
       return NextResponse.json(
-        { 
-          success: false, 
-          message: `Too many refresh attempts. Please try again in ${retryAfter} seconds.` 
-        },
-        { 
-          status: 429,
-          headers: {
-            'Retry-After': retryAfter.toString(),
-            'X-RateLimit-Limit': RateLimitPresets.REFRESH.maxRequests.toString(),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
-          }
-        }
+        { success: false, message: `Too many refresh attempts. Try again in ${retryAfter}s.` },
+        { status: 429 }
       );
     }
 
-    // Create response
-    const response = NextResponse.json({
-      success: true,
-      message: "Token refreshed successfully",
-      data: {},
-    });
-
-    // Refresh session using cookie
-    const sessionData = refreshAuthSession(request, response);
+    const tempResponse = NextResponse.json({});
+    const sessionData = refreshAuthSession(request, tempResponse);
 
     if (!sessionData) {
-      // Clear any stale cookies
-      clearAuthSession(response);
-      
-      // Log failed refresh attempt
       logAuditEvent(AuditAction.TOKEN_REFRESH, currentSession as any, {
         ...metadata,
         success: false,
         details: { reason: 'invalid_or_expired_token' },
-        errorMessage: 'Session expired or token invalid',
       });
       
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: "Session expired. Please log in again." 
-        },
-        { 
-          status: 401,
-          headers: {
-            'X-RateLimit-Limit': RateLimitPresets.REFRESH.maxRequests.toString(),
-            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
-            'X-RateLimit-Reset': rateLimit.resetTime.toString(),
-          },
-        }
+      const failResponse = NextResponse.json(
+        { success: false, message: "Session expired" },
+        { status: 401 }
       );
+      clearAuthSession(failResponse);
+      return failResponse;
     }
 
-    // Log token refresh
-    logAuditEvent(AuditAction.TOKEN_REFRESH, sessionData.user as any, {
-      ...metadata,
+    let externalAccessToken = sessionData.user.externalAccessToken;
+    let externalRefreshToken = sessionData.user.externalRefreshToken;
+    let externalRefreshed = false;
+
+    if (externalRefreshToken) {
+      try {
+        const externalRes = await fetch(
+          `${getExternalApiUrl()}/auth/refresh-legacy`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: externalRefreshToken }),
+          }
+        );
+
+        if (externalRes.ok) {
+          const extData = await externalRes.json();
+          const newExtToken = extData.accessToken || extData.data?.accessToken;
+          if (newExtToken) {
+            externalAccessToken = newExtToken;
+            externalRefreshed = true;
+            console.log('[Refresh] External token refreshed');
+          }
+        }
+      } catch (e) {
+        console.error('[Refresh] External refresh error:', e);
+      }
+    }
+
+    const user: SessionUser = {
+      ...sessionData.user,
+      externalAccessToken,
+      externalRefreshToken,
+    };
+
+    const cookieResponse = NextResponse.json({});
+    const newSession = createAuthSession(cookieResponse, user, false);
+
+    const response = NextResponse.json({
       success: true,
-      details: { 
-        email: sessionData.user.email,
-        roles: sessionData.user.roles,
+      message: "Token refreshed",
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          roles: user.roles,
+          department: user.department,
+          employeeId: user.employeeId,
+        },
+        expiresAt: newSession.expiresAt,
+        csrfToken: newSession.csrfToken,
+        accessToken: newSession.accessToken,
+        externalAccessToken,
       },
     });
 
-    // Return success with session data
-    // Note: Need to create new response to include session data
-    const finalResponse = NextResponse.json(
-      {
-        success: true,
-        message: "Token refreshed successfully",
-        data: {
-          user: sessionData.user,
-          expiresAt: sessionData.expiresAt,
-          csrfToken: sessionData.csrfToken,
-        },
-      },
-      {
-        headers: {
-          'X-RateLimit-Limit': RateLimitPresets.REFRESH.maxRequests.toString(),
-          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
-          'X-RateLimit-Reset': rateLimit.resetTime.toString(),
-        },
-      }
-    );
-
-    // Copy cookies from original response
-    response.cookies.getAll().forEach((cookie) => {
-      finalResponse.cookies.set(cookie.name, cookie.value, {
-        httpOnly: cookie.name !== 'csrf_token',
+    cookieResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value, {
+        httpOnly: cookie.name !== CSRF_COOKIE_NAME,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        path: cookie.name === 'refresh_token' ? '/api/auth' : '/',
-        maxAge: cookie.name === 'refresh_token' ? 7 * 24 * 60 * 60 : 24 * 60 * 60,
+        path: cookie.name === REFRESH_COOKIE_NAME ? '/api/auth' : '/',
+        maxAge: cookie.name === REFRESH_COOKIE_NAME ? 7 * 24 * 60 * 60 : 24 * 60 * 60,
       });
     });
 
-    return finalResponse;
+    console.log('[Refresh] Complete. Cookies:', response.cookies.getAll().map(c => c.name));
+
+    logAuditEvent(AuditAction.TOKEN_REFRESH, user as any, {
+      ...metadata,
+      success: true,
+      details: { email: user.email, externalRefreshed },
+    });
+
+    return response;
   } catch (error) {
     console.error("Token refresh error:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to refresh token" },
+      { success: false, message: "Refresh failed" },
       { status: 500 }
     );
   }

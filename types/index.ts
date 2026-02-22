@@ -76,20 +76,56 @@ export interface LeaveRequest {
   createdAt: string;
 }
 
+export interface PayrollItem {
+  id: string;
+  payrollId: string;
+  itemType: "EARNING" | "DEDUCTION";
+  itemName: string;
+  amount: number;
+  currencyCode?: string;
+  description?: string;
+}
+
+export interface TaxCalculation {
+  id: string;
+  grossIncome: number;
+  taxableIncome: number;
+  taxAmount: number;
+  taxRateUsed: number;
+  taxBracketId: string;
+}
+
 export interface PayrollRecord {
   id: string;
   employeeId: string;
   employee?: Employee;
+  currencyCode: string;
+  baseCurrencyCode?: string;
+  payPeriodStart: string;
+  payPeriodEnd: string;
+  paymentDate?: string;
   period: string;
   month: string;
   year: number;
   basicSalary: number;
+  overtimeHrs: number;
+  overtimeRate: number;
+  overtimePay: number;
+  bonus: number;
   allowances: number;
   deductions: number;
+  netSalary: number;
   netPay: number;
+  grossSalary: number;
   status: "pending" | "processed" | "paid";
+  exchangeRate?: number;
+  baseCurrencyAmount?: number;
   processedAt?: string;
   paidAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  items?: PayrollItem[];
+  taxCalculation?: TaxCalculation;
 }
 
 export interface DashboardStats {

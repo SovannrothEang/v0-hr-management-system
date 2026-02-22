@@ -22,6 +22,31 @@ interface LoginResponse {
   csrfToken?: string;
 }
 
+const COOKIE_NAMES = {
+  AUTH_TOKEN: 'auth_token',
+  REFRESH_TOKEN: 'refresh_token',
+  CSRF_TOKEN: 'csrf_token',
+  SESSION_STORE: 'hrflow-session',
+};
+
+function clearAllClientSession(): void {
+  if (typeof document === 'undefined') return;
+
+  const paths = ['/', '/api/auth'];
+  
+  for (const name of Object.values(COOKIE_NAMES)) {
+    for (const path of paths) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Strict`;
+      if (process.env.NODE_ENV === 'production') {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Strict; Secure`;
+      }
+    }
+  }
+
+  localStorage.removeItem(COOKIE_NAMES.SESSION_STORE);
+  sessionStorage.clear();
+}
+
 /**
  * Hook for user login
  * Sends credentials to server, receives access token
@@ -32,7 +57,6 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      // Use fetch directly to avoid circular dependency with apiClient
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api'}/auth/login`,
         {
@@ -52,7 +76,6 @@ export function useLogin() {
 
       const data = await response.json();
 
-      // Extract CSRF token from cookies
       const cookies = response.headers.get('set-cookie');
       const csrfToken = cookies?.match(/csrf_token=([^;]+)/)?.[1] || '';
 
@@ -62,7 +85,6 @@ export function useLogin() {
       };
     },
     onSuccess: (data: LoginResponse & { csrfToken?: string }) => {
-      // Store user info, access token, and CSRF token in memory
       setSession(data.user, data.expiresAt, data.csrfToken || '', data.accessToken);
       toast.success("Login successful", {
         description: `Welcome back, ${data.user.username || data.user.email}!`,
@@ -78,7 +100,7 @@ export function useLogin() {
 
 /**
  * Hook for user logout
- * Clears session state (access token is in memory, so it's automatically cleared)
+ * Calls logout API and clears all session data
  */
 export function useLogout() {
   const clearSession = useSessionStore((state) => state.clearSession);
@@ -86,17 +108,22 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      // Call logout endpoint if needed
-      await apiClient.post("/auth/logout");
+      try {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api'}/auth/logout`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+      } catch {
+        // Ignore errors from logout API
+      }
     },
-    onSuccess: () => {
+    onSettled: () => {
+      clearAllClientSession();
       clearSession();
       toast.success("Logged out successfully");
-      router.replace("/login");
-    },
-    onError: () => {
-      // Clear session anyway on error
-      clearSession();
       router.replace("/login");
     },
   });

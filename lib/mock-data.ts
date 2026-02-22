@@ -301,21 +301,42 @@ export const mockLeaveRequests: LeaveRequest[] = [
   },
 ];
 
-export const mockPayrollRecords: PayrollRecord[] = mockEmployees.map((emp, index) => ({
-  id: `payroll-${index + 1}`,
-  employeeId: emp.id,
-  employee: emp,
-  period: `${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`,
-  month: new Date().toLocaleString('default', { month: 'long' }),
-  year: new Date().getFullYear(),
-  basicSalary: emp.salary / 12,
-  allowances: Math.random() > 0.7 ? Math.floor(Math.random() * 500) : 0,
-  deductions: Math.floor((emp.salary / 12) * 0.05),
-  netPay: Math.floor((emp.salary / 12) * 0.95),
-  status: index < 3 ? "paid" : index < 6 ? "processed" : "pending",
-  paidAt: index < 3 ? "2024-01-25T00:00:00Z" : undefined,
-  processedAt: index < 6 ? "2024-01-20T00:00:00Z" : undefined,
-}));
+export const mockPayrollRecords: PayrollRecord[] = mockEmployees.map((emp, index) => {
+  const basicSalary = emp.salary / 12;
+  const overtimeHrs = Math.random() > 0.5 ? Math.floor(Math.random() * 20) : 0;
+  const overtimeRate = 25;
+  const overtimePay = overtimeHrs * overtimeRate;
+  const bonus = Math.random() > 0.7 ? Math.floor(Math.random() * 500) : 0;
+  const grossSalary = basicSalary + overtimePay + bonus;
+  const deductions = Math.floor(basicSalary * 0.05);
+  const taxAmount = Math.floor(grossSalary * 0.1);
+  const netSalary = grossSalary - deductions - taxAmount;
+
+  return {
+    id: `payroll-${index + 1}`,
+    employeeId: emp.id,
+    employee: emp,
+    currencyCode: 'USD',
+    payPeriodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    payPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString(),
+    period: `${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`,
+    month: new Date().toLocaleString('default', { month: 'long' }),
+    year: new Date().getFullYear(),
+    basicSalary: basicSalary,
+    overtimeHrs: overtimeHrs,
+    overtimeRate: overtimeRate,
+    overtimePay: overtimePay,
+    bonus: bonus,
+    allowances: bonus,
+    grossSalary: grossSalary,
+    deductions: deductions,
+    netSalary: netSalary,
+    netPay: netSalary,
+    status: index < 3 ? "paid" : index < 6 ? "processed" : "pending",
+    paidAt: index < 3 ? "2024-01-25T00:00:00Z" : undefined,
+    processedAt: index < 6 ? "2024-01-20T00:00:00Z" : undefined,
+  };
+});
 
 export const mockDashboardStats: DashboardStats = {
   totalEmployees: mockEmployees.length,

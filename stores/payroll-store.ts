@@ -1,51 +1,9 @@
 import { create } from "zustand";
+import type { PayrollSummary } from "@/types";
 
 export type PayrollStatus = "pending" | "processed" | "paid";
 
-export interface PayrollSummary {
-  totalPayrolls: number;
-  totalGrossSalary: number;
-  totalDeductions: number;
-  totalNetSalary: number;
-  totalTax: number;
-  totalOvertimePay: number;
-  totalBonus: number;
-  byStatus: Array<{
-    status: string;
-    count: number;
-    totalAmount: number;
-  }>;
-  byDepartment: Array<{
-    department: string;
-    employeeCount: number;
-    totalSalary: number;
-    totalDeductions: number;
-    totalNetSalary: number;
-  }>;
-}
-
-export interface PayrollRecord {
-  id: string;
-  employeeId: string;
-  employee?: {
-    id: string;
-    employeeId: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    department: string;
-  };
-  period: string;
-  month: string;
-  year: number;
-  basicSalary: number;
-  allowances: number;
-  deductions: number;
-  netPay: number;
-  status: PayrollStatus;
-  processedAt?: string;
-  paidAt?: string;
-}
+export type { PayrollSummary } from "@/types";
 
 interface PayrollState {
   selectedPeriod: string;

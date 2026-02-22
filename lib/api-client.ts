@@ -3,12 +3,11 @@
  * Handles all API requests with Bearer token authentication
  * Access token is stored in memory (React state) for security
  * CSRF token is stored in memory for state-changing requests
+ * Implements automatic token refresh with proper cookie management
  */
 
-import { getAccessToken, getCsrfToken } from "@/stores/session";
+import { getAccessToken, getCsrfToken, useSessionStore } from "@/stores/session";
 
-// Get API base URL from environment variable
-// Falls back to "/api" for backward compatibility with Next.js API routes
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
 interface ApiResponse<T> {
@@ -17,12 +16,44 @@ interface ApiResponse<T> {
   success: boolean;
 }
 
-/**
- * Check if the request method requires CSRF token
- */
+const COOKIE_NAMES = {
+  AUTH_TOKEN: 'auth_token',
+  REFRESH_TOKEN: 'refresh_token',
+  CSRF_TOKEN: 'csrf_token',
+  SESSION_STORE: 'hrflow-session',
+};
+
 function requiresCsrf(method: string): boolean {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   return !safeMethods.includes(method.toUpperCase());
+}
+
+function clearAllSessionCookies(): void {
+  if (typeof document === 'undefined') return;
+
+  const paths = ['/', '/api/auth'];
+  
+  for (const name of Object.values(COOKIE_NAMES)) {
+    for (const path of paths) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Strict`;
+      if (process.env.NODE_ENV === 'production') {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; SameSite=Strict; Secure`;
+      }
+    }
+  }
+
+  localStorage.removeItem(COOKIE_NAMES.SESSION_STORE);
+  sessionStorage.clear();
+}
+
+function redirectToLogin(): void {
+  if (typeof window === 'undefined') return;
+  
+  clearAllSessionCookies();
+  useSessionStore.getState().clearSession();
+  
+  const loginUrl = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  window.location.href = loginUrl;
 }
 
 class ApiClient {
@@ -34,11 +65,7 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  /**
-   * Attempt to refresh the session
-   */
   private async refreshSession(): Promise<boolean> {
-    // If already refreshing, return the existing promise
     if (this.isRefreshing && this.refreshPromise) {
       return this.refreshPromise;
     }
@@ -46,25 +73,49 @@ class ApiClient {
     this.isRefreshing = true;
     this.refreshPromise = (async () => {
       try {
-         const response = await fetch(`${this.baseUrl}/auth/refresh`, {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           credentials: 'include',
-         });
+        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
 
         if (!response.ok) {
+          console.log('[ApiClient] Refresh failed with status:', response.status);
           return false;
         }
 
         const data = await response.json();
-        if (data.success && data.data?.accessToken) {
-          // Update access token in store
-          const { useSessionStore } = await import("@/stores/session");
-          useSessionStore.getState().setAccessToken(data.data.accessToken);
-          return true;
+        
+        if (data.success && data.data) {
+          const { accessToken, csrfToken, expiresAt, user, externalAccessToken } = data.data;
+          
+          if (accessToken) {
+            const currentUser = useSessionStore.getState().user;
+            useSessionStore.getState().setSession(
+              user || currentUser!,
+              expiresAt || Date.now() + 24 * 60 * 60 * 1000,
+              csrfToken || '',
+              accessToken
+            );
+            
+            if (externalAccessToken) {
+              useSessionStore.getState().setSession(
+                { ...useSessionStore.getState().user!, externalAccessToken } as any,
+                useSessionStore.getState().sessionExpiresAt!,
+                useSessionStore.getState().csrfToken!,
+                accessToken
+              );
+            }
+            
+            console.log('[ApiClient] Token refreshed successfully');
+            return true;
+          }
         }
+        
+        console.log('[ApiClient] Refresh response missing accessToken');
         return false;
-      } catch {
+      } catch (error) {
+        console.error('[ApiClient] Refresh error:', error);
         return false;
       } finally {
         this.isRefreshing = false;
@@ -75,9 +126,6 @@ class ApiClient {
     return this.refreshPromise;
   }
 
-  /**
-   * Make an API request
-   */
   private async request<T>(
     endpoint: string,
     options?: RequestInit,
@@ -86,23 +134,19 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const method = options?.method || 'GET';
     
-    // Build headers
     const headers: Record<string, string> = {
       ...(options?.headers as Record<string, string>),
     };
     
-    // Default to JSON if not FormData
     if (!(options?.body instanceof FormData) && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
     
-    // Add Bearer token for authenticated requests
     const accessToken = getAccessToken();
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
     
-    // Add CSRF token for state-changing requests
     if (requiresCsrf(method)) {
       const csrfToken = getCsrfToken();
       if (csrfToken) {
@@ -122,27 +166,69 @@ class ApiClient {
         ? (error.message as any).message 
         : error.message;
       
-      // Handle 401 - session expired, try to refresh
-      if (response.status === 401 && retryCount === 0) {
-        if (typeof window !== 'undefined') {
-          try {
-            // Try to refresh the session
-            const refreshed = await this.refreshSession();
-            if (refreshed) {
-              // Retry the request with new session
-              return this.request(endpoint, options, retryCount + 1);
-            }
-          } catch {
-            // Refresh failed
-          }
+      if (response.status === 401) {
+        console.log('[ApiClient] Got 401, retryCount:', retryCount);
+        
+        if (retryCount === 0 && typeof window !== 'undefined') {
+          console.log('[ApiClient] Attempting token refresh...');
           
-          // Redirect to login if refresh failed
-          window.location.href = '/login';
-          throw new Error('Session expired');
+          try {
+            const refreshed = await this.refreshSession();
+            console.log('[ApiClient] Refresh result:', refreshed);
+            
+            if (refreshed) {
+              const newAccessToken = getAccessToken();
+              if (newAccessToken) {
+                headers['Authorization'] = `Bearer ${newAccessToken}`;
+              }
+              
+              const newCsrfToken = getCsrfToken();
+              if (newCsrfToken && requiresCsrf(method)) {
+                headers['x-csrf-token'] = newCsrfToken;
+              }
+              
+              console.log('[ApiClient] Retrying request with new token...');
+              
+              const retryResponse = await fetch(url, {
+                ...options,
+                headers,
+                credentials: 'include',
+              });
+              
+              if (retryResponse.ok) {
+                if (retryResponse.status === 204) {
+                  return { data: null as T, success: true };
+                }
+                const retryText = await retryResponse.text();
+                if (!retryText) {
+                  return { data: null as T, success: true };
+                }
+                return JSON.parse(retryText) as ApiResponse<T>;
+              }
+              
+              if (retryResponse.status === 401) {
+                console.log('[ApiClient] Retry still got 401, redirecting to login');
+                redirectToLogin();
+                throw new Error('Session expired');
+              }
+              
+              const retryError = await retryResponse.json().catch(() => ({}));
+              throw new Error(retryError.message || `HTTP error! status: ${retryResponse.status}`);
+            } else {
+              console.log('[ApiClient] Refresh failed, redirecting to login');
+            }
+          } catch (err) {
+            console.log('[ApiClient] Refresh exception:', err);
+            if (err instanceof Error && err.message === 'Session expired') {
+              throw err;
+            }
+          }
         }
+        
+        redirectToLogin();
+        throw new Error('Session expired');
       }
       
-      // Handle 403 - permission denied or invalid CSRF
       if (response.status === 403) {
         throw new Error(errorMessage || 'You do not have permission to perform this action');
       }
@@ -198,18 +284,16 @@ class ApiClient {
     });
   }
 
-  /**
-   * Get full URL for an image relative path.
-   * Routes through the Next.js image proxy (/api/images/...) to avoid
-   * exposing the external backend URL to the browser.
-   */
   getImageUrl(relativePath?: string | null): string | undefined {
     if (!relativePath) return undefined;
     if (relativePath.startsWith('http')) return relativePath;
 
-    // Strip leading slash to avoid double-slashes
     const cleanPath = relativePath.replace(/^\/+/, '');
     return `/api/images/${cleanPath}`;
+  }
+
+  logout(): void {
+    redirectToLogin();
   }
 }
 

@@ -44,6 +44,7 @@ export interface SessionUser {
   department?: string;
   employeeId?: string;
   externalAccessToken?: string;
+  externalRefreshToken?: string;
 }
 
 export interface SessionData {
@@ -100,6 +101,7 @@ export function createAuthSession(
     department: user.department,
     employeeId: user.employeeId,
     externalAccessToken: user.externalAccessToken,
+    externalRefreshToken: user.externalRefreshToken,
   };
 
   const accessToken = generateToken(tokenPayload as Omit<JWTPayload, 'iat' | 'exp'>);
@@ -309,6 +311,7 @@ export function refreshAuthSession(
       department: payload.department,
       employeeId: payload.employeeId,
       externalAccessToken: payload.externalAccessToken,
+      externalRefreshToken: payload.externalRefreshToken,
     };
 
     // Create new session (not a new login, so don't clear compromised status)
@@ -336,4 +339,33 @@ export function getSessionExpiry(request: NextRequest): number | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Update external tokens in the session
+ * Creates a new JWT with updated external tokens and sets it in the response
+ * @param response - The response to set the new cookie on
+ * @param currentPayload - Current JWT payload
+ * @param externalAccessToken - New external access token
+ * @param externalRefreshToken - Optional new external refresh token
+ * @returns Updated session data
+ */
+export function updateExternalTokens(
+  response: NextResponse,
+  currentPayload: JWTPayload,
+  externalAccessToken: string,
+  externalRefreshToken?: string
+): SessionData {
+  const user: SessionUser = {
+    id: currentPayload.id,
+    email: currentPayload.email,
+    username: currentPayload.username,
+    roles: currentPayload.roles,
+    department: currentPayload.department,
+    employeeId: currentPayload.employeeId,
+    externalAccessToken,
+    externalRefreshToken: externalRefreshToken || currentPayload.externalRefreshToken,
+  };
+
+  return createAuthSession(response, user, false);
 }

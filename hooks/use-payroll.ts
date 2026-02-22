@@ -131,20 +131,37 @@ export function useMarkPayrollPaid() {
 
   return useMutation({
     mutationFn: async (payrollId: string): Promise<PayrollRecord> => {
-      const response = await apiClient.post<PayrollRecord | { data: PayrollRecord }>("/payrolls/mark-paid", {
-        ids: [payrollId],
-      });
-      const data = response.data;
-      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
+      const response = await apiClient.patch<PayrollRecord>(
+        `/payrolls/${payrollId}/mark-paid`
+      );
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payrolls"] });
       queryClient.invalidateQueries({ queryKey: ["payrolls-summary"] });
+      toast.success("Payroll marked as paid");
     },
     onError: (error: Error) => {
       toast.error("Failed to mark payroll as paid", {
         description: error.message,
       });
     },
+  });
+}
+
+export function usePayrollById(payrollId: string | null) {
+  return useQuery({
+    queryKey: ["payroll", payrollId],
+    queryFn: async (): Promise<PayrollRecord> => {
+      if (!payrollId) throw new Error("No payroll ID provided");
+      const response = await apiClient.get<PayrollRecord>(
+        `/payrolls/${payrollId}`
+      );
+      if (!response.data) {
+        throw new Error("Payroll not found");
+      }
+      return response.data;
+    },
+    enabled: !!payrollId,
   });
 }

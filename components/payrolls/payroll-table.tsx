@@ -133,119 +133,131 @@ export function PayrollTable({
     <div className="rounded-lg border border-border overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-            <TableHead className="w-12">
-              <Checkbox
-                checked={allSelected}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    selectAll(records?.map((p) => p.id) ?? []);
-                  } else {
-                    clearSelection();
-                  }
-                }}
-              />
-            </TableHead>
-            <TableHead>Employee</TableHead>
-            <TableHead>Period</TableHead>
-            <TableHead>Basic Salary</TableHead>
-            <TableHead>Allowances</TableHead>
-            <TableHead>Deductions</TableHead>
-            <TableHead>Net Pay</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
+           <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+             <TableHead className="w-12">
+               <Checkbox
+                 checked={allSelected}
+                 onCheckedChange={(checked) => {
+                   if (checked) {
+                     selectAll(records?.map((p) => p.id) ?? []);
+                   } else {
+                     clearSelection();
+                   }
+                 }}
+               />
+             </TableHead>
+             <TableHead>Employee</TableHead>
+             <TableHead>Period</TableHead>
+             <TableHead className="text-right">Basic</TableHead>
+             <TableHead className="text-right">Overtime</TableHead>
+             <TableHead className="text-right">Bonus</TableHead>
+             <TableHead className="text-right">Deductions</TableHead>
+             <TableHead className="text-right">Tax</TableHead>
+             <TableHead className="text-right">Net Pay</TableHead>
+             <TableHead>Currency</TableHead>
+             <TableHead>Status</TableHead>
+             <TableHead className="w-12"></TableHead>
+           </TableRow>
+         </TableHeader>
         <TableBody>
-          {records && records.length > 0 ? (
-            records.map((payroll) => (
-              <TableRow key={payroll.id} className="hover:bg-secondary/30">
-                <TableCell>
-                  <Checkbox
-                    checked={selectedPayrolls.includes(payroll.id)}
-                    onCheckedChange={() => togglePayroll(payroll.id)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={payroll.employee?.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {payroll.employee?.firstName?.[0] || 'U'}
-                        {payroll.employee?.lastName?.[0] || ''}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {payroll.employee?.firstName} {payroll.employee?.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {payroll.employee?.department}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-foreground">
-                  {payroll.period}
-                </TableCell>
-                <TableCell className="text-foreground">
-                  ${(payroll.basicSalary ?? 0).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-success">
-                  +${(payroll.allowances ?? 0).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-destructive">
-                  -${(payroll.deductions ?? 0).toLocaleString()}
-                </TableCell>
-                <TableCell className="font-semibold text-foreground">
-                  ${(payroll.netPay ?? 0).toLocaleString()}
-                </TableCell>
-                <TableCell>{getStatusBadge(payroll.status)}</TableCell>
-                <TableCell>
-                  {showActions && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => onViewPayslip(payroll.id)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Payslip
-                        </DropdownMenuItem>
-                        {!isEmployee && payroll.status === "pending" && (
-                          <DropdownMenuItem
-                            onClick={() => handleProcess(payroll.id)}
-                            disabled={processingIds.has(payroll.id)}
-                          >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Process Payroll
-                          </DropdownMenuItem>
-                        )}
-                        {isAdmin && payroll.status === "processed" && (
-                          <DropdownMenuItem
-                            onClick={() => handleMarkPaid(payroll.id)}
-                            disabled={processingIds.has(payroll.id)}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Mark as Paid
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
-                No payroll records found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
+           {records && records.length > 0 ? (
+             records.map((payroll) => (
+               <TableRow key={payroll.id} className="hover:bg-secondary/30">
+                 <TableCell>
+                   <Checkbox
+                     checked={selectedPayrolls.includes(payroll.id)}
+                     onCheckedChange={() => togglePayroll(payroll.id)}
+                   />
+                 </TableCell>
+                 <TableCell>
+                   <div className="flex items-center gap-3">
+                     <Avatar className="h-9 w-9">
+                       <AvatarImage src={payroll.employee?.avatar || "/placeholder.svg"} />
+                       <AvatarFallback className="bg-primary/10 text-primary">
+                         {payroll.employee?.firstName?.[0] || 'U'}
+                         {payroll.employee?.lastName?.[0] || ''}
+                       </AvatarFallback>
+                     </Avatar>
+                     <div>
+                       <p className="font-medium text-foreground">
+                         {payroll.employee?.firstName} {payroll.employee?.lastName}
+                       </p>
+                       <p className="text-xs text-muted-foreground">
+                         {payroll.employee?.department}
+                       </p>
+                     </div>
+                   </div>
+                 </TableCell>
+                 <TableCell className="text-foreground">
+                   {payroll.period}
+                 </TableCell>
+                 <TableCell className="text-right text-foreground">
+                   ${(payroll.basicSalary ?? 0).toLocaleString()}
+                 </TableCell>
+                 <TableCell className="text-right text-chart-2">
+                   {payroll.overtimeHrs > 0 ? `$${payroll.overtimePay.toLocaleString()} (${payroll.overtimeHrs}h)` : '-'}
+                 </TableCell>
+                 <TableCell className="text-right text-success">
+                   {payroll.bonus > 0 ? `+$${payroll.bonus.toLocaleString()}` : '-'}
+                 </TableCell>
+                 <TableCell className="text-right text-destructive">
+                   {payroll.deductions > 0 ? `-$${payroll.deductions.toLocaleString()}` : '-'}
+                 </TableCell>
+                 <TableCell className="text-right text-orange-500">
+                   {payroll.taxCalculation?.taxAmount ? `-$${payroll.taxCalculation.taxAmount.toLocaleString()}` : '-'}
+                 </TableCell>
+                 <TableCell className="text-right font-semibold text-foreground">
+                   ${(payroll.netSalary ?? payroll.netPay ?? 0).toLocaleString()}
+                 </TableCell>
+                 <TableCell className="text-muted-foreground">
+                   {payroll.currencyCode || 'USD'}
+                 </TableCell>
+                 <TableCell>{getStatusBadge(payroll.status)}</TableCell>
+                 <TableCell>
+                   {showActions && (
+                     <DropdownMenu>
+                       <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-8 w-8">
+                           <MoreHorizontal className="h-4 w-4" />
+                         </Button>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="end" className="w-48">
+                         <DropdownMenuItem onClick={() => onViewPayslip(payroll.id)}>
+                           <Eye className="h-4 w-4 mr-2" />
+                           View Payslip
+                         </DropdownMenuItem>
+                         {!isEmployee && payroll.status === "pending" && (
+                           <DropdownMenuItem
+                             onClick={() => handleProcess(payroll.id)}
+                             disabled={processingIds.has(payroll.id)}
+                           >
+                             <FileText className="h-4 w-4 mr-2" />
+                             Process Payroll
+                           </DropdownMenuItem>
+                         )}
+                         {isAdmin && payroll.status === "processed" && (
+                           <DropdownMenuItem
+                             onClick={() => handleMarkPaid(payroll.id)}
+                             disabled={processingIds.has(payroll.id)}
+                           >
+                             <CheckCircle2 className="h-4 w-4 mr-2" />
+                             Mark as Paid
+                           </DropdownMenuItem>
+                         )}
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                   )}
+                 </TableCell>
+               </TableRow>
+             ))
+           ) : (
+             <TableRow>
+               <TableCell colSpan={12} className="h-32 text-center text-muted-foreground">
+                 No payroll records found.
+               </TableCell>
+             </TableRow>
+           )}
+         </TableBody>
       </Table>
     </div>
   );
