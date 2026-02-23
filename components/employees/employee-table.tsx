@@ -127,10 +127,10 @@ export function EmployeeTable({
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage 
-                        src={employee.avatar} 
-                        alt={employee.firstName} 
-                        className="object-cover"
+                      <AvatarImage
+                        src={employee.avatar}
+                        alt={employee.firstName}
+                        className="object-cover w-full"
                       />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {getInitials(employee.firstName, employee.lastName)}

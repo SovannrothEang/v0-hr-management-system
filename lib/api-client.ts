@@ -6,7 +6,7 @@
  * Implements automatic token refresh with proper cookie management
  */
 
-import { getAccessToken, getCsrfToken, useSessionStore } from "@/stores/session";
+import { getAccessToken, getCsrfToken, getSessionId, useSessionStore } from "@/stores/session";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
@@ -87,15 +87,17 @@ class ApiClient {
         const data = await response.json();
         
         if (data.success && data.data) {
-          const { accessToken, csrfToken, expiresAt, user, externalAccessToken } = data.data;
+          const { accessToken, csrfToken, expiresAt, user, externalAccessToken, sessionId } = data.data;
           
           if (accessToken) {
             const currentUser = useSessionStore.getState().user;
+            const existingSessionId = useSessionStore.getState().sessionId;
             useSessionStore.getState().setSession(
               user || currentUser!,
               expiresAt || Date.now() + 24 * 60 * 60 * 1000,
               csrfToken || '',
-              accessToken
+              accessToken,
+              sessionId || existingSessionId || undefined
             );
             
             if (externalAccessToken) {
@@ -103,7 +105,8 @@ class ApiClient {
                 { ...useSessionStore.getState().user!, externalAccessToken } as any,
                 useSessionStore.getState().sessionExpiresAt!,
                 useSessionStore.getState().csrfToken!,
-                accessToken
+                accessToken,
+                useSessionStore.getState().sessionId || undefined
               );
             }
             
@@ -152,6 +155,16 @@ class ApiClient {
       if (csrfToken) {
         headers['x-csrf-token'] = csrfToken;
       }
+      const sessionId = getSessionId();
+      if (sessionId) {
+        headers['x-session-id'] = sessionId;
+      }
+      console.log(`[ApiClient] CSRF headers for ${method} ${endpoint}:`, {
+        hasCsrfToken: !!csrfToken,
+        hasSessionId: !!sessionId,
+        csrfToken: csrfToken ? `${csrfToken.substring(0, 8)}...` : null,
+        sessionId: sessionId ? `${sessionId.substring(0, 8)}...` : null,
+      });
     }
     
     const response = await fetch(url, {
@@ -185,6 +198,11 @@ class ApiClient {
               const newCsrfToken = getCsrfToken();
               if (newCsrfToken && requiresCsrf(method)) {
                 headers['x-csrf-token'] = newCsrfToken;
+              }
+
+              const newSessionId = getSessionId();
+              if (newSessionId && requiresCsrf(method)) {
+                headers['x-session-id'] = newSessionId;
               }
               
               console.log('[ApiClient] Retrying request with new token...');

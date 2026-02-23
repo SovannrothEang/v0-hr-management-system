@@ -8,6 +8,7 @@ import { UserTable } from "@/components/users/user-table";
 import { UserFilters } from "@/components/users/user-filters";
 import { UserDetailSheet } from "@/components/users/user-detail-sheet";
 import { UserFormDialog } from "@/components/users/user-form-dialog";
+import { UserSummaryCards } from "@/components/users/user-summary-cards";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdminOnly } from "@/components/auth/protected-action";
-import { useUsers, useDeleteUser } from "@/hooks/use-users";
+import { useUsers, useDeleteUser, useUserSummary } from "@/hooks/use-users";
 import { useUserStore, type User } from "@/stores/user-store";
 import { Plus, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ export default function UsersPage() {
   const isBackgroundUpdating = isFetching && !isLoading;
 
   const { mutate: deleteUser } = useDeleteUser();
+  const { data: summary } = useUserSummary();
 
   const [selectedUserDetail, setSelectedUserDetail] = useState<User | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -126,6 +128,13 @@ export default function UsersPage() {
           </Button>
         </AdminOnly>
       </PageHeader>
+
+      <UserSummaryCards
+        totalUsers={summary?.totalUsers ?? 0}
+        adminCount={summary?.adminCount ?? 0}
+        hrCount={summary?.hrCount ?? 0}
+        activeCount={summary?.activeCount ?? 0}
+      />
 
       <UserFilters />
 

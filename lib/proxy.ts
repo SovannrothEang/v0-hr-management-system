@@ -14,9 +14,21 @@ export function getExternalApiUrl(): string {
 
 /** Build Authorization header from the authenticated request */
 function getAuthHeaders(request: AuthenticatedRequest): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     Authorization: `Bearer ${request.user.externalAccessToken || ""}`,
   };
+  
+  const csrfToken = request.headers.get("x-csrf-token");
+  if (csrfToken) {
+    headers["x-csrf-token"] = csrfToken;
+  }
+  
+  const sessionId = request.headers.get("x-session-id");
+  if (sessionId) {
+    headers["x-session-id"] = sessionId;
+  }
+  
+  return headers;
 }
 
 interface ProxyGetOptions {
@@ -95,12 +107,20 @@ export async function proxyMutation(
       // No body (e.g. POST with no payload)
     }
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(request),
+    };
+    
+    console.log(`[Proxy ${method}] ${externalPath}`, {
+      authHeaders: Object.keys(headers),
+      hasCsrf: !!headers["x-csrf-token"],
+      hasSession: !!headers["x-session-id"],
+    });
+
     const response = await fetch(`${getExternalApiUrl()}${externalPath}`, {
       method,
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeaders(request),
-      },
+      headers,
       body,
     });
 

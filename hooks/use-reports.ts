@@ -73,7 +73,7 @@ export function useAttendanceReport(params: {
   department?: string;
 }) {
   return useQuery({
-    queryKey: ["reports", "attendances", params],
+    queryKey: ["reports", "attendance", params],
     queryFn: async (): Promise<AttendanceReport> => {
       const queryParams = new URLSearchParams();
       queryParams.set("startDate", params.startDate);
@@ -83,12 +83,11 @@ export function useAttendanceReport(params: {
       }
 
       const response = await apiClient.get<AttendanceReport | { data: AttendanceReport }>(
-        `/reports/attendances?${queryParams.toString()}`
+        `/reports/attendance?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
 
-      // Ensure all fields have defaults
       if (data && typeof data === 'object') {
         data.totalDays = data.totalDays ?? 0;
         data.presentDays = data.presentDays ?? 0;
@@ -105,22 +104,27 @@ export function useAttendanceReport(params: {
   });
 }
 
-export function useEmployeeReport(params?: { department?: string }) {
+export function useEmployeeReport(params?: { 
+  startDate?: string; 
+  endDate?: string;
+  department?: string 
+}) {
   return useQuery({
     queryKey: ["reports", "employee", params],
     queryFn: async (): Promise<EmployeeReport> => {
       const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.set("startDate", params.startDate);
+      if (params?.endDate) queryParams.set("endDate", params.endDate);
       if (params?.department && params.department !== "all") {
         queryParams.set("department", params.department);
       }
 
       const response = await apiClient.get<EmployeeReport | { data: EmployeeReport }>(
-        `/reports/employees?${queryParams.toString()}`
+        `/reports/employee?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
 
-      // Ensure breakdown fields and stats exist
       if (data && typeof data === 'object') {
         data.totalEmployees = data.totalEmployees ?? 0;
         data.activeEmployees = data.activeEmployees ?? 0;
@@ -142,7 +146,7 @@ export function usePayrollReport(params: {
   department?: string;
 }) {
   return useQuery({
-    queryKey: ["reports", "payrolls", params],
+    queryKey: ["reports", "payroll", params],
     queryFn: async (): Promise<PayrollReport> => {
       const queryParams = new URLSearchParams();
       queryParams.set("startDate", params.startDate);
@@ -152,12 +156,11 @@ export function usePayrollReport(params: {
       }
 
       const response = await apiClient.get<PayrollReport | { data: PayrollReport }>(
-        `/reports/payrolls?${queryParams.toString()}`
+        `/reports/payroll?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
 
-      // Ensure breakdown fields and stats exist
       if (data && typeof data === 'object') {
         data.totalPayroll = data.totalPayroll ?? 0;
         data.averageSalary = data.averageSalary ?? 0;
@@ -188,12 +191,11 @@ export function useLeaveReport(params: {
       }
 
       const response = await apiClient.get<LeaveReport | { data: LeaveReport }>(
-        `/reports/leaves?${queryParams.toString()}`
+        `/reports/leave?${queryParams.toString()}`
       );
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
 
-      // Ensure breakdown fields and stats exist
       if (data && typeof data === 'object') {
         data.totalRequests = data.totalRequests ?? 0;
         data.approvedRequests = data.approvedRequests ?? 0;
@@ -209,20 +211,16 @@ export function useLeaveReport(params: {
   });
 }
 
-export function useComprehensiveReport(params: {
-  startDate: string;
-  endDate: string;
-  department?: string;
+export function useComprehensiveReport(params?: {
+  year?: number;
+  month?: number;
 }) {
   return useQuery({
     queryKey: ["reports", "comprehensive", params],
     queryFn: async (): Promise<ComprehensiveReport> => {
       const queryParams = new URLSearchParams();
-      queryParams.set("startDate", params.startDate);
-      queryParams.set("endDate", params.endDate);
-      if (params.department && params.department !== "all") {
-        queryParams.set("department", params.department);
-      }
+      if (params?.year) queryParams.set("year", params.year.toString());
+      if (params?.month) queryParams.set("month", params.month.toString());
 
       const response = await apiClient.get<ComprehensiveReport | { data: ComprehensiveReport }>(
         `/reports/comprehensive?${queryParams.toString()}`
@@ -230,8 +228,15 @@ export function useComprehensiveReport(params: {
       const resData = response.data;
       const data = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
 
-      // Ensure all sub-reports have their breakdowns
       if (data && typeof data === 'object') {
+        if (data.attendance) {
+          data.attendance.totalDays = data.attendance.totalDays ?? 0;
+          data.attendance.presentDays = data.attendance.presentDays ?? 0;
+          data.attendance.absentDays = data.attendance.absentDays ?? 0;
+          data.attendance.lateDays = data.attendance.lateDays ?? 0;
+          data.attendance.leaveDays = data.attendance.leaveDays ?? 0;
+          data.attendance.attendanceRate = data.attendance.attendanceRate ?? 0;
+        }
         if (data.employee) {
           if (!data.employee.departmentBreakdown) data.employee.departmentBreakdown = [];
           if (!data.employee.positionBreakdown) data.employee.positionBreakdown = [];

@@ -45,6 +45,8 @@ export interface SessionUser {
   employeeId?: string;
   externalAccessToken?: string;
   externalRefreshToken?: string;
+  externalCsrfToken?: string;
+  externalSessionId?: string;
 }
 
 export interface SessionData {
@@ -102,6 +104,8 @@ export function createAuthSession(
     employeeId: user.employeeId,
     externalAccessToken: user.externalAccessToken,
     externalRefreshToken: user.externalRefreshToken,
+    externalCsrfToken: user.externalCsrfToken,
+    externalSessionId: user.externalSessionId,
   };
 
   const accessToken = generateToken(tokenPayload as Omit<JWTPayload, 'iat' | 'exp'>);
@@ -116,7 +120,8 @@ export function createAuthSession(
   // Track this as the active refresh token for the user
   setActiveToken(user.id, refreshTokenId);
   
-  const csrfToken = generateCsrfToken();
+  // Use external CSRF token if available (from backend API), otherwise generate one
+  const csrfToken = user.externalCsrfToken || generateCsrfToken();
 
   // Set access token cookie (httpOnly, secure)
   response.cookies.set(AUTH_COOKIE_NAME, accessToken, {
@@ -312,6 +317,8 @@ export function refreshAuthSession(
       employeeId: payload.employeeId,
       externalAccessToken: payload.externalAccessToken,
       externalRefreshToken: payload.externalRefreshToken,
+      externalCsrfToken: payload.externalCsrfToken,
+      externalSessionId: payload.externalSessionId,
     };
 
     // Create new session (not a new login, so don't clear compromised status)

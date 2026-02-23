@@ -63,3 +63,24 @@ export function withAuth(handler: AuthenticatedHandler) {
     return handler(authenticatedRequest, context);
   };
 }
+
+export function withAuthProxy(handler: AuthenticatedHandler) {
+  return async (
+    request: NextRequest,
+    context?: { params?: Promise<Record<string, string>> }
+  ) => {
+    const user = getAuthSessionFromRequest(request);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const authenticatedRequest = request as AuthenticatedRequest;
+    authenticatedRequest.user = user;
+
+    return handler(authenticatedRequest, context);
+  };
+}

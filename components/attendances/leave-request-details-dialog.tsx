@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Calendar, 
-  Clock, 
-  FileText, 
-  User, 
-  CheckCircle2, 
+import {
+  Calendar,
+  Clock,
+  FileText,
+  User,
+  CheckCircle2,
   XCircle,
   AlertCircle,
   Edit2
@@ -132,12 +132,12 @@ export function LeaveRequestDetailsDialog({
                 </Button>
               )}
             </div>
-            
+
             <span className="text-xs font-medium text-muted-foreground bg-background px-2 py-1 rounded border border-border">
               Ref: {request.id.slice(-8).toUpperCase()}
             </span>
           </div>
-          
+
           {isEditing && canManage ? (
             <div className="space-y-3 mb-2 animate-in fade-in slide-in-from-top-2 duration-300">
               <p className="text-sm font-bold uppercase tracking-widest text-primary">Change Request Status</p>
@@ -151,9 +151,9 @@ export function LeaveRequestDetailsDialog({
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="text-xs text-muted-foreground hover:text-foreground p-0 h-auto"
                 onClick={() => setIsEditing(false)}
               >
@@ -174,7 +174,7 @@ export function LeaveRequestDetailsDialog({
           {/* Employee Section */}
           <div className="flex items-center gap-5">
             <Avatar className="h-16 w-16 border-4 border-background shadow-sm">
-              <AvatarImage src={request.employeeAvatar} alt={request.employeeName} />
+              <AvatarImage src={request.employeeAvatar} alt={request.employeeName} className="object-cover w-full" />
               <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
                 {getInitials(request.employeeName)}
               </AvatarFallback>

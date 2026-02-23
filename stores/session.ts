@@ -28,9 +28,10 @@ interface SessionState {
   sessionExpiresAt: number | null; // Unix timestamp in milliseconds
   accessToken: string | null; // Stored in memory, not persisted
   csrfToken: string | null;
+  sessionId: string | null; // Backend session ID for CSRF validation
 
   // Actions
-  setSession: (user: User, expiresAt: number, csrfToken: string, accessToken: string) => void;
+  setSession: (user: User, expiresAt: number, csrfToken: string, accessToken: string, sessionId?: string) => void;
   setAccessToken: (token: string) => void;
   clearSession: () => void;
   setLoading: (loading: boolean) => void;
@@ -48,11 +49,12 @@ export const useSessionStore = create<SessionState>()(
       sessionExpiresAt: null,
       accessToken: null,
       csrfToken: null,
+      sessionId: null,
 
       /**
        * Set session after successful login
        */
-      setSession: (user: User, expiresAt: number, csrfToken: string, accessToken: string) =>
+      setSession: (user: User, expiresAt: number, csrfToken: string, accessToken: string, sessionId?: string) =>
         set({
           user,
           isAuthenticated: true,
@@ -60,6 +62,7 @@ export const useSessionStore = create<SessionState>()(
           sessionExpiresAt: expiresAt,
           csrfToken,
           accessToken,
+          sessionId: sessionId || null,
         }),
 
       /**
@@ -81,6 +84,7 @@ export const useSessionStore = create<SessionState>()(
           sessionExpiresAt: null,
           accessToken: null,
           csrfToken: null,
+          sessionId: null,
         }),
 
       /**
@@ -183,6 +187,7 @@ export const useSessionStore = create<SessionState>()(
         user: state.user,
         sessionExpiresAt: state.sessionExpiresAt,
         accessToken: state.accessToken,
+        sessionId: state.sessionId,
       }),
       onRehydrateStorage: () => (state) => {
         // After rehydration, validate session with server
@@ -234,4 +239,11 @@ export function getCsrfToken(): string | null {
     return match ? decodeURIComponent(match[1]) : null;
   }
   return null;
+}
+
+/**
+ * Get session ID synchronously (for use in apiClient)
+ */
+export function getSessionId(): string | null {
+  return useSessionStore.getState().sessionId;
 }

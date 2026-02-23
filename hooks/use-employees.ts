@@ -263,4 +263,22 @@ export function useRemoveEmployeeImage() {
   });
 }
 
+export interface EmployeeSummary {
+  totalEmployees: number;
+  activeCount: number;
+  inactiveCount: number;
+  newThisMonth: number;
+}
+
+export function useEmployeeSummary() {
+  return useQuery({
+    queryKey: ["employees", "summary"],
+    queryFn: async (): Promise<EmployeeSummary> => {
+      const response = await apiClient.get<EmployeeSummary | { data: EmployeeSummary }>("/employees/summary");
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
+    },
+  });
+}
+
 

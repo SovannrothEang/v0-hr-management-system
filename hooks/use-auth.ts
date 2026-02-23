@@ -20,6 +20,7 @@ interface LoginResponse {
   user: User;
   expiresAt: number;
   csrfToken?: string;
+  sessionId?: string;
 }
 
 const COOKIE_NAMES = {
@@ -76,16 +77,18 @@ export function useLogin() {
 
       const data = await response.json();
 
-      const cookies = response.headers.get('set-cookie');
-      const csrfToken = cookies?.match(/csrf_token=([^;]+)/)?.[1] || '';
-
       return {
         ...data.data,
-        csrfToken,
       };
     },
-    onSuccess: (data: LoginResponse & { csrfToken?: string }) => {
-      setSession(data.user, data.expiresAt, data.csrfToken || '', data.accessToken);
+    onSuccess: (data: LoginResponse & { csrfToken?: string; sessionId?: string }) => {
+      console.log("[Login Success] Storing session:", {
+        hasCsrfToken: !!data.csrfToken,
+        hasSessionId: !!data.sessionId,
+        csrfToken: data.csrfToken ? `${data.csrfToken.substring(0, 8)}...` : null,
+        sessionId: data.sessionId ? `${data.sessionId.substring(0, 8)}...` : null,
+      });
+      setSession(data.user, data.expiresAt, data.csrfToken || '', data.accessToken, data.sessionId);
       toast.success("Login successful", {
         description: `Welcome back, ${data.user.username || data.user.email}!`,
       });

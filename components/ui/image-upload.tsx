@@ -64,15 +64,15 @@ export function ImageUpload({
     <div className={cn("flex flex-col items-center gap-4", className)}>
       <div className="relative group">
         <Avatar className="h-24 w-24 ring-2 ring-offset-2 ring-border overflow-hidden">
-          <AvatarImage src={preview || ""} alt="Preview" className="object-cover" />
+          <AvatarImage src={preview || ""} alt="Preview" className="object-cover w-full" />
           <AvatarFallback className="bg-secondary text-secondary-foreground text-2xl font-bold">
             {fallbackInitials || <Camera className="h-8 w-8 text-muted-foreground" />}
           </AvatarFallback>
         </Avatar>
-        
+
         {!disabled && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
-               onClick={() => fileInputRef.current?.click()}>
+            onClick={() => fileInputRef.current?.click()}>
             <Camera className="h-6 w-6 text-white" />
           </div>
         )}

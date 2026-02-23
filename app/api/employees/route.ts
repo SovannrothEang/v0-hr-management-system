@@ -4,22 +4,30 @@ import { ROLES } from "@/lib/constants/roles";
 
 export const GET = withRole(async (request) => {
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get("search")?.toLowerCase();
+  const search = searchParams.get("search");
   const department = searchParams.get("department");
   const status = searchParams.get("status");
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  const page = searchParams.get("page") || "1";
+  const limit = searchParams.get("limit") || "10";
 
   try {
-    // Build query params for external API
     const params = new URLSearchParams();
     params.set("includeDetails", "true");
-    if (search) params.set("search", search);
-    if (department && department !== "all") params.set("department", department);
-    if (status && status !== "all") params.set("status", status);
-    params.set("page", page.toString());
-    params.set("limit", limit.toString());
-    params.set("pageSize", limit.toString());
+    params.set("page", page);
+    params.set("limit", limit);
+
+    if (search) {
+      params.set("search", search);
+    }
+
+    if (department && department !== "all") {
+      params.set("department", department);
+    }
+
+    if (status && status !== "all") {
+      const upperStatus = status.toUpperCase();
+      params.set("status", upperStatus);
+    }
 
     const response = await fetch(
       `${process.env.EXTERNAL_API_URL || 'http://localhost:3001/api'}/employees?${params.toString()}`,
@@ -38,10 +46,6 @@ export const GET = withRole(async (request) => {
     }
 
     const data = await response.json();
-
-    // The backend uses TransformInterceptor which wraps data in { data, statusCode }
-    // but ResultPagination already has its own structure.
-    // Let's ensure we handle both NestJS wrapper and ResultPagination correctly.
     const result = data.data || data;
 
     return NextResponse.json({

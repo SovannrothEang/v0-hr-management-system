@@ -11,7 +11,6 @@ import {
   getAuthSessionFromRequest,
   createAuthSession,
   SessionUser,
-  AUTH_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
   CSRF_COOKIE_NAME,
 } from "@/lib/session";
@@ -66,26 +65,42 @@ export async function POST(request: NextRequest) {
     let externalAccessToken = sessionData.user.externalAccessToken;
     let externalRefreshToken = sessionData.user.externalRefreshToken;
     let externalRefreshed = false;
+    let externalCsrfToken = currentSession?.externalCsrfToken;
+    let externalSessionId = currentSession?.externalSessionId;
 
     if (externalRefreshToken) {
       try {
         const externalRes = await fetch(
-          `${getExternalApiUrl()}/auth/refresh-legacy`,
+          `${getExternalApiUrl()}/auth/refresh`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken: externalRefreshToken }),
+            credentials: 'include',
           }
         );
 
         if (externalRes.ok) {
           const extData = await externalRes.json();
           const newExtToken = extData.accessToken || extData.data?.accessToken;
+          const newCsrfToken = extData.csrfToken || extData.data?.csrfToken;
+          const newSessionId = extData.sessionId || extData.data?.sessionId;
+          
           if (newExtToken) {
             externalAccessToken = newExtToken;
             externalRefreshed = true;
-            console.log('[Refresh] External token refreshed');
           }
+          if (newCsrfToken) {
+            externalCsrfToken = newCsrfToken;
+          }
+          if (newSessionId) {
+            externalSessionId = newSessionId;
+          }
+          
+          console.log('[Refresh] External token refreshed:', {
+            hasNewToken: !!newExtToken,
+            hasNewCsrf: !!newCsrfToken,
+            hasNewSessionId: !!newSessionId,
+          });
         }
       } catch (e) {
         console.error('[Refresh] External refresh error:', e);
@@ -96,6 +111,8 @@ export async function POST(request: NextRequest) {
       ...sessionData.user,
       externalAccessToken,
       externalRefreshToken,
+      externalCsrfToken,
+      externalSessionId,
     };
 
     const cookieResponse = NextResponse.json({});
@@ -114,9 +131,10 @@ export async function POST(request: NextRequest) {
           employeeId: user.employeeId,
         },
         expiresAt: newSession.expiresAt,
-        csrfToken: newSession.csrfToken,
+        csrfToken: externalCsrfToken,
         accessToken: newSession.accessToken,
         externalAccessToken,
+        sessionId: externalSessionId,
       },
     });
 
@@ -130,7 +148,10 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    console.log('[Refresh] Complete. Cookies:', response.cookies.getAll().map(c => c.name));
+    console.log('[Refresh] Complete.', {
+      hasCsrfToken: !!externalCsrfToken,
+      hasSessionId: !!externalSessionId,
+    });
 
     logAuditEvent(AuditAction.TOKEN_REFRESH, user as any, {
       ...metadata,

@@ -8,7 +8,9 @@ import { EmployeeTable } from "@/components/employees/employee-table";
 import { EmployeeFilters } from "@/components/employees/employee-filters";
 import { EmployeeDetailSheet } from "@/components/employees/employee-detail-sheet";
 import { EmployeeFormDialog } from "@/components/employees/employee-form-dialog";
+import { EmployeeSummaryCards } from "@/components/employees/employee-summary-cards";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useEmployeeSummary } from "@/hooks/use-employees";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +62,7 @@ export default function EmployeesPage() {
   const isBackgroundUpdating = isFetching && !isLoading;
 
   const { mutate: deleteEmployee } = useDeleteEmployee();
+  const { data: summary } = useEmployeeSummary();
 
   const [selectedEmployeeDetail, setSelectedEmployeeDetail] = useState<Employee | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -140,6 +143,13 @@ export default function EmployeesPage() {
           </Button>
         </AdminOrHROnly>
       </PageHeader>
+
+      <EmployeeSummaryCards
+        totalEmployees={summary?.totalEmployees ?? 0}
+        activeCount={summary?.activeCount ?? 0}
+        inactiveCount={summary?.inactiveCount ?? 0}
+        newThisMonth={summary?.newThisMonth ?? 0}
+      />
 
       <EmployeeFilters />
 

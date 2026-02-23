@@ -50,14 +50,22 @@ export function useAllDepartments() {
 export function useDepartments(params?: {
   page?: number;
   limit?: number;
+  name?: string;
+  sortBy?: "name" | "createdAt" | "employeeCount";
+  sortOrder?: "asc" | "desc";
 }) {
   return useQuery({
     queryKey: ["departments", params],
     queryFn: async (): Promise<PaginatedResponse<Department>> => {
       const queryParams = new URLSearchParams();
-      // queryParams.set("includeEmployees", "true");
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
+      if (params?.name) queryParams.set("name", params.name);
+      if (params?.sortBy) {
+        const sortField = params.sortBy === "name" ? "department_name" : params.sortBy;
+        queryParams.set("sortBy", sortField);
+      }
+      if (params?.sortOrder) queryParams.set("sortOrder", params.sortOrder);
 
       const response = await apiClient.get<any>(
         `/departments?${queryParams.toString()}`
@@ -65,11 +73,9 @@ export function useDepartments(params?: {
 
       const resData = response.data;
 
-      // Robust extraction from ResultPagination structure
       const innerData = (resData as any).data || (Array.isArray(resData) ? resData : []);
       const transformedData = innerData.map(transformDepartment);
 
-      // Handle ResultPagination flat properties
       const total = (resData as any).total ??
         (resData as any).meta?.total ??
         transformedData.length;
@@ -161,6 +167,24 @@ export function useDeleteDepartment() {
     },
     onError: (error: Error) => {
       toast.error("Failed to delete department", { description: error.message });
+    },
+  });
+}
+
+export interface DepartmentSummary {
+  totalDepartments: number;
+  totalEmployees: number;
+  avgEmployeesPerDept: number;
+  largestDept: string;
+}
+
+export function useDepartmentSummary() {
+  return useQuery({
+    queryKey: ["departments", "summary"],
+    queryFn: async (): Promise<DepartmentSummary> => {
+      const response = await apiClient.get<DepartmentSummary | { data: DepartmentSummary }>("/departments/summary");
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
     },
   });
 }

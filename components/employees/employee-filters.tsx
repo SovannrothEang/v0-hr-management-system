@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { useEmployeeStore, type EmploymentStatus } from "@/stores/employee-store";
-import { useDepartments } from "@/hooks/use-departments";
+import { useAllDepartments } from "@/hooks/use-departments";
 
 export function EmployeeFilters() {
   const {
@@ -23,9 +23,8 @@ export function EmployeeFilters() {
     setFilterStatus,
     clearFilters,
   } = useEmployeeStore();
-  const { data: deptResult } = useDepartments();
+  const { data: departments } = useAllDepartments();
 
-  const departments = deptResult?.data || [];
   const hasFilters =
     searchQuery || filterDepartment !== "all" || filterStatus !== "all";
 
@@ -65,6 +64,7 @@ export function EmployeeFilters() {
         <SelectContent>
           <SelectItem value="all">All Status</SelectItem>
           <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="inactive">Inactive</SelectItem>
           <SelectItem value="on_leave">On Leave</SelectItem>
           <SelectItem value="probation">Probation</SelectItem>
           <SelectItem value="terminated">Terminated</SelectItem>

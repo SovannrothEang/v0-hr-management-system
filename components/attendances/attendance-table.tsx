@@ -111,7 +111,7 @@ export function AttendanceTable({
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={avatar || "/placeholder.svg"} alt={firstName} />
+                        <AvatarImage src={avatar || "/placeholder.svg"} alt={firstName} className="object-cover w-full" />
                         <AvatarFallback className="bg-primary/10 text-primary text-xs">
                           {getInitials(firstName, lastName)}
                         </AvatarFallback>

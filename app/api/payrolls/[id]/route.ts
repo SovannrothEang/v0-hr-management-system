@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { ROLES } from "@/lib/constants/roles";
+import { logAuditEvent, AuditAction, getRequestMetadata } from "@/lib/audit-log";
 import { getExternalApiUrl } from "@/lib/proxy";
 
 export const GET = withRole(async (request, context) => {
@@ -108,3 +109,59 @@ export const GET = withRole(async (request, context) => {
     );
   }
 }, [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE]);
+
+export const DELETE = withRole(async (request, context) => {
+  const { id } = await context?.params!;
+  const metadata = getRequestMetadata(request);
+
+  try {
+    const response = await fetch(
+      `${getExternalApiUrl()}/payrolls/${id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${request.user.externalAccessToken || ''}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+
+      logAuditEvent(AuditAction.PAYROLL_DELETED, request.user, {
+        ...metadata,
+        resource: 'payroll',
+        resourceId: id,
+        success: false,
+        errorMessage: errorData.message || 'Failed to delete payroll',
+      });
+
+      return NextResponse.json(
+        { success: false, message: errorData.message || "Failed to delete payroll" },
+        { status: response.status }
+      );
+    }
+
+    logAuditEvent(AuditAction.PAYROLL_DELETED, request.user, {
+      ...metadata,
+      resource: 'payroll',
+      resourceId: id,
+      success: true,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logAuditEvent(AuditAction.PAYROLL_DELETED, request.user, {
+      ...metadata,
+      resource: 'payroll',
+      resourceId: id,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return NextResponse.json(
+      { success: false, message: "Failed to delete payroll" },
+      { status: 500 }
+    );
+  }
+}, [ROLES.ADMIN, ROLES.HR_MANAGER]);

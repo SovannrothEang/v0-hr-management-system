@@ -24,6 +24,8 @@ export interface JWTPayload {
   employeeId?: string;
   externalAccessToken?: string;
   externalRefreshToken?: string;
+  externalCsrfToken?: string;
+  externalSessionId?: string;
   iat?: number;
   exp?: number;
   jti?: string;

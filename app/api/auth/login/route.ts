@@ -86,6 +86,15 @@ export async function POST(request: Request) {
     const externalUser = loginData.data.user;
     const externalAccessToken = loginData.data.accessToken;
     const externalRefreshToken = loginData.data.refreshToken;
+    const externalSessionId = loginData.data.sessionId;
+    const externalCsrfToken = loginData.data.csrfToken;
+
+    console.log("[Login] Backend response:", {
+      hasSessionId: !!externalSessionId,
+      hasCsrfToken: !!externalCsrfToken,
+      sessionId: externalSessionId ? `${externalSessionId.substring(0, 8)}...` : null,
+      csrfToken: externalCsrfToken ? `${externalCsrfToken.substring(0, 8)}...` : null,
+    });
 
     const sessionUser: SessionUser = {
       id: externalUser.id,
@@ -96,6 +105,8 @@ export async function POST(request: Request) {
       employeeId: externalUser.employeeId,
       externalAccessToken: externalAccessToken,
       externalRefreshToken: externalRefreshToken,
+      externalCsrfToken: externalCsrfToken,
+      externalSessionId: externalSessionId,
     };
 
     // Create response
@@ -151,8 +162,9 @@ export async function POST(request: Request) {
             avatar: `/api/users/${sessionUser.id}/image`,
           },
           expiresAt: sessionData.expiresAt,
-          csrfToken: sessionData.csrfToken,
+          csrfToken: externalCsrfToken,
           accessToken: sessionData.accessToken,
+          sessionId: externalSessionId,
         },
       },
       {

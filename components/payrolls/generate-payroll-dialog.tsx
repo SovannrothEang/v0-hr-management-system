@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { useGeneratePayroll } from "@/hooks/use-payroll";
 import { Loader2, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
 
 interface GeneratePayrollDialogProps {
   open: boolean;
@@ -28,40 +27,56 @@ interface GeneratePayrollDialogProps {
 }
 
 const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  { name: "January", value: 1 },
+  { name: "February", value: 2 },
+  { name: "March", value: 3 },
+  { name: "April", value: 4 },
+  { name: "May", value: 5 },
+  { name: "June", value: 6 },
+  { name: "July", value: 7 },
+  { name: "August", value: 8 },
+  { name: "September", value: 9 },
+  { name: "October", value: 10 },
+  { name: "November", value: 11 },
+  { name: "December", value: 12 },
 ];
 
 const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth() + 1;
 const years = [currentYear - 1, currentYear, currentYear + 1];
+
+function getPayPeriod(month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return {
+    payPeriodStart: `${year}-${pad(month)}-01`,
+    payPeriodEnd: `${year}-${pad(month)}-${pad(endDate.getDate())}`,
+  };
+}
 
 export function GeneratePayrollDialog({
   open,
   onOpenChange,
 }: GeneratePayrollDialogProps) {
-  const [month, setMonth] = useState(months[new Date().getMonth()]);
+  const [month, setMonth] = useState(currentMonth.toString());
   const [year, setYear] = useState(currentYear.toString());
   const generatePayroll = useGeneratePayroll();
 
   const handleGenerate = async () => {
-    try {
-      await generatePayroll.mutateAsync({ month, year: parseInt(year) });
-      toast.success(`Payroll generated for ${month} ${year}`);
-      onOpenChange(false);
-    } catch {
-      toast.error("Failed to generate payroll");
-    }
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+    const { payPeriodStart, payPeriodEnd } = getPayPeriod(monthNum, yearNum);
+
+    await generatePayroll.mutateAsync({
+      payPeriodStart,
+      payPeriodEnd,
+      currencyCode: "USD",
+    });
+    onOpenChange(false);
   };
+
+  const selectedMonthName = months.find((m) => m.value === parseInt(month))?.name || "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +84,8 @@ export function GeneratePayrollDialog({
         <DialogHeader>
           <DialogTitle>Generate Payroll</DialogTitle>
           <DialogDescription>
-            Generate payroll records for all active employees for the selected period.
+            Generate payroll records for all active employees for the selected
+            period.
           </DialogDescription>
         </DialogHeader>
 
@@ -83,8 +99,8 @@ export function GeneratePayrollDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {months.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
+                    <SelectItem key={m.value} value={m.value.toString()}>
+                      {m.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -113,8 +129,9 @@ export function GeneratePayrollDialog({
             <div className="text-sm">
               <p className="font-medium text-warning">Important</p>
               <p className="text-muted-foreground mt-1">
-                This will create payroll records based on employee salaries and attendance
-                data. Existing payroll records for this period will not be affected.
+                This will create payroll records for {selectedMonthName} {year}{" "}
+                based on employee salaries. Existing payroll records for this
+                period will be skipped.
               </p>
             </div>
           </div>
@@ -124,10 +141,7 @@ export function GeneratePayrollDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleGenerate}
-            disabled={generatePayroll.isPending}
-          >
+          <Button onClick={handleGenerate} disabled={generatePayroll.isPending}>
             {generatePayroll.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}

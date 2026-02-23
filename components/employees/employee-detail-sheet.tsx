@@ -78,10 +78,10 @@ export function EmployeeDetailSheet({
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage 
-                  src={employee.avatar} 
-                  alt={employee.firstName} 
-                  className="object-cover"
+                <AvatarImage
+                  src={employee.avatar}
+                  alt={employee.firstName}
+                  className="object-cover w-full"
                 />
                 <AvatarFallback className="bg-primary/10 text-primary text-lg">
                   {getInitials(employee.firstName, employee.lastName)}

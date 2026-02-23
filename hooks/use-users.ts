@@ -248,3 +248,21 @@ export function useRemoveUserImage() {
     },
   });
 }
+
+export interface UserSummary {
+  totalUsers: number;
+  adminCount: number;
+  hrCount: number;
+  activeCount: number;
+}
+
+export function useUserSummary() {
+  return useQuery({
+    queryKey: ["users", "summary"],
+    queryFn: async (): Promise<UserSummary> => {
+      const response = await apiClient.get<UserSummary | { data: UserSummary }>("/users/summary");
+      const data = response.data;
+      return (data && typeof data === 'object' && 'data' in data) ? (data as any).data : data;
+    },
+  });
+}

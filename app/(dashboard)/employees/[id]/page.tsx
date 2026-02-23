@@ -179,10 +179,10 @@ export default function EmployeePage({ params }: EmployeePageProps) {
         <Card className="lg:col-span-1 border-border bg-card shadow-sm h-fit">
           <CardHeader className="items-center justify-items-center text-center pb-6">
             <Avatar className="h-24 w-24 ring-4 ring-secondary/50">
-              <AvatarImage 
-                src={employee.avatar} 
-                alt={employee.firstName} 
-                className="object-cover"
+              <AvatarImage
+                src={employee.avatar}
+                alt={employee.firstName}
+                className="object-cover w-full"
               />
               <AvatarFallback className="bg-primary/10 text-primary text-2xl">
                 {getInitials(employee.firstName, employee.lastName)}
@@ -431,7 +431,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                           setIsPayslipOpen(true);
                         }}
                         onProcess={(payrollId) => processPayroll(payrollId)}
-                        onMarkPaid={(payrollId) => markPaid(payrollId)}
+                        onMarkPaid={(payrollId) => markPaid({ payrollId })}
                         showActions={true}
                       />
                     )}

@@ -83,15 +83,15 @@ export function LeaveRequestTable({
             </TableRow>
           ) : (
             requests.map((request) => (
-              <TableRow 
-                key={request.id} 
+              <TableRow
+                key={request.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => onViewDetails(request)}
               >
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={request.employeeAvatar} alt={request.employeeName} />
+                    <Avatar className="h-8 w-8 ">
+                      <AvatarImage src={request.employeeAvatar} alt={request.employeeName} className="object-cover w-full" />
                       <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
                         {getInitials(request.employeeName)}
                       </AvatarFallback>

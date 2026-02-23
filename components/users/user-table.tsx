@@ -126,27 +126,27 @@ export function UserTable({
                     onCheckedChange={() => toggleRow(user.id)}
                   />
                 </TableCell>
-                 <TableCell>
-                   <div className="flex items-center gap-3">
-                     <Avatar className="h-9 w-9">
-                       <AvatarImage src={user.avatar} alt={user.firstName || user.username} className="object-cover" />
-                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                         {getInitials(user.firstName, user.lastName, user.username)}
-                       </AvatarFallback>
-                     </Avatar>
-                     <div>
-                       <p className="font-medium text-card-foreground">
-                         {user.firstName && user.lastName
-                           ? `${user.firstName} ${user.lastName}`
-                           : user.username || user.email}
-                       </p>
-                       <p className="text-xs text-muted-foreground">
-                         @{user.username || user.email.split('@')[0]}
-                       </p>
-                       <p className="text-xs text-muted-foreground">User ID: {user.id.slice(0, 8)}</p>
-                     </div>
-                   </div>
-                 </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user.avatar} alt={user.firstName || user.username} className="object-cover w-full" />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {getInitials(user.firstName, user.lastName, user.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-card-foreground">
+                        {user.firstName && user.lastName
+                          ? `${user.firstName} ${user.lastName}`
+                          : user.username || user.email}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        @{user.username || user.email.split('@')[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">User ID: {user.id.slice(0, 8)}</p>
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">

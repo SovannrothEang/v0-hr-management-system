@@ -1,23 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,37 +21,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from "@/hooks/use-departments";
+import { DepartmentTable } from "@/components/departments/department-table";
+import { DepartmentFormDialog } from "@/components/departments/department-form-dialog";
+import { DepartmentDetailSheet } from "@/components/departments/department-detail-sheet";
+import { DepartmentSummaryCards } from "@/components/departments/department-summary-cards";
+import { DepartmentFilters } from "@/components/departments/department-filters";
+import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, useDepartmentSummary } from "@/hooks/use-departments";
 import { useEmployees } from "@/hooks/use-employees";
 import { usePermissions } from "@/hooks/use-permissions";
-import { Building2, Users, Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useDepartmentFilters } from "@/hooks/use-department-filters";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Plus, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Department } from "@/hooks/use-departments";
 
 export default function DepartmentsPage() {
-  // Use local state for pagination instead of URL parameters
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(9);
+  const [limit, setLimit] = useState(10);
 
+  const { searchQuery, sortBy, sortOrder } = useDepartmentFilters();
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
-  const { data: deptResult, isLoading: isDeptsLoading } = useDepartments({ page: currentPage, limit });
+  const { data: deptResult, isLoading: isDeptsLoading, isFetching } = useDepartments({
+    page: currentPage,
+    limit,
+    name: debouncedSearch || undefined,
+    sortBy,
+    sortOrder,
+  });
   const { data: empResult, isLoading: isEmployeesLoading } = useEmployees();
+  const { data: summary } = useDepartmentSummary();
   const { mutate: createDepartment, isPending: isCreating } = useCreateDepartment();
   const { mutate: updateDepartment, isPending: isUpdating } = useUpdateDepartment();
   const { mutate: deleteDepartment, isPending: isDeleting } = useDeleteDepartment();
   const { isAdmin } = usePermissions();
 
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [viewingDepartment, setViewingDepartment] = useState<Department | null>(null);
   const [deletingDepartment, setDeletingDepartment] = useState<Department | null>(null);
-  const [departmentName, setDepartmentName] = useState("");
 
-  const isLoading = isDeptsLoading || isEmployeesLoading;
+  const isInitialLoading = isDeptsLoading || isEmployeesLoading;
+  const isBackgroundUpdating = isFetching && !isDeptsLoading;
   const isPending = isCreating || isUpdating || isDeleting;
 
   const departments = deptResult?.data || [];
   const meta = deptResult?.meta;
   const employees = empResult?.data || [];
   const totalEmployeesCount = empResult?.meta?.total || employees.length || 0;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, sortBy, sortOrder]);
 
   const updatePage = (newPage: number, newLimit?: number) => {
     setCurrentPage(newPage);
@@ -87,42 +94,46 @@ export default function DepartmentsPage() {
   };
 
   const handleCreate = () => {
-    if (!departmentName.trim()) return;
-    createDepartment(
-      { name: departmentName.trim() },
-      {
-        onSuccess: () => {
-          setIsCreateDialogOpen(false);
-          setDepartmentName("");
-        },
-      }
-    );
+    setEditingDepartment(null);
+    setIsFormOpen(true);
+  };
+
+  const handleView = (department: Department) => {
+    setViewingDepartment(department);
   };
 
   const handleEdit = (department: Department) => {
+    setViewingDepartment(null);
     setEditingDepartment(department);
-    setDepartmentName(department.name);
-  };
-
-  const handleUpdate = () => {
-    if (!editingDepartment || !departmentName.trim()) return;
-    updateDepartment(
-      {
-        id: editingDepartment.id,
-        original: editingDepartment,
-        modified: { name: departmentName.trim() },
-      },
-      {
-        onSuccess: () => {
-          setEditingDepartment(null);
-          setDepartmentName("");
-        },
-      }
-    );
+    setIsFormOpen(true);
   };
 
   const handleDelete = (department: Department) => {
     setDeletingDepartment(department);
+  };
+
+  const handleFormSubmit = (data: { name: string }) => {
+    if (editingDepartment) {
+      updateDepartment(
+        {
+          id: editingDepartment.id,
+          original: editingDepartment,
+          modified: data,
+        },
+        {
+          onSuccess: () => {
+            setIsFormOpen(false);
+            setEditingDepartment(null);
+          },
+        }
+      );
+    } else {
+      createDepartment(data, {
+        onSuccess: () => {
+          setIsFormOpen(false);
+        },
+      });
+    }
   };
 
   const confirmDelete = () => {
@@ -142,127 +153,51 @@ export default function DepartmentsPage() {
         description="Manage your organization's departments"
       >
         {isAdmin && (
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" disabled={isPending}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Department
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add New Department</DialogTitle>
-                <DialogDescription>
-                  Enter the name of the new department.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="departmentName">Department Name</Label>
-                  <Input
-                    id="departmentName"
-                    value={departmentName}
-                    onChange={(e) => setDepartmentName(e.target.value)}
-                    placeholder="e.g., Engineering"
-                    disabled={isPending}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleCreate} disabled={isPending || !departmentName.trim()}>
-                  {isCreating ? "Creating..." : "Create"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" onClick={handleCreate} disabled={isPending}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Department
+          </Button>
         )}
       </PageHeader>
 
-      {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-24" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : departments && departments.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {departments.map((dept: Department) => (
-            <Card key={dept.name} className="bg-card border-border hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-medium text-card-foreground">
-                    {dept.name}
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    {isAdmin && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => handleEdit(dept)}
-                          disabled={isPending}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(dept)}
-                          disabled={isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{dept.employeeCount || 0} employees</span>
-                </div>
-                {dept.employeeCount !== undefined && dept.employeeCount > 0 && (
-                  <Badge variant="secondary" className="mt-2">
-                    {totalEmployeesCount > 0
-                      ? ((dept.employeeCount / totalEmployeesCount) * 100).toFixed(1)
-                      : 0}% of workforce
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
+      <DepartmentSummaryCards
+        totalDepartments={summary?.totalDepartments ?? 0}
+        totalEmployees={summary?.totalEmployees ?? 0}
+        avgEmployeesPerDept={summary?.avgEmployeesPerDept ?? 0}
+        largestDept={summary?.largestDept ?? ""}
+      />
+
+      <DepartmentFilters />
+
+      {isInitialLoading ? (
+        <div className="border border-border rounded-lg p-8 space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
       ) : (
-        <Card className="bg-card border-border">
-          <CardContent className="p-8 text-center text-muted-foreground">
-            No departments found
-          </CardContent>
-        </Card>
+        <div className={cn("relative", isBackgroundUpdating && "opacity-60 pointer-events-none")}>
+          <DepartmentTable
+            departments={departments}
+            totalEmployees={totalEmployeesCount}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          {isBackgroundUpdating && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Pagination */}
       {meta && (
         <div className="flex items-center justify-end space-x-6 lg:space-x-8 mt-6 border-t pt-6">
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Rows per page:</span>
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Rows per page:
+            </span>
             <Select
               value={limit.toString()}
               onValueChange={(value) => updatePage(1, parseInt(value))}
@@ -271,7 +206,7 @@ export default function DepartmentsPage() {
                 <SelectValue placeholder={limit.toString()} />
               </SelectTrigger>
               <SelectContent side="top">
-                {[9, 18, 36, 72].map((pageSize) => (
+                {[10, 20, 50, 100].map((pageSize) => (
                   <SelectItem key={pageSize} value={pageSize.toString()}>
                     {pageSize}
                   </SelectItem>
@@ -282,7 +217,10 @@ export default function DepartmentsPage() {
 
           <div className="flex items-center text-sm font-medium text-muted-foreground">
             {meta.total > 0 ? (
-              `${(meta.page - 1) * meta.limit + 1}–${Math.min(meta.page * meta.limit, meta.total)} of ${meta.total}`
+              `${(meta.page - 1) * meta.limit + 1}–${Math.min(
+                meta.page * meta.limit,
+                meta.total
+              )} of ${meta.total}`
             ) : (
               "0-0 of 0"
             )}
@@ -313,48 +251,38 @@ export default function DepartmentsPage() {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingDepartment} onOpenChange={(open) => !open && setEditingDepartment(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Department</DialogTitle>
-            <DialogDescription>
-              Update the department name.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="editDepartmentName">Department Name</Label>
-              <Input
-                id="editDepartmentName"
-                value={departmentName}
-                onChange={(e) => setDepartmentName(e.target.value)}
-                disabled={isPending}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditingDepartment(null)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate} disabled={isPending || !departmentName.trim()}>
-              {isUpdating ? "Updating..." : "Update"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DepartmentFormDialog
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setEditingDepartment(null);
+        }}
+        department={editingDepartment}
+        onSubmit={handleFormSubmit}
+        isPending={isCreating || isUpdating}
+      />
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingDepartment} onOpenChange={(open) => !open && setDeletingDepartment(null)}>
+      <DepartmentDetailSheet
+        department={viewingDepartment}
+        totalEmployees={totalEmployeesCount}
+        open={!!viewingDepartment}
+        onOpenChange={(open) => {
+          if (!open) setViewingDepartment(null);
+        }}
+        onEdit={handleEdit}
+      />
+
+      <AlertDialog
+        open={!!deletingDepartment}
+        onOpenChange={(open) => {
+          if (!open) setDeletingDepartment(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the department "{deletingDepartment?.name}".
+              This will permanently delete the department &quot;{deletingDepartment?.name}&quot;.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

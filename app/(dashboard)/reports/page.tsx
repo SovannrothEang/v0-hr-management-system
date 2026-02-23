@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { ReportsSummaryCards } from "@/components/reports/reports-summary-cards";
 import { AttendanceReportCard } from "@/components/reports/attendance-report-card";
 import { EmployeeReportCard } from "@/components/reports/employee-report-card";
 import { PayrollReportCard } from "@/components/reports/payroll-report-card";
@@ -17,7 +18,7 @@ import {
   usePayrollReport,
   useLeaveReport,
 } from "@/hooks/use-reports";
-import { FileText, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ReportsPage() {
@@ -34,18 +35,22 @@ export default function ReportsPage() {
 
   const { data: attendanceData, isLoading: attendanceLoading } =
     useAttendanceReport(dateParams);
-  const { data: employeeData, isLoading: employeeLoading } = useEmployeeReport({
-    department,
-  });
+  const { data: employeeData, isLoading: employeeLoading } = useEmployeeReport(dateParams);
   const { data: payrollData, isLoading: payrollLoading } =
     usePayrollReport(dateParams);
   const { data: leaveData, isLoading: leaveLoading } = useLeaveReport(dateParams);
 
-  // Export params for report cards
+  const isAnyLoading = attendanceLoading || employeeLoading || payrollLoading || leaveLoading;
+
   const exportParams: Record<string, string> = {
     startDate: dateParams.startDate,
     endDate: dateParams.endDate,
     ...(department !== "all" && { department }),
+  };
+
+  const comprehensiveParams: Record<string, string> = {
+    year: new Date().getFullYear().toString(),
+    month: (new Date().getMonth() + 1).toString(),
   };
 
   const handlePrint = () => {
@@ -64,7 +69,7 @@ export default function ReportsPage() {
         </Button>
         <ExportDropdown
           endpoint="/reports/comprehensive"
-          params={exportParams}
+          params={comprehensiveParams}
           reportName="comprehensive_report"
         />
       </PageHeader>
@@ -78,12 +83,17 @@ export default function ReportsPage() {
         onDepartmentChange={setDepartment}
       />
 
+      <ReportsSummaryCards
+        attendanceData={attendanceData}
+        employeeData={employeeData}
+        payrollData={payrollData}
+        leaveData={leaveData}
+        isLoading={isAnyLoading}
+      />
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-secondary/50">
-          <TabsTrigger value="overview">
-            <FileText className="mr-2 h-4 w-4" />
-            Overview
-          </TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="payroll">Payroll</TabsTrigger>
