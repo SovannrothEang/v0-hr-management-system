@@ -73,14 +73,27 @@ class ApiClient {
     this.isRefreshing = true;
     this.refreshPromise = (async () => {
       try {
+        console.log('[ApiClient] Attempting to refresh access token...');
+        
+        // Try cookie-based refresh first (httpOnly cookie should be sent automatically)
         const response = await fetch(`${this.baseUrl}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          credentials: 'include', // This sends the refresh_token cookie
         });
+
+        console.log('[ApiClient] Refresh response status:', response.status);
+
+        if (response.status === 401) {
+          // Refresh token is expired or missing - must redirect to login
+          console.log('[ApiClient] Refresh token expired or missing - redirecting to login');
+          return false;
+        }
 
         if (!response.ok) {
           console.log('[ApiClient] Refresh failed with status:', response.status);
+          const errorData = await response.json().catch(() => ({}));
+          console.log('[ApiClient] Refresh error:', errorData.message || 'Unknown error');
           return false;
         }
 
@@ -180,71 +193,74 @@ class ApiClient {
         : error.message;
       
       if (response.status === 401) {
-        console.log('[ApiClient] Got 401, retryCount:', retryCount);
+        console.log('[ApiClient] Got 401 (access token expired), retryCount:', retryCount);
         
+        // Only try to refresh on the first 401
         if (retryCount === 0 && typeof window !== 'undefined') {
-          console.log('[ApiClient] Attempting token refresh...');
+          console.log('[ApiClient] Attempting to refresh access token...');
           
-          try {
-            const refreshed = await this.refreshSession();
-            console.log('[ApiClient] Refresh result:', refreshed);
+          const refreshed = await this.refreshSession();
+          console.log('[ApiClient] Refresh result:', refreshed);
+          
+          if (refreshed) {
+            // Refresh succeeded! Retry the request with new token
+            const newAccessToken = getAccessToken();
+            if (newAccessToken) {
+              headers['Authorization'] = `Bearer ${newAccessToken}`;
+            }
             
-            if (refreshed) {
-              const newAccessToken = getAccessToken();
-              if (newAccessToken) {
-                headers['Authorization'] = `Bearer ${newAccessToken}`;
-              }
-              
-              const newCsrfToken = getCsrfToken();
-              if (newCsrfToken && requiresCsrf(method)) {
-                headers['x-csrf-token'] = newCsrfToken;
-              }
+            const newCsrfToken = getCsrfToken();
+            if (newCsrfToken && requiresCsrf(method)) {
+              headers['x-csrf-token'] = newCsrfToken;
+            }
 
-              const newSessionId = getSessionId();
-              if (newSessionId && requiresCsrf(method)) {
-                headers['x-session-id'] = newSessionId;
-              }
-              
-              console.log('[ApiClient] Retrying request with new token...');
-              
-              const retryResponse = await fetch(url, {
-                ...options,
-                headers,
-                credentials: 'include',
-              });
-              
-              if (retryResponse.ok) {
-                if (retryResponse.status === 204) {
-                  return { data: null as T, success: true };
-                }
-                const retryText = await retryResponse.text();
-                if (!retryText) {
-                  return { data: null as T, success: true };
-                }
-                return JSON.parse(retryText) as ApiResponse<T>;
-              }
-              
-              if (retryResponse.status === 401) {
-                console.log('[ApiClient] Retry still got 401, redirecting to login');
-                redirectToLogin();
-                throw new Error('Session expired');
-              }
-              
-              const retryError = await retryResponse.json().catch(() => ({}));
-              throw new Error(retryError.message || `HTTP error! status: ${retryResponse.status}`);
-            } else {
-              console.log('[ApiClient] Refresh failed, redirecting to login');
+            const newSessionId = getSessionId();
+            if (newSessionId && requiresCsrf(method)) {
+              headers['x-session-id'] = newSessionId;
             }
-          } catch (err) {
-            console.log('[ApiClient] Refresh exception:', err);
-            if (err instanceof Error && err.message === 'Session expired') {
-              throw err;
+            
+            console.log('[ApiClient] Retrying request with refreshed token...');
+            
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers,
+              credentials: 'include',
+            });
+            
+            if (retryResponse.ok) {
+              if (retryResponse.status === 204) {
+                return { data: null as T, success: true };
+              }
+              const retryText = await retryResponse.text();
+              if (!retryText) {
+                return { data: null as T, success: true };
+              }
+              return JSON.parse(retryText) as ApiResponse<T>;
             }
+            
+            // If retry still gets 401, refresh token is also expired/invalid
+            if (retryResponse.status === 401) {
+              console.log('[ApiClient] Retry still got 401 - refresh token is expired or invalid');
+              console.log('[ApiClient] Redirecting to login...');
+              redirectToLogin();
+              throw new Error('Session expired - please login again');
+            }
+            
+            // Other error on retry
+            const retryError = await retryResponse.json().catch(() => ({}));
+            throw new Error(retryError.message || `HTTP error! status: ${retryResponse.status}`);
+          } else {
+            // Refresh failed - refresh token is expired/missing
+            console.log('[ApiClient] Refresh token expired or missing - redirecting to login');
+            redirectToLogin();
+            throw new Error('Session expired - please login again');
           }
         }
         
+        // Already tried to refresh once, redirect to login
+        console.log('[ApiClient] Already retried once, redirecting to login');
         redirectToLogin();
-        throw new Error('Session expired');
+        throw new Error('Session expired - please login again');
       }
       
       if (response.status === 403) {

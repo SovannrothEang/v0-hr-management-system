@@ -7,17 +7,21 @@ import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useSessionStore();
+  const { isAuthenticated, isLoading, user } = useSessionStore();
 
   useEffect(() => {
     if (!isLoading) {
       if (isAuthenticated) {
-        router.replace("/dashboard");
+        if (user?.roles?.includes("HRMS_API" as any)) {
+          router.replace("/machine");
+        } else {
+          router.replace("/dashboard");
+        }
       } else {
         router.replace("/login");
       }
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, user, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
