@@ -8,6 +8,7 @@ export const ROLES = {
   ADMIN: 'ADMIN',
   HR_MANAGER: 'HR_MANAGER',
   EMPLOYEE: 'EMPLOYEE',
+  HRMS_API: 'HRMS_API',
 } as const;
 
 export type RoleName = typeof ROLES[keyof typeof ROLES];
@@ -129,6 +130,10 @@ export const ROLE_PERMISSIONS: Record<RoleName, PermissionName[]> = {
     PERMISSIONS.LEAVE_VIEW_SELF,
     PERMISSIONS.LEAVE_SUBMIT,
     PERMISSIONS.PAYROLL_VIEW_SELF,
+  ],
+  [ROLES.HRMS_API]: [
+    // Machine user has very limited permissions
+    PERMISSIONS.ATTENDANCE_CLOCK_SELF,
   ],
 };
 

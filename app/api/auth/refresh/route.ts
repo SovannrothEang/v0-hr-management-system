@@ -70,24 +70,31 @@ export async function POST(request: NextRequest) {
 
     if (externalRefreshToken) {
       try {
+        console.log('[Refresh] Calling external API with refresh token...');
         const externalRes = await fetch(
           `${getExternalApiUrl()}/auth/refresh`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Cookie': `refresh_token=${externalRefreshToken}`,
+            },
           }
         );
 
         if (externalRes.ok) {
           const extData = await externalRes.json();
           const newExtToken = extData.accessToken || extData.data?.accessToken;
+          const newExtRefreshToken = extData.refreshToken || extData.data?.refreshToken;
           const newCsrfToken = extData.csrfToken || extData.data?.csrfToken;
           const newSessionId = extData.sessionId || extData.data?.sessionId;
           
           if (newExtToken) {
             externalAccessToken = newExtToken;
             externalRefreshed = true;
+          }
+          if (newExtRefreshToken) {
+            externalRefreshToken = newExtRefreshToken;
           }
           if (newCsrfToken) {
             externalCsrfToken = newCsrfToken;
@@ -98,9 +105,12 @@ export async function POST(request: NextRequest) {
           
           console.log('[Refresh] External token refreshed:', {
             hasNewToken: !!newExtToken,
+            hasNewRefreshToken: !!newExtRefreshToken,
             hasNewCsrf: !!newCsrfToken,
             hasNewSessionId: !!newSessionId,
           });
+        } else {
+          console.log(`[Refresh] External API returned ${externalRes.status}:`, await externalRes.text().catch(() => 'No response body'));
         }
       } catch (e) {
         console.error('[Refresh] External refresh error:', e);

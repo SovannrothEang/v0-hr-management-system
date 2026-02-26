@@ -4,4 +4,4 @@ import { proxyGet } from "@/lib/proxy";
 
 export const GET = withRole(async (request) => {
   return proxyGet(request, "/attendances/qr/out", "Failed to generate QR check-out token");
-}, [ROLES.ADMIN, ROLES.HR_MANAGER]);
+}, [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.HRMS_API]);

@@ -37,6 +37,7 @@ interface SessionState {
   setLoading: (loading: boolean) => void;
   updateSessionExpiry: (expiresAt: number, csrfToken?: string) => void;
   checkSession: () => Promise<boolean>;
+  refreshSession: () => Promise<boolean>;
 }
 
 export const useSessionStore = create<SessionState>()(
@@ -104,21 +105,28 @@ export const useSessionStore = create<SessionState>()(
       /**
        * Validate session with server
        * Returns true if session is valid, false otherwise
+       * If no access token but refresh token exists, will attempt to refresh
        */
       checkSession: async () => {
         const state = get();
         
-        // If no access token, user is not authenticated
+        // If no access token, try to refresh using refresh token cookie
         if (!state.accessToken) {
-          set({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-            sessionExpiresAt: null,
-            csrfToken: null,
-            accessToken: null,
-          });
-          return false;
+          console.log('[Session] No access token, attempting refresh...');
+          const refreshed = await get().refreshSession();
+          if (!refreshed) {
+            console.log('[Session] Refresh failed, clearing session');
+            set({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+              sessionExpiresAt: null,
+              csrfToken: null,
+              accessToken: null,
+            });
+            return false;
+          }
+          return true;
         }
         
         try {
@@ -130,6 +138,24 @@ export const useSessionStore = create<SessionState>()(
               'Authorization': `Bearer ${state.accessToken}`,
             },
           });
+
+          if (response.status === 401) {
+            // Access token expired, try to refresh
+            console.log('[Session] Session check returned 401, attempting refresh...');
+            const refreshed = await get().refreshSession();
+            if (!refreshed) {
+              set({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+                sessionExpiresAt: null,
+                csrfToken: null,
+                accessToken: null,
+              });
+              return false;
+            }
+            return true;
+          }
 
           if (!response.ok) {
             set({
@@ -165,7 +191,8 @@ export const useSessionStore = create<SessionState>()(
             accessToken: null,
           });
           return false;
-        } catch {
+        } catch (error) {
+          console.error('[Session] Check session error:', error);
           set({
             user: null,
             isAuthenticated: false,
@@ -177,17 +204,61 @@ export const useSessionStore = create<SessionState>()(
           return false;
         }
       },
+
+      /**
+       * Refresh session using refresh token cookie
+       * Returns true if refresh succeeded, false otherwise
+       */
+      refreshSession: async () => {
+        try {
+          console.log('[Session] Calling refresh endpoint...');
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || '/api'}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          });
+
+          if (!response.ok) {
+            console.log('[Session] Refresh failed with status:', response.status);
+            return false;
+          }
+
+          const data = await response.json();
+          
+          if (data.success && data.data) {
+            const { accessToken, csrfToken, expiresAt, user, sessionId } = data.data;
+            
+            if (accessToken) {
+              const currentState = get();
+              set({
+                user: user || currentState.user,
+                isAuthenticated: true,
+                isLoading: false,
+                sessionExpiresAt: expiresAt || Date.now() + 24 * 60 * 60 * 1000,
+                accessToken,
+                csrfToken: csrfToken || currentState.csrfToken,
+                sessionId: sessionId || currentState.sessionId,
+              });
+              console.log('[Session] Token refreshed successfully');
+              return true;
+            }
+          }
+          
+          console.log('[Session] Refresh response missing accessToken');
+          return false;
+        } catch (error) {
+          console.error('[Session] Refresh error:', error);
+          return false;
+        }
+      },
     }),
     {
       name: "hrflow-session",
-      // Persist user data, session expiry, and access token for cross-page reload support
-      // Note: Access token is stored in localStorage (not httpOnly cookie) for frontend convenience
-      // Security is maintained through: HTTPS, CORS, CSRF, short expiry (1h), and automatic refresh
+      // Only persist user data for display purposes
+      // DO NOT persist auth tokens - they should always come from httpOnly cookies
+      // This prevents the app from thinking user is logged in when cookies are deleted
       partialize: (state) => ({
         user: state.user,
-        sessionExpiresAt: state.sessionExpiresAt,
-        accessToken: state.accessToken,
-        sessionId: state.sessionId,
       }),
       onRehydrateStorage: () => (state) => {
         // After rehydration, validate session with server

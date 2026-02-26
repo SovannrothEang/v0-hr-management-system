@@ -2,9 +2,10 @@
 
 import React from "react"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@/hooks/use-auth";
+import { useSessionStore } from "@/stores/session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,21 +16,40 @@ import { Loader2, Building2, Eye, EyeOff } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const { mutate: login, isPending } = useLogin();
+  const { isAuthenticated, isLoading, user } = useSessionStore();
   const [email, setEmail] = useState("admin@example.com");
   const [password, setPassword] = useState("Admin123!");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Note: We removed auto-redirect from here
+  // Redirect only happens after successful login in handleSubmit
+  // This allows users to manually navigate to /login even if they have a session
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(
-      { email, password },
-      {
-        onSuccess: () => {
-          router.push("/dashboard");
-        },
+    login({ email, password }, {
+      onSuccess: (data) => {
+        // Redirect based on role after successful login
+        if (data?.user?.roles?.includes("HRMS_API" as any)) {
+          router.replace("/machine");
+        } else {
+          router.replace("/dashboard");
+        }
       }
-    );
+    });
   };
 
   return (
@@ -134,8 +154,8 @@ export default function LoginPage() {
                   <code className="text-card-foreground">hr@hrflow.com / hr123</code>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
-                  <span className="text-muted-foreground">Employee:</span>
-                  <code className="text-card-foreground">sarah.johnson@hrflow.com / emp123</code>
+                  <span className="text-muted-foreground">Kiosk:</span>
+                  <code className="text-card-foreground">machine@example.com / Machine123!</code>
                 </div>
               </div>
             </div>
