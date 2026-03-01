@@ -21,6 +21,7 @@ import { Building2, Bell, Shield, Globe, Palette, Loader2, Eye, EyeOff, Save } f
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useCurrencies } from "@/hooks/use-currencies";
 
 interface CompanySettings {
   id: string;
@@ -61,17 +62,6 @@ const TIMEZONES = [
   { value: "UTC+12", label: "UTC+12:00" },
 ];
 
-const CURRENCIES = [
-  { value: "USD", label: "USD ($)" },
-  { value: "EUR", label: "EUR (€)" },
-  { value: "GBP", label: "GBP (£)" },
-  { value: "JPY", label: "JPY (¥)" },
-  { value: "IDR", label: "IDR (Rp)" },
-  { value: "SGD", label: "SGB ($)" },
-  { value: "AUD", label: "AUD ($)" },
-  { value: "CAD", label: "CAD ($)" },
-];
-
 const DATE_FORMATS = [
   { value: "mdy", label: "MM/DD/YYYY" },
   { value: "dmy", label: "DD/MM/YYYY" },
@@ -104,6 +94,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<CompanySettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { data: currencies = [], isLoading: currenciesLoading } = useCurrencies();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -331,19 +322,24 @@ export default function SettingsPage() {
                       <Select
                         value={settings.baseCurrencyCode}
                         onValueChange={(value) => updateSetting("baseCurrencyCode", value)}
-                        disabled={!canModifySettings}
+                        disabled={!canModifySettings || currenciesLoading || currencies.length === 0}
                       >
                         <SelectTrigger className="bg-secondary border-border">
-                          <SelectValue placeholder="Select currency" />
+                          <SelectValue placeholder={currencies.length === 0 ? "No currencies available" : "Select currency"} />
                         </SelectTrigger>
                         <SelectContent>
-                          {CURRENCIES.map((c) => (
-                            <SelectItem key={c.value} value={c.value}>
-                              {c.label}
+                          {currencies.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>
+                              {c.code} ({c.symbol}) - {c.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {currencies.length === 0 && !currenciesLoading && (
+                        <p className="text-xs text-warning">
+                          No currencies configured. Please add currencies in the payroll settings first.
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="dateFormat">Date Format</Label>

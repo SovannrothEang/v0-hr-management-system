@@ -97,10 +97,12 @@ export function AttendanceTable({
             records.map((record) => {
               const employee = getEmployee(record.employeeId) || record.employee;
 
-              const firstName = employee?.firstName || "Unknown";
-              const lastName = employee?.lastName || "";
-              const department = (employee as any)?.department || "N/A";
-              const avatar = (employee as any)?.avatar;
+              // Handle both API format (firstname/lastname) and frontend format (firstName/lastName)
+              const empAny = employee as any;
+              const firstName = empAny?.firstName || empAny?.firstname || "Unknown";
+              const lastName = empAny?.lastName || empAny?.lastname || "";
+              const department = empAny?.department || "N/A";
+              const avatar = empAny?.avatar || empAny?.profileImage;
 
               const canClockIn = !record.clockIn && record.status !== "on_leave";
               const canClockOut =

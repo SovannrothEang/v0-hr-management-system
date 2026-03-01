@@ -7,7 +7,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSessionStore } from "@/stores/session";
 import { Loader2 } from "lucide-react";
 
@@ -17,13 +17,20 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkSession } = useSessionStore();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading, user, checkSession } = useSessionStore();
 
   useEffect(() => {
     // Validate session with server on mount
     checkSession().then((isValid) => {
       if (!isValid) {
-        router.push("/login");
+        // Use logout=true to break server-side redirect loops
+        router.push(`/login?logout=true&redirect=${encodeURIComponent(pathname)}`);
+        } else if (useSessionStore.getState().user?.roles?.includes("HRMS_API" as any)) {
+        // If it's a machine user trying to access non-machine routes
+        if (!pathname.startsWith('/machine')) {
+          router.replace('/machine');
+        }
       }
     });
   }, [checkSession, router]);
@@ -42,6 +49,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    return null;
+  }
+  
+  // If authenticated but it's a machine on a dashboard route, show nothing while redirecting
+  if (user?.roles?.includes("HRMS_API" as any) && !pathname.startsWith('/machine')) {
     return null;
   }
 

@@ -108,27 +108,19 @@ export const useSessionStore = create<SessionState>()(
       checkSession: async () => {
         const state = get();
         
-        // If no access token, user is not authenticated
-        if (!state.accessToken) {
-          set({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-            sessionExpiresAt: null,
-            csrfToken: null,
-            accessToken: null,
-          });
-          return false;
-        }
+        // Even if we don't have an in-memory access token, we should check with the server
+        // because we might have a valid session cookie (auth_token or refresh_token).
+        // The server-side /auth/session endpoint now handles transparent refresh.
         
         try {
           set({ isLoading: true });
 
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || '/api'}/auth/session`, {
             method: 'GET',
-            headers: {
+            headers: state.accessToken ? {
               'Authorization': `Bearer ${state.accessToken}`,
-            },
+            } : {},
+            credentials: 'include', // Ensure cookies are sent for session check
           });
 
           if (!response.ok) {
@@ -146,12 +138,16 @@ export const useSessionStore = create<SessionState>()(
           const data = await response.json();
 
           if (data.data?.user) {
+            // If tokens were refreshed on the server, update the store
+            const { accessToken, csrfToken, expiresAt } = data.data;
+            
             set({
               user: data.data.user,
               isAuthenticated: true,
               isLoading: false,
-              sessionExpiresAt: data.data.expiresAt || state.sessionExpiresAt,
-              accessToken: state.accessToken,
+              sessionExpiresAt: expiresAt || state.sessionExpiresAt,
+              accessToken: accessToken || state.accessToken,
+              csrfToken: csrfToken || state.csrfToken,
             });
             return true;
           }

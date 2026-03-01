@@ -44,13 +44,24 @@ export function markTokenAsUsed(jti: string, userId: string): void {
   });
 }
 
+// Token rotation grace period (30 seconds)
+// Allows near-simultaneous requests to use the same refresh token
+const ROTATION_GRACE_PERIOD_MS = 30000;
+
 /**
  * Check if a refresh token has already been used
+ * Incorporates a grace period to handle race conditions
  * @param jti - JWT ID to check
- * @returns True if token was already used
+ * @returns True if token was already used and is outside grace period
  */
 export function isTokenUsed(jti: string): boolean {
-  return usedRefreshTokens.has(jti);
+  const tokenData = usedRefreshTokens.get(jti);
+  if (!tokenData) return false;
+
+  // If the token was used within the grace period, treat it as "not used yet"
+  // to allow other concurrent requests to proceed.
+  const timeSinceUse = Date.now() - tokenData.usedAt;
+  return timeSinceUse > ROTATION_GRACE_PERIOD_MS;
 }
 
 /**

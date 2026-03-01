@@ -49,10 +49,16 @@ function clearAllSessionCookies(): void {
 function redirectToLogin(): void {
   if (typeof window === 'undefined') return;
   
-  clearAllSessionCookies();
+  // Clear the Zustand store and localStorage explicitly
   useSessionStore.getState().clearSession();
   
-  const loginUrl = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  // Clear non-httpOnly cookies like csrf_token
+  clearAllSessionCookies();
+  
+  // Redirect to login with logout=true to break any server-side redirect loops
+  // Also include the current path for later redirect back if possible
+  const currentPath = window.location.pathname + window.location.search;
+  const loginUrl = `/login?logout=true&redirect=${encodeURIComponent(currentPath)}`;
   window.location.href = loginUrl;
 }
 
@@ -65,9 +71,10 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async refreshSession(): Promise<boolean> {
+  private async refreshSession(): Promise<{ success: boolean; status?: number }> {
     if (this.isRefreshing && this.refreshPromise) {
-      return this.refreshPromise;
+      const success = await this.refreshPromise;
+      return { success };
     }
 
     this.isRefreshing = true;
@@ -81,7 +88,15 @@ class ApiClient {
 
         if (!response.ok) {
           console.log('[ApiClient] Refresh failed with status:', response.status);
-          return false;
+          // If it's a 401 or 403, the refresh token is definitely invalid
+          if (response.status === 401 || response.status === 403) {
+            return false;
+          }
+          // For other errors (500, etc.), we should probably not wipe the session yet
+          // but we still can't proceed with the current request.
+          // Returning true here would be wrong, but returning false triggers logout.
+          // Let's throw an error instead for non-auth failures.
+          return false; 
         }
 
         const data = await response.json();
@@ -126,7 +141,8 @@ class ApiClient {
       }
     })();
 
-    return this.refreshPromise;
+    const success = await this.refreshPromise;
+    return { success };
   }
 
   private async request<T>(
@@ -159,12 +175,6 @@ class ApiClient {
       if (sessionId) {
         headers['x-session-id'] = sessionId;
       }
-      console.log(`[ApiClient] CSRF headers for ${method} ${endpoint}:`, {
-        hasCsrfToken: !!csrfToken,
-        hasSessionId: !!sessionId,
-        csrfToken: csrfToken ? `${csrfToken.substring(0, 8)}...` : null,
-        sessionId: sessionId ? `${sessionId.substring(0, 8)}...` : null,
-      });
     }
     
     const response = await fetch(url, {
@@ -180,16 +190,16 @@ class ApiClient {
         : error.message;
       
       if (response.status === 401) {
-        console.log('[ApiClient] Got 401, retryCount:', retryCount);
-        
         if (retryCount === 0 && typeof window !== 'undefined') {
-          console.log('[ApiClient] Attempting token refresh...');
+          console.log('[ApiClient] Unauthorized (401). Attempting session refresh...', {
+            endpoint,
+            hasAccessToken: !!accessToken,
+          });
           
           try {
-            const refreshed = await this.refreshSession();
-            console.log('[ApiClient] Refresh result:', refreshed);
+            const { success } = await this.refreshSession();
             
-            if (refreshed) {
+            if (success) {
               const newAccessToken = getAccessToken();
               if (newAccessToken) {
                 headers['Authorization'] = `Bearer ${newAccessToken}`;
@@ -205,7 +215,7 @@ class ApiClient {
                 headers['x-session-id'] = newSessionId;
               }
               
-              console.log('[ApiClient] Retrying request with new token...');
+              console.log('[ApiClient] Retrying original request with new token...');
               
               const retryResponse = await fetch(url, {
                 ...options,
@@ -214,6 +224,7 @@ class ApiClient {
               });
               
               if (retryResponse.ok) {
+                console.log('[ApiClient] Retry SUCCESS');
                 if (retryResponse.status === 204) {
                   return { data: null as T, success: true };
                 }
@@ -225,26 +236,37 @@ class ApiClient {
               }
               
               if (retryResponse.status === 401) {
-                console.log('[ApiClient] Retry still got 401, redirecting to login');
+                console.error(`[ApiClient] Request failed: ${method} ${endpoint} -> 401`);
+                console.error('[ApiClient] Retry still 401. Session is dead.');
+                const retryError = await retryResponse.json().catch(() => ({}));
+                console.error('[ApiClient] Server reason:', retryError.message);
                 redirectToLogin();
                 throw new Error('Session expired');
               }
-              
-              const retryError = await retryResponse.json().catch(() => ({}));
-              throw new Error(retryError.message || `HTTP error! status: ${retryResponse.status}`);
             } else {
-              console.log('[ApiClient] Refresh failed, redirecting to login');
+              console.error(`[ApiClient] Request failed: ${method} ${endpoint} -> 401`);
+              console.error('[ApiClient] Refresh failed to return a new session. Redirecting to login.');
+              redirectToLogin();
+              throw new Error('Session expired');
             }
           } catch (err) {
-            console.log('[ApiClient] Refresh exception:', err);
             if (err instanceof Error && err.message === 'Session expired') {
               throw err;
             }
+            console.error(`[ApiClient] Request failed: ${method} ${endpoint} -> 401`);
+            console.error('[ApiClient] Refresh process exception:', err);
+            throw err;
           }
+        } else {
+          console.error(`[ApiClient] Request failed: ${method} ${endpoint} -> 401`);
+          console.error('[ApiClient] 401 on non-retryable request or window is undefined. Redirecting.');
+          redirectToLogin();
+          throw new Error('Session expired');
         }
-        
-        redirectToLogin();
-        throw new Error('Session expired');
+      } else {
+        // Only log errors for non-401 statuses here
+        // 401 errors are handled above and logged only if they fail to refresh
+        console.error(`[ApiClient] Request failed: ${method} ${endpoint} -> ${response.status}`);
       }
       
       if (response.status === 403) {

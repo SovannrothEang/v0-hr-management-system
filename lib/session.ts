@@ -137,7 +137,7 @@ export function createAuthSession(
     httpOnly: true,
     secure: isProduction,
     sameSite: 'strict',
-    path: '/api/auth', // Only sent to auth endpoints
+    path: '/', // Allow SSR and all API routes to handle transparent refresh
     maxAge: REFRESH_TOKEN_MAX_AGE,
   });
 
@@ -250,7 +250,7 @@ export function clearAuthSession(response: NextResponse): void {
     httpOnly: true,
     secure: isProduction,
     sameSite: 'strict',
-    path: '/api/auth',
+    path: '/',
     maxAge: 0,
   });
 
@@ -287,6 +287,8 @@ export function refreshAuthSession(
     const userId = payload.id;
     const tokenJti = payload.jti;
 
+    console.log(`[refreshAuthSession] Attempting refresh for user: ${userId}, JTI: ${tokenJti}`);
+
     // Check if user's token family is compromised (security breach detected)
     if (isFamilyCompromised(userId)) {
       console.warn(`[SECURITY] Rejected refresh attempt for compromised user: ${userId}`);
@@ -298,7 +300,7 @@ export function refreshAuthSession(
       // SECURITY: Token reuse detected! This could indicate token theft.
       // Invalidate the entire token family for this user.
       markFamilyCompromised(userId);
-      console.error(`[SECURITY] Refresh token reuse detected for user: ${userId}, JTI: ${tokenJti}`);
+      console.error(`[SECURITY] Refresh token reuse detected for user: ${userId}, JTI: ${tokenJti}. This token was used outside the grace period.`);
       return null;
     }
 
@@ -322,9 +324,13 @@ export function refreshAuthSession(
     };
 
     // Create new session (not a new login, so don't clear compromised status)
+    console.log(`[refreshAuthSession] SUCCESS. Issued new tokens for user: ${userId}`);
     return createAuthSession(response, user, false);
   } catch (error) {
     console.error('[Session] Refresh token verification failed:', error);
+    if (error instanceof Error) {
+      console.error(`[Session] Error message: ${error.message}`);
+    }
     return null;
   }
 }

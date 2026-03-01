@@ -81,9 +81,12 @@ interface AttendanceState {
   setViewMode: (mode: "day" | "week" | "month") => void;
 }
 
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+
 export const useAttendanceStore = create<AttendanceState>((set) => ({
   selectedDate: new Date(),
-  dateFrom: new Date(),
+  dateFrom: yesterday,
   dateTo: new Date(),
   viewMode: "day",
   setSelectedDate: (date) => set({ selectedDate: date }),

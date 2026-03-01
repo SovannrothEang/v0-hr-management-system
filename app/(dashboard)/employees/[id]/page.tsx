@@ -20,6 +20,7 @@ import { useEmployee } from "@/hooks/use-employees";
 import { useAttendanceRecords, useClockIn, useClockOut, useUpdateLeaveRequest } from "@/hooks/use-attendance";
 import { useLeaveRequests } from "@/hooks/use-attendance";
 import { usePayrollRecords, useProcessPayroll, useMarkPayrollPaid } from "@/hooks/use-payroll";
+import { useEmployeeLeaveBalance } from "@/hooks/use-leave-balances";
 import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
@@ -72,6 +73,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
   const { data: attendanceResult, isLoading: attendanceLoading } = useAttendanceRecords({ employeeId: id, limit: 10 });
   const { data: leaveResult, isLoading: leaveLoading } = useLeaveRequests({ employeeId: id, limit: 10 });
   const { data: payrollResult, isLoading: payrollLoading } = usePayrollRecords({ employeeId: id });
+  const { data: leaveBalance, isLoading: leaveBalanceLoading } = useEmployeeLeaveBalance(id, new Date().getFullYear());
 
   const { isAdmin, isHRManager, user } = usePermissions();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -89,6 +91,17 @@ export default function EmployeePage({ params }: EmployeePageProps) {
 
   const canEdit = isAdmin || isHRManager || (user?.employeeId === id);
   const isManager = isAdmin || isHRManager;
+
+  // Calculate attendance rate from records
+  const attendanceRecords = attendanceResult?.data || [];
+  const attendanceRate = attendanceRecords.length > 0
+    ? Math.round((attendanceRecords.filter((r: any) => r.status === "present" || r.status === "late").length / attendanceRecords.length) * 100)
+    : 0;
+
+  // Calculate total available leave days
+  const totalAvailableLeave = leaveBalance?.balances?.reduce((total: number, balance: any) => {
+    return total + (balance.availableDays || 0);
+  }, 0) || 0;
 
   const getInitials = (firstName?: string, lastName?: string) => {
     const f = firstName?.[0] ?? "";
@@ -206,13 +219,13 @@ export default function EmployeePage({ params }: EmployeePageProps) {
               <div className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center shrink-0">
                 <Mail className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span className="truncate">{employee.email}</span>
+              <span className="truncate">{employee.email ?? 'N/A'}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center shrink-0">
                 <Phone className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span>{employee.phone}</span>
+              <span>{employee.phone ?? 'N/A'}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center shrink-0">
@@ -225,7 +238,7 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                 <div className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center shrink-0">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <span>{employee.address}</span>
+                <span>{employee.address ?? 'N/A'}</span>
               </div>
             )}
           </CardContent>
@@ -332,7 +345,11 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">94%</div>
+                    {attendanceLoading ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      <div className="text-2xl font-bold">{attendanceRate}%</div>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       Attendance rate this month
                     </p>
@@ -346,7 +363,11 @@ export default function EmployeePage({ params }: EmployeePageProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">12 Days</div>
+                    {leaveBalanceLoading ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      <div className="text-2xl font-bold">{totalAvailableLeave} Days</div>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       Annual leave balance
                     </p>

@@ -1,35 +1,12 @@
-/**
- * Session Validation Endpoint
- * Returns current session status and user data
- * Used by client to validate session on app load
- */
-
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  getAuthSessionFromRequest, 
-  getSessionExpiry,
-  AUTH_COOKIE_NAME,
-} from "@/lib/session";
+import { withAuth, AuthenticatedRequest } from "@/lib/auth/with-auth";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: AuthenticatedRequest) => {
   try {
-    // Get session from cookie
-    const user = getAuthSessionFromRequest(request);
+    const user = request.user;
+    const sessionData = request.sessionData;
     
-    if (!user) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          authenticated: false,
-          user: null,
-          expiresAt: null,
-        },
-      });
-    }
-
-    // Get session expiry time
-    const expiresAt = getSessionExpiry(request);
-
+    // If we have sessionData, it means a refresh just happened in withAuth
     return NextResponse.json({
       success: true,
       data: {
@@ -43,7 +20,10 @@ export async function GET(request: NextRequest) {
           employeeId: user.employeeId,
           avatar: `/api/users/${user.id}/image`,
         },
-        expiresAt,
+        // Provide tokens if refreshed, otherwise client uses what it has
+        accessToken: sessionData?.accessToken,
+        csrfToken: sessionData?.csrfToken,
+        expiresAt: sessionData?.expiresAt || (user as any).exp * 1000,
       },
     });
   } catch (error) {
@@ -61,4 +41,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

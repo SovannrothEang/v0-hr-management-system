@@ -182,7 +182,7 @@ export async function POST(request: Request) {
         httpOnly: cookie.name !== 'csrf_token',
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        path: cookie.name === 'refresh_token' ? '/api/auth' : '/',
+        path: '/',
         maxAge: cookie.name === 'refresh_token' ? 7 * 24 * 60 * 60 : 24 * 60 * 60,
       });
     });

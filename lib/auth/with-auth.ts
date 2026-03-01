@@ -8,12 +8,17 @@ import { JWTPayload } from './verify-token';
 import { 
   getAuthSessionFromRequest, 
   validateCsrfToken, 
-  requiresCsrfValidation 
+  requiresCsrfValidation, 
+  REFRESH_COOKIE_NAME,
+  refreshAuthSession,
+  AUTH_COOKIE_NAME,
+  SessionData
 } from '@/lib/session';
 
 // Extended request with user data
 export interface AuthenticatedRequest extends NextRequest {
   user: JWTPayload;
+  sessionData?: SessionData; // Add optional session data for refreshed tokens
 }
 
 // API handler type with authenticated request
@@ -36,13 +41,50 @@ export function withAuth(handler: AuthenticatedHandler) {
     context?: { params?: Promise<Record<string, string>> }
   ) => {
     // Get user from cookie
-    const user = getAuthSessionFromRequest(request);
+    let user = getAuthSessionFromRequest(request);
+    let sessionData: SessionData | undefined = undefined;
+    let refreshResponse: NextResponse | null = null;
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
+      console.log('[withAuth] No valid session, checking for refresh token...');
+      
+      // Check if refresh token exists
+      const refreshToken = request.cookies.get(REFRESH_COOKIE_NAME)?.value;
+
+      if (refreshToken) {
+        console.log('[withAuth] Refresh token found, attempting refresh...');
+        
+        // Create a temporary response to capture new cookies
+        const tempResponse = NextResponse.json({});
+        const result = refreshAuthSession(request, tempResponse);
+        
+        if (result) {
+          console.log('[withAuth] Session refreshed successfully');
+          user = result.user as unknown as JWTPayload;
+          sessionData = result;
+          refreshResponse = tempResponse;
+        } else {
+          console.log('[withAuth] Refresh failed, clearing cookies');
+          // Refresh failed, clear all auth cookies
+          const response = NextResponse.json(
+            { success: false, message: 'Session expired' },
+            { status: 401 }
+          );
+          response.cookies.set(AUTH_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+          response.cookies.set(REFRESH_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+          return response;
+        }
+      } else {
+        console.log('[withAuth] No refresh token, authentication required');
+        const response = NextResponse.json(
+          { success: false, message: 'Authentication required' },
+          { status: 401 }
+        );
+        // Clear cookies even if we just don't have a user, to ensure client-server sync
+        response.cookies.set(AUTH_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+        response.cookies.set(REFRESH_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+        return response;
+      }
     }
 
     // Validate CSRF token for state-changing requests
@@ -55,32 +97,34 @@ export function withAuth(handler: AuthenticatedHandler) {
       }
     }
 
-    // Attach user to request
+    // Attach user and optional session data to request
     const authenticatedRequest = request as AuthenticatedRequest;
     authenticatedRequest.user = user;
+    if (sessionData) {
+      authenticatedRequest.sessionData = sessionData;
+    }
 
     // Call the original handler
-    return handler(authenticatedRequest, context);
+    const finalResponse = await handler(authenticatedRequest, context);
+
+    // If we refreshed the session, merge the new cookies into the final response
+    if (refreshResponse) {
+      refreshResponse.cookies.getAll().forEach(cookie => {
+        finalResponse.cookies.set(cookie.name, cookie.value, {
+          httpOnly: cookie.httpOnly,
+          secure: cookie.secure,
+          sameSite: cookie.sameSite,
+          path: cookie.path,
+          maxAge: cookie.maxAge,
+        });
+      });
+    }
+
+    return finalResponse;
   };
 }
 
 export function withAuthProxy(handler: AuthenticatedHandler) {
-  return async (
-    request: NextRequest,
-    context?: { params?: Promise<Record<string, string>> }
-  ) => {
-    const user = getAuthSessionFromRequest(request);
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const authenticatedRequest = request as AuthenticatedRequest;
-    authenticatedRequest.user = user;
-
-    return handler(authenticatedRequest, context);
-  };
+  // Use the same logic as withAuth for proxy handlers to ensure tokens are refreshed
+  return withAuth(handler);
 }

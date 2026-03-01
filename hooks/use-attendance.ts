@@ -157,6 +157,7 @@ export function useAttendanceRecords(params?: {
       else if (params?.endDate) queryParams.set("dateTo", params.endDate);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
+      queryParams.set("childIncluded", "true");
 
       const response = await apiClient.get<any>(
         `/attendances?${queryParams.toString()}`

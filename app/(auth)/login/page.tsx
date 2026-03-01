@@ -1,35 +1,64 @@
 "use client";
 
-import React from "react"
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLogin } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
+import { useSessionStore } from "@/stores/session";
+import { Building2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Building2, Eye, EyeOff } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { mutate: login, isPending } = useLogin();
+  const { isAuthenticated, isLoading, user } = useSessionStore();
   const [email, setEmail] = useState("admin@example.com");
   const [password, setPassword] = useState("Admin123!");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Check for logout flag to prevent redirect loop
+  const isForcedLogout = searchParams.get('logout') === 'true';
+  
+  // Safe redirect only for authenticated users who are NOT being forced to logout
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !isForcedLogout) {
+      if (user?.roles?.includes("HRMS_API" as any)) {
+        router.replace("/machine");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [isLoading, isAuthenticated, user, isForcedLogout, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(
-      { email, password },
-      {
-        onSuccess: () => {
-          router.push("/dashboard");
-        },
-      }
-    );
+    login({ email, password }, {
+      onSuccess: (data) => {
+        // Redirect based on role after successful login
+        if (data?.user?.roles?.includes("HRMS_API" as any)) {
+          router.replace("/machine");
+        } else {
+          router.replace("/dashboard");
+        }
+      },
+    });
   };
 
   return (
@@ -134,8 +163,8 @@ export default function LoginPage() {
                   <code className="text-card-foreground">hr@hrflow.com / hr123</code>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
-                  <span className="text-muted-foreground">Employee:</span>
-                  <code className="text-card-foreground">sarah.johnson@hrflow.com / emp123</code>
+                  <span className="text-muted-foreground">Kiosk:</span>
+                  <code className="text-card-foreground">machine@example.com / Machine123!</code>
                 </div>
               </div>
             </div>
@@ -147,5 +176,17 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

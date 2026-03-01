@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use refreshAuthSession to handle rotation and initial user data
     const tempResponse = NextResponse.json({});
     const sessionData = refreshAuthSession(request, tempResponse);
 
@@ -62,32 +63,53 @@ export async function POST(request: NextRequest) {
       return failResponse;
     }
 
+    // Now handle external token refresh if necessary
     let externalAccessToken = sessionData.user.externalAccessToken;
     let externalRefreshToken = sessionData.user.externalRefreshToken;
     let externalRefreshed = false;
-    let externalCsrfToken = currentSession?.externalCsrfToken;
-    let externalSessionId = currentSession?.externalSessionId;
+    let externalCsrfToken = sessionData.user.externalCsrfToken;
+    let externalSessionId = sessionData.user.externalSessionId;
 
     if (externalRefreshToken) {
       try {
+        console.log(`[Refresh] Attempting external token refresh for session: ${externalSessionId?.substring(0, 8)}...`);
+        
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        // CRITICAL: Forward the session ID cookie so the backend can validate the refresh token
+        // and maintain the same secure session (avoiding "Legacy Mode").
+        if (externalSessionId) {
+          headers['Cookie'] = `session_id=${externalSessionId}`;
+        }
+
         const externalRes = await fetch(
           `${getExternalApiUrl()}/auth/refresh`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+            headers,
+            body: JSON.stringify({ refreshToken: externalRefreshToken }),
           }
         );
 
         if (externalRes.ok) {
           const extData = await externalRes.json();
-          const newExtToken = extData.accessToken || extData.data?.accessToken;
-          const newCsrfToken = extData.csrfToken || extData.data?.csrfToken;
-          const newSessionId = extData.sessionId || extData.data?.sessionId;
+          // The backend might return data wrapped or direct
+          const responseData = extData.data || extData;
+          
+          const newExtToken = responseData.accessToken;
+          const newExtRefreshToken = responseData.refreshToken;
+          const newCsrfToken = responseData.csrfToken;
+          const newSessionId = responseData.sessionId;
           
           if (newExtToken) {
             externalAccessToken = newExtToken;
             externalRefreshed = true;
+            console.log('[Refresh] External access token refreshed successfully');
+          }
+          if (newExtRefreshToken) {
+            externalRefreshToken = newExtRefreshToken;
           }
           if (newCsrfToken) {
             externalCsrfToken = newCsrfToken;
@@ -95,71 +117,80 @@ export async function POST(request: NextRequest) {
           if (newSessionId) {
             externalSessionId = newSessionId;
           }
-          
-          console.log('[Refresh] External token refreshed:', {
-            hasNewToken: !!newExtToken,
-            hasNewCsrf: !!newCsrfToken,
-            hasNewSessionId: !!newSessionId,
-          });
+        } else {
+          const errText = await externalRes.text();
+          console.error(`[Refresh] External refresh failed (${externalRes.status}):`, errText);
         }
       } catch (e) {
         console.error('[Refresh] External refresh error:', e);
       }
     }
 
-    const user: SessionUser = {
-      ...sessionData.user,
-      externalAccessToken,
-      externalRefreshToken,
-      externalCsrfToken,
-      externalSessionId,
-    };
+    // If external tokens changed, we need to update the session cookies again
+    // but we SHOULD NOT call createAuthSession fully as it would rotate JTI again.
+    // Instead, we update the existing sessionData.
+    let finalSessionData = sessionData;
+    let finalResponse = tempResponse;
 
-    const cookieResponse = NextResponse.json({});
-    const newSession = createAuthSession(cookieResponse, user, false);
+    if (externalRefreshed) {
+      // Create a fresh session with the updated external tokens
+      // We use createAuthSession here to ensure the JWT payload is updated
+      // It will generate a NEW JTI, but since we are only doing this once per route call, it's fine.
+      // The important part is that we only have ONE set of cookies going back.
+      const updatedUser: SessionUser = {
+        ...sessionData.user,
+        externalAccessToken,
+        externalRefreshToken,
+        externalCsrfToken,
+        externalSessionId,
+      };
+      
+      const updateResponse = NextResponse.json({});
+      finalSessionData = createAuthSession(updateResponse, updatedUser, false);
+      finalResponse = updateResponse;
+    }
 
-    const response = NextResponse.json({
+    const responseBody = {
       success: true,
       message: "Token refreshed",
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          roles: user.roles,
-          department: user.department,
-          employeeId: user.employeeId,
+          id: finalSessionData.user.id,
+          email: finalSessionData.user.email,
+          username: finalSessionData.user.username,
+          roles: finalSessionData.user.roles,
+          department: finalSessionData.user.department,
+          employeeId: finalSessionData.user.employeeId,
         },
-        expiresAt: newSession.expiresAt,
+        expiresAt: finalSessionData.expiresAt,
         csrfToken: externalCsrfToken,
-        accessToken: newSession.accessToken,
+        accessToken: finalSessionData.accessToken,
         externalAccessToken,
         sessionId: externalSessionId,
       },
-    });
+    };
 
-    cookieResponse.cookies.getAll().forEach((cookie) => {
+    const response = NextResponse.json(responseBody);
+
+    // Copy cookies from the final response
+    finalResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie.name, cookie.value, {
-        httpOnly: cookie.name !== CSRF_COOKIE_NAME,
+        httpOnly: cookie.httpOnly ?? (cookie.name !== CSRF_COOKIE_NAME),
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        path: cookie.name === REFRESH_COOKIE_NAME ? '/api/auth' : '/',
-        maxAge: cookie.name === REFRESH_COOKIE_NAME ? 7 * 24 * 60 * 60 : 24 * 60 * 60,
+        path: '/',
+        maxAge: cookie.maxAge ?? (cookie.name === REFRESH_COOKIE_NAME ? 7 * 24 * 60 * 60 : 24 * 60 * 60),
       });
     });
 
-    console.log('[Refresh] Complete.', {
-      hasCsrfToken: !!externalCsrfToken,
-      hasSessionId: !!externalSessionId,
-    });
-
-    logAuditEvent(AuditAction.TOKEN_REFRESH, user as any, {
+    logAuditEvent(AuditAction.TOKEN_REFRESH, finalSessionData.user as any, {
       ...metadata,
       success: true,
-      details: { email: user.email, externalRefreshed },
+      details: { email: finalSessionData.user.email, externalRefreshed },
     });
 
     return response;
+
   } catch (error) {
     console.error("Token refresh error:", error);
     return NextResponse.json(

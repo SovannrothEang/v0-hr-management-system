@@ -17,6 +17,13 @@ export interface Position {
   updatedAt?: string | null;
 }
 
+export interface PositionDropdown {
+  id: string;
+  title: string;
+  salaryRangeMin: number;
+  salaryRangeMax: number;
+}
+
 export interface CreatePositionData {
   title: string;
   description?: string;
@@ -126,6 +133,28 @@ export function useAllPositions() {
             ? resData
             : [];
       return innerData.map(transformPosition);
+    },
+  });
+}
+
+export function usePositionDropdown() {
+  return useQuery({
+    queryKey: ["positions", "dropdown"],
+    queryFn: async (): Promise<PositionDropdown[]> => {
+      const response = await apiClient.get<any>("/positions/all");
+      const resData = response.data;
+      // Handle different response structures
+      const positions = Array.isArray(resData)
+        ? resData
+        : Array.isArray(resData?.data)
+          ? resData.data
+          : [];
+      return positions.map((pos: any) => ({
+        id: pos.id,
+        title: pos.title || "",
+        salaryRangeMin: Number(pos.salaryRangeMin || 0),
+        salaryRangeMax: Number(pos.salaryRangeMax || 0),
+      }));
     },
   });
 }

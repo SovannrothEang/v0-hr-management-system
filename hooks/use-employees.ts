@@ -144,12 +144,81 @@ export function useEmployee(id: string | null) {
   });
 }
 
+export interface CreateEmployeeData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  departmentId: string;
+  positionId: string;
+  position?: string;
+  employmentType: "full_time" | "part_time" | "contract" | "intern";
+  status: "active" | "on_leave" | "probation" | "terminated" | "inactive";
+  hireDate: string;
+  salary: number;
+  address?: string;
+  gender?: "male" | "female";
+  dateOfBirth?: string;
+}
+
+function transformToApiFormat(data: CreateEmployeeData): any {
+  // Generate employee code (e.g., EMP001)
+  const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
+  const employeeCode = `EMP${timestamp}`;
+  
+  // Generate username from email
+  const username = data.email.split('@')[0].slice(0, 25);
+  
+  // Map employment type to uppercase enum
+  const employmentTypeMap: Record<string, string> = {
+    'full_time': 'FULL_TIME',
+    'part_time': 'PART_TIME',
+    'contract': 'CONTRACT',
+    'intern': 'INTERN',
+  };
+  
+  // Map status to uppercase enum
+  const statusMap: Record<string, string> = {
+    'active': 'ACTIVE',
+    'on_leave': 'ON_LEAVE',
+    'probation': 'PROBATION',
+    'terminated': 'TERMINATED',
+    'inactive': 'INACTIVE',
+  };
+  
+  // Map gender string to number (0 = male, 1 = female)
+  const genderMap: Record<string, number> = {
+    'male': 0,
+    'female': 1,
+  };
+  
+  return {
+    firstname: data.firstName,
+    lastname: data.lastName,
+    email: data.email,
+    phone: data.phone,
+    employeeCode,
+    username,
+    roleName: 'employee',
+    gender: genderMap[data.gender || 'male'],
+    dob: data.dateOfBirth || new Date().toISOString().split('T')[0],
+    departmentId: data.departmentId,
+    positionId: data.positionId,
+    employmentType: employmentTypeMap[data.employmentType] || 'FULL_TIME',
+    status: statusMap[data.status] || 'ACTIVE',
+    hireDate: data.hireDate,
+    salary: data.salary,
+    address: data.address,
+  };
+}
+
 export function useCreateEmployee() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: Partial<Employee>): Promise<Employee> => {
-      const response = await apiClient.post<any>("/employees", data);
+    mutationFn: async (data: CreateEmployeeData): Promise<Employee> => {
+      const apiData = transformToApiFormat(data);
+      const response = await apiClient.post<any>("/employees", apiData);
       const resData = response.data;
       const result = (resData && typeof resData === 'object' && 'data' in resData) ? (resData as any).data : resData;
       return transformEmployee(result);

@@ -12,6 +12,7 @@ export const GET = withAuth(async (request) => {
   const endDate = searchParams.get("endDate");
   const page = searchParams.get("page") || "1";
   const limit = searchParams.get("limit") || "10";
+  const childIncluded = searchParams.get("childIncluded");
 
   try {
     const params = new URLSearchParams();
@@ -24,6 +25,7 @@ export const GET = withAuth(async (request) => {
     params.set("page", page);
     params.set("limit", limit);
     params.set("pageSize", limit);
+    if (childIncluded) params.set("childIncluded", childIncluded);
 
     const response = await fetch(
       `${getExternalApiUrl()}/attendances?${params.toString()}`,

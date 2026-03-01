@@ -21,8 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Camera } from "lucide-react";
-import { useCreateEmployee, useUpdateEmployee, useUploadEmployeeImage, useRemoveEmployeeImage } from "@/hooks/use-employees";
+import { toast } from "sonner";
+import { useCreateEmployee, useUpdateEmployee, useUploadEmployeeImage, useRemoveEmployeeImage, type CreateEmployeeData } from "@/hooks/use-employees";
 import { useAllDepartments } from "@/hooks/use-departments";
+import { usePositionDropdown } from "@/hooks/use-positions";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { Employee, EmploymentType, EmploymentStatus } from "@/stores/employee-store";
 
@@ -41,12 +43,16 @@ interface FormData {
     id: string;
     departmentName: string;
   };
+  departmentId: string;
   position: string;
+  positionId: string;
   employmentType: EmploymentType;
   status: EmploymentStatus;
   hireDate: string;
   salary: number;
   address?: string;
+  gender?: "male" | "female";
+  dateOfBirth?: string;
 }
 
 export function EmployeeFormDialog({
@@ -56,6 +62,7 @@ export function EmployeeFormDialog({
 }: EmployeeFormDialogProps) {
   const isEditing = !!employee;
   const { data: deptResult } = useAllDepartments();
+  const { data: positionsResult } = usePositionDropdown();
   const { mutate: createEmployee, isPending: isCreating } = useCreateEmployee();
   const { mutate: updateEmployee, isPending: isUpdating } = useUpdateEmployee();
   const { mutate: uploadImage } = useUploadEmployeeImage();
@@ -66,6 +73,10 @@ export function EmployeeFormDialog({
 
   const departments = [...(deptResult || [])].sort((a, b) =>
     a.name.localeCompare(b.name)
+  );
+
+  const positions = [...(positionsResult || [])].sort((a, b) =>
+    a.title.localeCompare(b.title)
   );
 
   const {
@@ -85,12 +96,16 @@ export function EmployeeFormDialog({
         id: "",
         departmentName: "",
       },
+      departmentId: "",
       position: "",
+      positionId: "",
       employmentType: "full_time",
       status: "active",
       hireDate: new Date().toISOString().split("T")[0],
       salary: 50000,
       address: "",
+      gender: "male",
+      dateOfBirth: "",
     },
   });
 
@@ -102,12 +117,16 @@ export function EmployeeFormDialog({
         email: employee.email,
         phone: employee.phone,
         department: employee.department,
+        departmentId: employee.departmentId || employee.department?.id || "",
         position: employee.position,
+        positionId: employee.positionId || "",
         employmentType: employee.employmentType,
         status: employee.status,
         hireDate: new Date(employee.hireDate).toISOString().split("T")[0],
         salary: employee.salary,
         address: employee.address || "",
+        gender: (employee.gender as "male" | "female") || "male",
+        dateOfBirth: employee.dateOfBirth || "",
       });
     } else {
       reset({
@@ -119,17 +138,31 @@ export function EmployeeFormDialog({
           id: "",
           departmentName: "",
         },
+        departmentId: "",
         position: "",
+        positionId: "",
         employmentType: "full_time",
         status: "active",
         hireDate: new Date().toISOString().split("T")[0],
         salary: 50000,
         address: "",
+        gender: "male",
+        dateOfBirth: "",
       });
     }
   }, [employee, reset]);
 
   const onSubmit = (data: FormData) => {
+    // Validate required fields
+    if (!data.departmentId) {
+      toast.error("Please select a department");
+      return;
+    }
+    if (!data.positionId) {
+      toast.error("Please select a position");
+      return;
+    }
+
     const handleImageAction = (userId: string) => {
       if (!userId) return;
       if (shouldRemoveImage) {
@@ -139,6 +172,24 @@ export function EmployeeFormDialog({
       }
     };
 
+    // Prepare data for API
+    const employeeData: CreateEmployeeData = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      departmentId: data.departmentId,
+      positionId: data.positionId,
+      position: data.position,
+      employmentType: data.employmentType,
+      status: data.status,
+      hireDate: data.hireDate,
+      salary: data.salary,
+      address: data.address,
+      gender: (data.gender as "male" | "female") || "male",
+      dateOfBirth: data.dateOfBirth,
+    };
+
     if (isEditing && employee) {
       const normalizedOriginal = {
         ...employee,
@@ -146,7 +197,7 @@ export function EmployeeFormDialog({
       };
 
       updateEmployee(
-        { id: employee.id, original: normalizedOriginal, modified: data },
+        { id: employee.id, original: normalizedOriginal, modified: employeeData },
         {
           onSuccess: (updatedEmp) => {
             if (employee.userId) {
@@ -157,7 +208,7 @@ export function EmployeeFormDialog({
         }
       );
     } else {
-      createEmployee(data, {
+      createEmployee(employeeData, {
         onSuccess: (newEmp) => {
           if (selectedFile && newEmp.userId) {
             uploadImage({ userId: newEmp.userId, file: selectedFile });
@@ -251,15 +302,22 @@ export function EmployeeFormDialog({
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
-                value={watch("department.departmentName")}
-                onValueChange={(value) => setValue("department.departmentName", value)}
+                value={watch("departmentId")}
+                onValueChange={(value) => {
+                  const selectedDept = departments.find((d) => d.id === value);
+                  setValue("departmentId", value);
+                  setValue("department", {
+                    id: value,
+                    departmentName: selectedDept?.name || "",
+                  });
+                }}
               >
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
                   {departments?.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.name}>
+                    <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}
                     </SelectItem>
                   ))}
@@ -267,12 +325,26 @@ export function EmployeeFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="position">Position</Label>
-              <Input
-                id="position"
-                {...register("position", { required: "Position is required" })}
-                className="bg-input border-border"
-              />
+              <Label>Position</Label>
+              <Select
+                value={watch("positionId")}
+                onValueChange={(value) => {
+                  const selectedPosition = positions.find((p) => p.id === value);
+                  setValue("positionId", value);
+                  setValue("position", selectedPosition?.title || "");
+                }}
+              >
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {positions?.map((pos) => (
+                    <SelectItem key={pos.id} value={pos.id}>
+                      {pos.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
