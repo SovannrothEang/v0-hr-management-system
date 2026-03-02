@@ -39,6 +39,7 @@ import {
   CalendarDays,
   Briefcase,
   Award,
+  Percent,
 } from "lucide-react";
 
 const navigation = [
@@ -88,6 +89,12 @@ const navigation = [
     name: "Payrolls",
     href: "/payrolls",
     icon: DollarSign,
+    roles: ['admin', 'hr_manager'] // Admin and HR only
+  },
+  {
+    name: "Tax Brackets",
+    href: "/tax-brackets",
+    icon: Percent,
     roles: ['admin', 'hr_manager'] // Admin and HR only
   },
   {

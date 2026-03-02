@@ -17,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Bell, Shield, Globe, Palette, Loader2, Eye, EyeOff, Save } from "lucide-react";
+import { Building2, Bell, Shield, Globe, Palette, Loader2, Eye, EyeOff, Save, DollarSign, Plus, Trash2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -95,6 +96,16 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { data: currencies = [], isLoading: currenciesLoading } = useCurrencies();
+  const queryClient = useQueryClient();
+
+  // Currency management state
+  const [isAddCurrencyOpen, setIsAddCurrencyOpen] = useState(false);
+  const [newCurrency, setNewCurrency] = useState({
+    code: "",
+    name: "",
+    symbol: "",
+    country: "",
+  });
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -106,6 +117,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchSettings();
+    // Force refetch currencies to ensure fresh data
+    queryClient.invalidateQueries({ queryKey: ["currencies"] });
   }, []);
 
   const fetchSettings = async () => {
@@ -195,6 +208,58 @@ export default function SettingsPage() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Currency mutations
+  const addCurrencyMutation = useMutation({
+    mutationFn: async (currency: typeof newCurrency) => {
+      const response = await apiClient.post("/currencies", currency);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to add currency");
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Currency added successfully");
+      queryClient.invalidateQueries({ queryKey: ["currencies"] });
+      setIsAddCurrencyOpen(false);
+      setNewCurrency({ code: "", name: "", symbol: "", country: "" });
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to add currency");
+    },
+  });
+
+  const deleteCurrencyMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiClient.delete(`/currencies/${code}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Currency deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["currencies"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to delete currency");
+    },
+  });
+
+  const handleAddCurrency = () => {
+    if (!newCurrency.code || !newCurrency.name || !newCurrency.symbol) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    // Check if currency already exists in the list
+    const exists = currencies.find(c => c.code === newCurrency.code.toUpperCase());
+    if (exists) {
+      toast.error(`Currency ${newCurrency.code.toUpperCase()} already exists`);
+      setIsAddCurrencyOpen(false);
+      setNewCurrency({ code: "", name: "", symbol: "", country: "" });
+      return;
+    }
+    
+    addCurrencyMutation.mutate(newCurrency);
+  };
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <PageHeader
@@ -206,6 +271,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="bg-secondary">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="finance">Finance</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
@@ -337,7 +403,7 @@ export default function SettingsPage() {
                       </Select>
                       {currencies.length === 0 && !currenciesLoading && (
                         <p className="text-xs text-warning">
-                          No currencies configured. Please add currencies in the payroll settings first.
+                          No currencies configured. Please add currencies in the Finance tab first.
                         </p>
                       )}
                     </div>
@@ -405,6 +471,153 @@ export default function SettingsPage() {
                 </div>
               )}
             </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="finance" className="space-y-6">
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    Currencies
+                  </CardTitle>
+                  <CardDescription>
+                    Manage currencies for payroll and company settings.
+                  </CardDescription>
+                </div>
+                {canModifySettings && (
+                  <Button
+                    onClick={() => setIsAddCurrencyOpen(true)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Currency
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {currenciesLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : currencies.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No currencies configured</p>
+                  <p className="text-sm">Add a currency to use in payroll and company settings.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {currencies.map((currency) => (
+                    <div
+                      key={currency.code}
+                      className="flex items-center justify-between p-4 bg-secondary rounded-lg border border-border"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-lg font-bold text-primary">{currency.symbol}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {currency.code} - {currency.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{currency.country}</p>
+                        </div>
+                      </div>
+                      {canModifySettings && currency.code !== settings.baseCurrencyCode && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => deleteCurrencyMutation.mutate(currency.code)}
+                          disabled={deleteCurrencyMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Add Currency Dialog */}
+          {isAddCurrencyOpen && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <Card className="w-full max-w-md mx-4">
+                <CardHeader>
+                  <CardTitle>Add New Currency</CardTitle>
+                  <CardDescription>
+                    Add a new currency to the system.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currencyCode">Currency Code *</Label>
+                    <Input
+                      id="currencyCode"
+                      placeholder="USD"
+                      required
+                      value={newCurrency.code}
+                      onChange={(e) => setNewCurrency({ ...newCurrency, code: e.target.value.toUpperCase() })}
+                      maxLength={3}
+                    />
+                    <p className="text-xs text-muted-foreground">3-letter ISO code (e.g., USD, EUR)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="currencyName">Currency Name *</Label>
+                    <Input
+                      id="currencyName"
+                      placeholder="US Dollar"
+                      value={newCurrency.name}
+                      required
+                      onChange={(e) => setNewCurrency({ ...newCurrency, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="currencySymbol">Symbol *</Label>
+                    <Input
+                      id="currencySymbol"
+                      placeholder="$"
+                      value={newCurrency.symbol}
+                      required
+                      onChange={(e) => setNewCurrency({ ...newCurrency, symbol: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="currencyCountry">Country *</Label>
+                    <Input
+                      id="currencyCountry"
+                      placeholder="United States"
+                      value={newCurrency.country}
+                      required
+                      onChange={(e) => setNewCurrency({ ...newCurrency, country: e.target.value })}
+                    />
+                  </div>
+                </CardContent>
+                <CardContent className="flex justify-end gap-2 pt-0">
+                  <Button variant="outline" onClick={() => setIsAddCurrencyOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddCurrency}
+                    disabled={addCurrencyMutation.isPending}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {addCurrencyMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Add Currency
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </TabsContent>
 

@@ -14,16 +14,39 @@ export function useCurrencies() {
   return useQuery({
     queryKey: ["currencies"],
     queryFn: async (): Promise<Currency[]> => {
-      const response = await apiClient.get<{ success: boolean; data: { data: Currency[] } }>(
-        "/currencies?limit=100"
-      );
-      const resData = response.data;
-      if (resData && typeof resData === "object" && "data" in resData && resData.success) {
-        const data = resData.data?.data || resData.data || [];
-        return data.filter((c: Currency) => c.isActive !== false);
+      try {
+        const response = await apiClient.get<any>("/currencies?limit=100");
+        console.log("[useCurrencies] Full response:", response);
+        
+        // The response structure from proxy is: { data: { data: [...], meta: {...} } }
+        // Where response.data is the paginated result
+        const paginatedData = response.data;
+        
+        if (!paginatedData) {
+          console.warn("[useCurrencies] No response data");
+          return [];
+        }
+        
+        console.log("[useCurrencies] Paginated data:", paginatedData);
+        
+        // Extract the currencies array from paginated data
+        // Structure: { data: [...], meta: {...} }
+        const currenciesArray = paginatedData.data;
+        
+        if (!Array.isArray(currenciesArray)) {
+          console.warn("[useCurrencies] Currencies data is not an array:", currenciesArray);
+          return [];
+        }
+        
+        console.log("[useCurrencies] Currencies array:", currenciesArray);
+        return currenciesArray.filter((c: Currency) => c.isActive !== false);
+      } catch (error) {
+        console.error("[useCurrencies] Error fetching currencies:", error);
+        return [];
       }
-      return [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Disable stale time to always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
