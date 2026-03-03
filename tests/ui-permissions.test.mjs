@@ -224,6 +224,8 @@ async function runTests() {
     'Admin can access employee reports');
   await testCanAccess('Admin', '/api/leave-requests', adminSession,
     'Admin can access leave requests');
+  await testCanAccess('Admin', '/api/leave-balances', adminSession,
+    'Admin can access leave balances');
 
   console.log('\n========================================');
   console.log('TESTING HR MANAGER PERMISSIONS');
@@ -239,6 +241,8 @@ async function runTests() {
     'HR Manager can access employee reports');
   await testCanAccess('HR Manager', '/api/leave-requests', hrSession,
     'HR Manager can access leave requests');
+  await testCanAccess('HR Manager', '/api/leave-balances', hrSession,
+    'HR Manager can access leave balances');
 
   console.log('\n========================================');
   console.log('TESTING EMPLOYEE PERMISSIONS');
@@ -254,6 +258,8 @@ async function runTests() {
     'Employee CANNOT access employee reports');
   await testCanAccess('Employee', '/api/leave-requests', employeeSession,
     'Employee CAN access leave requests (filtered to their own)');
+  await testCannotAccess('Employee', '/api/leave-balances', employeeSession,
+    'Employee CANNOT access leave balances');
   await testCanAccess('Employee', '/api/attendances', employeeSession,
     'Employee CAN access attendance API');
   await testCanAccess('Employee', '/api/dashboard/stats', employeeSession,

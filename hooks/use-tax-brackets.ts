@@ -55,7 +55,7 @@ export function useTaxBrackets(params?: {
       if (params?.currencyCode) queryParams.set("currencyCode", params.currencyCode);
       if (params?.countryCode) queryParams.set("countryCode", params.countryCode);
 
-      const response = await apiClient.get<{ success: boolean; data: TaxBracketResponse }>(
+      const response = await apiClient.get<TaxBracketResponse>(
         `/tax-brackets?${queryParams.toString()}`
       );
       
@@ -77,7 +77,7 @@ export function useCreateTaxBracket() {
 
   return useMutation({
     mutationFn: async (dto: CreateTaxBracketDto): Promise<TaxBracket> => {
-      const response = await apiClient.post<{ success: boolean; data: TaxBracket }>(
+      const response = await apiClient.post<TaxBracket>(
         "/tax-brackets",
         dto
       );

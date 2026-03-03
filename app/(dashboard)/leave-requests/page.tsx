@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LeaveRequestTable } from "@/components/attendances/leave-request-table";
 import { LeaveRequestForm } from "@/components/attendances/leave-request-form";
 import { LeaveRequestDetailsDialog } from "@/components/attendances/leave-request-details-dialog";
-import { LeaveBalanceManagement } from "@/components/leave-balances/leave-balance-management";
 import { useLeaveRequests, useUpdateLeaveRequest } from "@/hooks/use-attendance";
 import { usePermissions } from "@/hooks/use-permissions";
 import { Plus, ChevronLeft, ChevronRight, X, Search } from "lucide-react";
@@ -132,9 +131,6 @@ export default function LeaveRequestsPage() {
           Request Leave
         </Button>
       </PageHeader>
-
-      {/* Leave Balance Management - Only visible to Admin/HR */}
-      {isManager && <LeaveBalanceManagement />}
 
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

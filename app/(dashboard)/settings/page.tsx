@@ -17,12 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, Bell, Shield, Globe, Palette, Loader2, Eye, EyeOff, Save, DollarSign, Plus, Trash2 } from "lucide-react";
+import { Building2, Bell, Shield, Globe, Palette, Loader2, Eye, EyeOff, Save, DollarSign, Plus, Trash2, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useCurrencies } from "@/hooks/use-currencies";
+import { useExchangeRates, useSaveExchangeRate } from "@/hooks/use-exchange-rates";
 
 interface CompanySettings {
   id: string;
@@ -96,6 +97,8 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { data: currencies = [], isLoading: currenciesLoading } = useCurrencies();
+  const { data: exchangeRates = [], isLoading: ratesLoading } = useExchangeRates();
+  const saveRateMutation = useSaveExchangeRate();
   const queryClient = useQueryClient();
 
   // Currency management state
@@ -105,6 +108,15 @@ export default function SettingsPage() {
     name: "",
     symbol: "",
     country: "",
+  });
+
+  // Exchange rate management state
+  const [isAddRateOpen, setIsAddRateOpen] = useState(false);
+  const [newRate, setNewRate] = useState({
+    fromCurrencyCode: "USD",
+    toCurrencyCode: "KHR",
+    rate: 0,
+    date: new Date().toISOString().split('T')[0],
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -546,6 +558,166 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <RefreshCw className="h-5 w-5 text-primary" />
+                    Exchange Rates
+                  </CardTitle>
+                  <CardDescription>
+                    Configure exchange rates for multi-currency payroll.
+                  </CardDescription>
+                </div>
+                {canModifySettings && (
+                  <Button
+                    onClick={() => setIsAddRateOpen(true)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Set Rate
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {ratesLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : exchangeRates.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No exchange rates configured</p>
+                  <p className="text-sm">Set an exchange rate to handle payroll in different currencies.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="py-3 px-4 text-sm font-medium text-muted-foreground">From</th>
+                        <th className="py-3 px-4 text-sm font-medium text-muted-foreground">To</th>
+                        <th className="py-3 px-4 text-sm font-medium text-muted-foreground">Rate</th>
+                        <th className="py-3 px-4 text-sm font-medium text-muted-foreground">Effective Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exchangeRates.map((rate) => (
+                        <tr key={rate.id} className="border-b border-border hover:bg-secondary/50">
+                          <td className="py-3 px-4">{rate.fromCurrencyCode}</td>
+                          <td className="py-3 px-4">{rate.toCurrencyCode}</td>
+                          <td className="py-3 px-4 font-medium">{Number(rate.rate).toLocaleString()}</td>
+                          <td className="py-3 px-4 text-sm text-muted-foreground">
+                            {new Date(rate.date).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Add Exchange Rate Dialog */}
+          {isAddRateOpen && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <Card className="w-full max-w-md mx-4">
+                <CardHeader>
+                  <CardTitle>Set Exchange Rate</CardTitle>
+                  <CardDescription>
+                    Configure currency conversion rate for a specific date.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fromCurrency">From</Label>
+                      <Select
+                        value={newRate.fromCurrencyCode}
+                        onValueChange={(v) => setNewRate({ ...newRate, fromCurrencyCode: v })}
+                      >
+                        <SelectTrigger id="fromCurrency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="toCurrency">To</Label>
+                      <Select
+                        value={newRate.toCurrencyCode}
+                        onValueChange={(v) => setNewRate({ ...newRate, toCurrencyCode: v })}
+                      >
+                        <SelectTrigger id="toCurrency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rate">Rate (1 {newRate.fromCurrencyCode} = ? {newRate.toCurrencyCode})</Label>
+                    <Input
+                      id="rate"
+                      type="number"
+                      placeholder="e.g., 4000"
+                      value={newRate.rate}
+                      onChange={(e) => setNewRate({ ...newRate, rate: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="effectiveDate">Effective Date</Label>
+                    <Input
+                      id="effectiveDate"
+                      type="date"
+                      value={newRate.date}
+                      onChange={(e) => setNewRate({ ...newRate, date: e.target.value })}
+                    />
+                  </div>
+                </CardContent>
+                <CardContent className="flex justify-end gap-2 pt-0">
+                  <Button variant="outline" onClick={() => setIsAddRateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (newRate.rate <= 0) {
+                        toast.error("Rate must be greater than 0");
+                        return;
+                      }
+                      if (newRate.fromCurrencyCode === newRate.toCurrencyCode) {
+                        toast.error("Currencies must be different");
+                        return;
+                      }
+                      saveRateMutation.mutate(newRate, {
+                        onSuccess: () => setIsAddRateOpen(false)
+                      });
+                    }}
+                    disabled={saveRateMutation.isPending}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {saveRateMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save Rate
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Add Currency Dialog */}
           {isAddCurrencyOpen && (

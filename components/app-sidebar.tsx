@@ -40,6 +40,7 @@ import {
   Briefcase,
   Award,
   Percent,
+  Wallet,
 } from "lucide-react";
 
 const navigation = [
@@ -84,6 +85,12 @@ const navigation = [
     href: "/leave-requests",
     icon: CalendarDays,
     roles: ['admin', 'hr_manager', 'employee'] // All roles
+  },
+  {
+    name: "Leave Balances",
+    href: "/leave-balances",
+    icon: Wallet,
+    roles: ['admin', 'hr_manager'] // Admin and HR only
   },
   {
     name: "Payrolls",

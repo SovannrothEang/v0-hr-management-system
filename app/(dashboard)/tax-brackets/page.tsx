@@ -56,13 +56,13 @@ export default function TaxBracketsPage() {
   const canManage = isAdmin || isHRManager;
 
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
   const [selectedCountry, setSelectedCountry] = useState<string>("US");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const { data: taxBracketsData, isLoading: isLoadingBrackets } = useTaxBrackets({
     taxYear: parseInt(selectedYear),
-    currencyCode: selectedCurrency || undefined,
+    currencyCode: selectedCurrency === "all" ? undefined : selectedCurrency,
     countryCode: selectedCountry,
     limit: 100,
   });
@@ -87,10 +87,10 @@ export default function TaxBracketsPage() {
       return;
     }
     createTaxBracket.mutate(newBracket, {
-      onSuccess: () => {
+        onSuccess: () => {
         setIsAddDialogOpen(false);
         setNewBracket({
-          currencyCode: selectedCurrency || "",
+          currencyCode: selectedCurrency === "all" ? "" : selectedCurrency,
           countryCode: selectedCountry,
           taxYear: parseInt(selectedYear),
           bracketName: "",
@@ -162,7 +162,7 @@ export default function TaxBracketsPage() {
                   <SelectValue placeholder="All currencies" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All currencies</SelectItem>
+                  <SelectItem value="all">All currencies</SelectItem>
                   {currencies?.map((c) => (
                     <SelectItem key={c.code} value={c.code}>
                       {c.code} ({c.symbol})
@@ -207,7 +207,7 @@ export default function TaxBracketsPage() {
             <Button 
               onClick={() => {
                 setNewBracket({
-                  currencyCode: selectedCurrency || (currencies?.[0]?.code ?? "USD"),
+                  currencyCode: selectedCurrency !== "all" ? selectedCurrency : (currencies?.[0]?.code ?? "USD"),
                   countryCode: selectedCountry,
                   taxYear: parseInt(selectedYear),
                   bracketName: "",
