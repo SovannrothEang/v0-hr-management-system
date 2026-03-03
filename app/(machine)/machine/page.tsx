@@ -6,10 +6,10 @@ import { useSessionStore } from "@/stores/session";
 import { useLogout } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { LogOut, RefreshCcw, ScanLine } from "lucide-react";
+import { LogIn, LogOut, RefreshCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLES } from "@/lib/constants/roles";
 
 export default function MachinePage() {
@@ -69,40 +69,64 @@ export default function MachinePage() {
         <p className="text-muted-foreground text-lg">Scan the QR code with your mobile app to check in or out.</p>
       </div>
 
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-2xl shadow-2xl border-2">
         <Tabs defaultValue="IN" value={activeTab} onValueChange={(v) => setActiveTab(v as QrType)} className="w-full">
-          <CardHeader className="pb-4">
-            <TabsList className="grid w-full grid-cols-2 h-14">
-              <TabsTrigger value="IN" className="text-lg">Clock In</TabsTrigger>
-              <TabsTrigger value="OUT" className="text-lg">Clock Out</TabsTrigger>
+          <CardHeader className="pb-4 pt-8">
+            <TabsList className="grid w-full grid-cols-2 h-24 p-2 bg-muted/50">
+              <TabsTrigger 
+                value="IN" 
+                className="text-3xl font-black data-[state=active]:bg-emerald-600 data-[state=active]:text-white transition-all gap-3 h-full rounded-lg shadow-sm"
+              >
+                <LogIn className="w-8 h-8" />
+                Clock In
+              </TabsTrigger>
+              <TabsTrigger 
+                value="OUT" 
+                className="text-3xl font-black data-[state=active]:bg-rose-600 data-[state=active]:text-white transition-all gap-3 h-full rounded-lg shadow-sm"
+              >
+                <LogOut className="w-8 h-8" />
+                Clock Out
+              </TabsTrigger>
             </TabsList>
-            <CardTitle className="text-center mt-6 text-2xl">
-              {activeTab === "IN" ? "Ready to start your day?" : "Done for the day?"}
+            <CardTitle className={`text-center mt-10 text-5xl font-black tracking-tight transition-colors duration-300 ${activeTab === "IN" ? "text-emerald-700" : "text-rose-700"}`}>
+              {activeTab === "IN" ? "Ready to start?" : "Heading home?"}
             </CardTitle>
-            <CardDescription className="text-center text-base">
-              Point your camera at the screen to register your attendance.
+            <CardDescription className="text-center text-2xl mt-4 font-medium text-muted-foreground/80">
+              {activeTab === "IN" 
+                ? "Scan to register your start time" 
+                : "Scan to register your finish time"}
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="flex flex-col items-center justify-center pb-10 pt-2">
-            <div className={`relative p-8 bg-white rounded-xl shadow-inner border transition-opacity duration-300 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+          <CardContent className="flex flex-col items-center justify-center pb-12 pt-6">
+            <div className={`relative p-10 bg-white rounded-2xl shadow-2xl border-4 border-primary/10 transition-all duration-500 transform ${isLoading ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}>
               {qrToken ? (
                 <QRCodeSVG 
                   value={qrToken} 
-                  size={250} 
+                  size={400} 
                   level="H"
                   includeMargin={true}
+                  className="rounded-lg"
                 />
               ) : (
-                <div className="w-[250px] h-[250px] flex items-center justify-center bg-muted/30">
-                  <RefreshCcw className="w-10 h-10 animate-spin text-muted-foreground" />
+                <div className="w-[400px] h-[400px] flex flex-col items-center justify-center bg-muted/20 gap-4">
+                  <RefreshCcw className="w-16 h-16 animate-spin text-primary/40" />
+                  <p className="text-muted-foreground font-medium">Generating Token...</p>
                 </div>
               )}
             </div>
             
-            <p className="mt-8 text-sm text-muted-foreground animate-pulse">
-              QR Code refreshes automatically every minute
-            </p>
+            <div className="mt-10 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-3 px-6 py-3 bg-primary/5 rounded-full border border-primary/10">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-lg font-semibold text-primary/80 tracking-wide uppercase">
+                  Live System Active
+                </span>
+              </div>
+              <p className="text-base text-muted-foreground mt-2">
+                QR Code updates every minute for security
+              </p>
+            </div>
           </CardContent>
         </Tabs>
       </Card>

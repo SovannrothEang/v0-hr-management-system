@@ -7,7 +7,7 @@ export type QrType = "IN" | "OUT";
 
 interface QrResponse {
   token: string;
-  qrUrl: string;
+  qrUrl?: string;
 }
 
 export function useMachineQr(type: QrType) {
@@ -26,7 +26,11 @@ export function useMachineQr(type: QrType) {
       
       if (res.success && res.data) {
         setQrToken(res.data.token);
-        setQrUrl(res.data.qrUrl);
+        if (res.data.qrUrl) {
+          setQrUrl(res.data.qrUrl);
+        } else {
+          setQrUrl(null);
+        }
       } else {
         toast.error("Failed to generate QR code");
       }

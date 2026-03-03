@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -22,9 +22,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
-import { useCreateUser, useUpdateUser } from "@/hooks/use-users";
+import { useCreateUser, useUpdateUser, useUploadUserImage, useRemoveUserImage } from "@/hooks/use-users";
 import type { User } from "@/stores/user-store";
 import { ROLES, type RoleName } from "@/lib/constants/roles";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { getChangedFields } from "@/lib/track-changes";
 
 interface UserFormDialogProps {
   user?: User | null;
@@ -50,6 +52,11 @@ export function UserFormDialog({
   const isEditing = !!user;
   const { mutate: createUser, isPending: isCreating } = useCreateUser();
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
+  const { mutate: uploadImage, isPending: isUploading } = useUploadUserImage();
+  const { mutate: removeImage, isPending: isRemoving } = useRemoveUserImage();
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
 
   const {
     register,
@@ -81,6 +88,8 @@ export function UserFormDialog({
         password: "",
         confirmPassword: "",
       });
+      setAvatarFile(null);
+      setImageRemoved(false);
     } else {
       reset({
         firstName: "",
@@ -91,6 +100,8 @@ export function UserFormDialog({
         password: "",
         confirmPassword: "",
       });
+      setAvatarFile(null);
+      setImageRemoved(false);
     }
   }, [user, reset]);
 
@@ -109,21 +120,53 @@ export function UserFormDialog({
       payload.password = data.password;
     }
 
+    const handleImageOperations = (userId: string, callback?: () => void) => {
+      if (imageRemoved) {
+        removeImage(userId, { onSuccess: callback });
+      } else if (avatarFile) {
+        uploadImage({ id: userId, file: avatarFile }, { onSuccess: callback });
+      } else if (callback) {
+        callback();
+      }
+    };
+
     if (isEditing && user) {
-      updateUser(
-        { id: user.id, original: user, modified: payload },
-        {
-          onSuccess: () => onOpenChange(false),
-        }
-      );
+      const changes = getChangedFields(user, payload);
+      const hasFieldChanges = Object.keys(changes).length > 0;
+      const hasImageChanges = avatarFile !== null || imageRemoved;
+
+      if (!hasFieldChanges && !hasImageChanges) {
+        onOpenChange(false);
+        return;
+      }
+
+      if (hasFieldChanges) {
+        updateUser(
+          { id: user.id, original: user, modified: payload },
+          {
+            onSuccess: () => {
+              handleImageOperations(user.id, () => onOpenChange(false));
+            },
+          }
+        );
+      } else {
+        handleImageOperations(user.id, () => onOpenChange(false));
+      }
     } else {
       createUser(payload, {
-        onSuccess: () => onOpenChange(false),
+        onSuccess: (newUser) => {
+          if (newUser && newUser.id) {
+            handleImageOperations(newUser.id, () => onOpenChange(false));
+          } else {
+            onOpenChange(false);
+          }
+        },
       });
     }
   };
 
-  const isPending = isCreating || isUpdating;
+  const isPending = isCreating || isUpdating || isUploading || isRemoving;
+  const initials = user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}` : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,6 +181,22 @@ export function UserFormDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
+            <div className="flex justify-center pb-2">
+              <ImageUpload
+                value={user?.avatar}
+                fallbackInitials={initials}
+                onChange={(file) => {
+                  setAvatarFile(file);
+                  if (file) setImageRemoved(false);
+                }}
+                onRemove={() => {
+                  setAvatarFile(null);
+                  setImageRemoved(true);
+                }}
+                disabled={isPending}
+              />
+            </div>
+
             {!isEditing && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
