@@ -12,15 +12,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, CalendarIcon } from "lucide-react";
 import type { AttendanceRecord, AttendanceStatus } from "@/stores/attendance-store";
 import type { Employee } from "@/stores/employee-store";
+import { format, parseISO } from "date-fns";
 
 interface AttendanceTableProps {
   records: AttendanceRecord[];
   employees: Employee[];
   onClockIn: (employeeId: string) => void;
   onClockOut: (employeeId: string) => void;
+  showDate?: boolean;
 }
 
 const statusConfig: Record<
@@ -43,6 +45,7 @@ export function AttendanceTable({
   employees,
   onClockIn,
   onClockOut,
+  showDate = true,
 }: AttendanceTableProps) {
   const getEmployee = (employeeId: string) =>
     employees.find((e) => e.id === employeeId);
@@ -69,11 +72,22 @@ export function AttendanceTable({
     return `+${num.toFixed(1)}h`;
   };
 
+  const formatTableDate = (dateStr: string) => {
+    try {
+      // API might return ISO or just YYYY-MM-DD
+      const date = dateStr.includes("T") ? parseISO(dateStr) : new Date(dateStr);
+      return format(date, "MMM d, yyyy");
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-secondary/30 hover:bg-secondary/30">
+            {showDate && <TableHead className="w-[140px]">Date</TableHead>}
             <TableHead>Employee</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Clock In</TableHead>
@@ -87,29 +101,41 @@ export function AttendanceTable({
           {records.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={showDate ? 8 : 7}
                 className="h-32 text-center text-muted-foreground"
               >
-                No attendance records for this date.
+                No attendance records for this period.
               </TableCell>
             </TableRow>
           ) : (
             records.map((record) => {
               const employee = getEmployee(record.employeeId) || record.employee;
+              const statusKey = record.status.toLowerCase() as AttendanceStatus;
+              const config = statusConfig[statusKey] || { label: record.status, className: "bg-secondary text-secondary-foreground" };
 
               // Handle both API format (firstname/lastname) and frontend format (firstName/lastName)
               const empAny = employee as any;
               const firstName = empAny?.firstName || empAny?.firstname || "Unknown";
               const lastName = empAny?.lastName || empAny?.lastname || "";
-              const department = empAny?.department || "N/A";
+              const department = empAny?.department?.name || empAny?.department || "N/A";
               const avatar = empAny?.avatar || empAny?.profileImage;
 
-              const canClockIn = !record.clockIn && record.status !== "on_leave";
-              const canClockOut =
-                record.clockIn && !record.clockOut && record.status !== "on_leave";
+              // Action rules: only allow clock in if no clock in time AND not on leave
+              // Also check for virtual records (starting with v-)
+              const isVirtual = record.id.startsWith("v-");
+              const canClockIn = !record.clockIn && statusKey !== "on_leave";
+              const canClockOut = record.clockIn && !record.clockOut && statusKey !== "on_leave";
 
               return (
                 <TableRow key={record.id}>
+                  {showDate && (
+                    <TableCell className="font-medium text-muted-foreground whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-3.5 w-3.5 opacity-50" />
+                        {formatTableDate(record.date)}
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
@@ -129,8 +155,8 @@ export function AttendanceTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={cn("border-0", statusConfig[record.status].className)}>
-                      {statusConfig[record.status].label}
+                    <Badge className={cn("border-0 whitespace-nowrap", config.className)}>
+                      {config.label}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-sm">

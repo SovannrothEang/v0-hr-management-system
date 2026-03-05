@@ -19,18 +19,34 @@ interface PayslipDialogProps {
   payrollId: string | null;
 }
 
-function formatCurrency(amount: number | undefined, currency: string = 'USD') {
-  return `${currency === 'USD' ? '$' : ''}${(amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatCurrency(amount: number | undefined, currency: string = "USD") {
+  return `${currency === "USD" ? "$" : ""}${(amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogProps) {
+export function PayslipDialog({
+  open,
+  onOpenChange,
+  payrollId,
+}: PayslipDialogProps) {
   const { data: payroll, isLoading } = usePayrollById(payrollId);
 
-  const earnings = payroll?.items?.filter((item: PayrollItem) => item.itemType === 'EARNING') || [];
-  const deductions = payroll?.items?.filter((item: PayrollItem) => item.itemType === 'DEDUCTION') || [];
+  const earnings =
+    payroll?.items?.filter(
+      (item: PayrollItem) => item.itemType === "EARNING",
+    ) || [];
+  const deductions =
+    payroll?.items?.filter(
+      (item: PayrollItem) => item.itemType === "DEDUCTION",
+    ) || [];
 
-  const totalEarnings = earnings.reduce((sum: number, item: PayrollItem) => sum + item.amount, 0);
-  const totalDeductions = deductions.reduce((sum: number, item: PayrollItem) => sum + item.amount, 0);
+  const totalEarnings = earnings.reduce(
+    (sum: number, item: PayrollItem) => sum + item.amount,
+    0,
+  );
+  const totalDeductions = deductions.reduce(
+    (sum: number, item: PayrollItem) => sum + item.amount,
+    0,
+  );
 
   if (isLoading) {
     return (
@@ -68,13 +84,13 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-evenly">
             <span>Payslip - {payroll.period}</span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
+              {/* <Button variant="outline" size="sm"> */}
+              {/*   <Printer className="h-4 w-4 mr-2" /> */}
+              {/*   Print */}
+              {/* </Button> */}
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -118,7 +134,8 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
               </h3>
               <p className="font-medium text-foreground">{payroll.period}</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(payroll.payPeriodStart).toLocaleDateString()} - {new Date(payroll.payPeriodEnd).toLocaleDateString()}
+                {new Date(payroll.payPeriodStart).toLocaleDateString()} -{" "}
+                {new Date(payroll.payPeriodEnd).toLocaleDateString()}
               </p>
               {payroll.paymentDate && (
                 <p className="text-sm text-muted-foreground">
@@ -135,8 +152,13 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
             <div className="space-y-2">
               {earnings.length > 0 ? (
                 earnings.map((item: PayrollItem) => (
-                  <div key={item.id} className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">{item.itemName}</span>
+                  <div
+                    key={item.id}
+                    className="flex justify-between py-2 border-b border-border"
+                  >
+                    <span className="text-muted-foreground">
+                      {item.itemName}
+                    </span>
                     <span className="font-medium text-foreground">
                       {formatCurrency(item.amount, payroll.currencyCode)}
                     </span>
@@ -147,14 +169,27 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
                   <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground">Basic Salary</span>
                     <span className="font-medium text-foreground">
-                      {formatCurrency(payroll.basicSalary, payroll.currencyCode)}
+                      {formatCurrency(
+                        payroll.basicSalary,
+                        payroll.currencyCode,
+                      )}
                     </span>
                   </div>
                   {payroll.overtimePay > 0 && (
                     <div className="flex justify-between py-2 border-b border-border">
-                      <span className="text-muted-foreground">Overtime Pay ({payroll.overtimeHrs}h @ {formatCurrency(payroll.overtimeRate, payroll.currencyCode)}/h)</span>
+                      <span className="text-muted-foreground">
+                        Overtime Pay ({payroll.overtimeHrs}h @{" "}
+                        {formatCurrency(
+                          payroll.overtimeRate,
+                          payroll.currencyCode,
+                        )}
+                        /h)
+                      </span>
                       <span className="font-medium text-foreground">
-                        {formatCurrency(payroll.overtimePay, payroll.currencyCode)}
+                        {formatCurrency(
+                          payroll.overtimePay,
+                          payroll.currencyCode,
+                        )}
                       </span>
                     </div>
                   )}
@@ -169,9 +204,14 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
                 </>
               )}
               <div className="flex justify-between py-2 bg-success/10 px-3 rounded">
-                <span className="font-semibold text-success">Gross Earnings</span>
+                <span className="font-semibold text-success">
+                  Gross Earnings
+                </span>
                 <span className="font-bold text-success">
-                  {formatCurrency(payroll.grossSalary || totalEarnings, payroll.currencyCode)}
+                  {formatCurrency(
+                    payroll.grossSalary || totalEarnings,
+                    payroll.currencyCode,
+                  )}
                 </span>
               </div>
             </div>
@@ -184,8 +224,13 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
             <div className="space-y-2">
               {deductions.length > 0 ? (
                 deductions.map((item: PayrollItem) => (
-                  <div key={item.id} className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">{item.itemName}</span>
+                  <div
+                    key={item.id}
+                    className="flex justify-between py-2 border-b border-border"
+                  >
+                    <span className="text-muted-foreground">
+                      {item.itemName}
+                    </span>
                     <span className="font-medium text-destructive">
                       -{formatCurrency(item.amount, payroll.currencyCode)}
                     </span>
@@ -193,36 +238,59 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
                 ))
               ) : (
                 <>
-                  {payroll.taxCalculation && payroll.taxCalculation.taxAmount > 0 && (
-                    <div className="flex justify-between py-2 border-b border-border">
-                      <span className="text-muted-foreground">
-                        Income Tax ({(payroll.taxCalculation.taxRateUsed * 100).toFixed(1)}%)
-                      </span>
-                      <span className="font-medium text-destructive">
-                        -{formatCurrency(payroll.taxCalculation.taxAmount, payroll.currencyCode)}
-                      </span>
-                    </div>
-                  )}
+                  {payroll.taxCalculation &&
+                    payroll.taxCalculation.taxAmount > 0 && (
+                      <div className="flex justify-between py-2 border-b border-border">
+                        <span className="text-muted-foreground">
+                          Income Tax (
+                          {(payroll.taxCalculation.taxRateUsed * 100).toFixed(
+                            1,
+                          )}
+                          %)
+                        </span>
+                        <span className="font-medium text-destructive">
+                          -
+                          {formatCurrency(
+                            payroll.taxCalculation.taxAmount,
+                            payroll.currencyCode,
+                          )}
+                        </span>
+                      </div>
+                    )}
                   {payroll.deductions > 0 && !payroll.taxCalculation && (
                     <div className="flex justify-between py-2 border-b border-border">
-                      <span className="text-muted-foreground">Other Deductions</span>
+                      <span className="text-muted-foreground">
+                        Other Deductions
+                      </span>
                       <span className="font-medium text-destructive">
-                        -{formatCurrency(payroll.deductions, payroll.currencyCode)}
+                        -
+                        {formatCurrency(
+                          payroll.deductions,
+                          payroll.currencyCode,
+                        )}
                       </span>
                     </div>
                   )}
                 </>
               )}
-              {(!deductions.length && !payroll.taxCalculation?.taxAmount && payroll.deductions <= 0) && (
-                <div className="flex justify-between py-2 text-muted-foreground">
-                  <span>No deductions</span>
-                  <span>$0.00</span>
-                </div>
-              )}
+              {!deductions.length &&
+                !payroll.taxCalculation?.taxAmount &&
+                payroll.deductions <= 0 && (
+                  <div className="flex justify-between py-2 text-muted-foreground">
+                    <span>No deductions</span>
+                    <span>$0.00</span>
+                  </div>
+                )}
               <div className="flex justify-between py-2 bg-destructive/10 px-3 rounded">
-                <span className="font-semibold text-destructive">Total Deductions</span>
+                <span className="font-semibold text-destructive">
+                  Total Deductions
+                </span>
                 <span className="font-bold text-destructive">
-                  -{formatCurrency(totalDeductions || payroll.deductions || 0, payroll.currencyCode)}
+                  -
+                  {formatCurrency(
+                    totalDeductions || payroll.deductions || 0,
+                    payroll.currencyCode,
+                  )}
                 </span>
               </div>
             </div>
@@ -230,51 +298,89 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
 
           {payroll.taxCalculation && (
             <div className="p-4 bg-secondary/50 rounded-lg">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Tax Calculation Details</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-2">
+                Tax Calculation Details
+              </h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gross Income:</span>
-                  <span>{formatCurrency(payroll.taxCalculation.grossIncome, payroll.currencyCode)}</span>
+                  <span>
+                    {formatCurrency(
+                      payroll.taxCalculation.grossIncome,
+                      payroll.currencyCode,
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Taxable Income:</span>
-                  <span>{formatCurrency(payroll.taxCalculation.taxableIncome, payroll.currencyCode)}</span>
+                  <span>
+                    {formatCurrency(
+                      payroll.taxCalculation.taxableIncome,
+                      payroll.currencyCode,
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax Rate:</span>
-                  <span>{(payroll.taxCalculation.taxRateUsed * 100).toFixed(2)}%</span>
+                  <span>
+                    {(payroll.taxCalculation.taxRateUsed * 100).toFixed(2)}%
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax Amount:</span>
-                  <span className="text-destructive">{formatCurrency(payroll.taxCalculation.taxAmount, payroll.currencyCode)}</span>
+                  <span className="text-destructive">
+                    {formatCurrency(
+                      payroll.taxCalculation.taxAmount,
+                      payroll.currencyCode,
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
           )}
 
-          {payroll.exchangeRate && payroll.baseCurrencyCode && payroll.baseCurrencyAmount && (
-            <div className="p-4 bg-secondary/30 rounded-lg">
-              <h3 className="text-sm font-semibold text-foreground mb-2">Currency Conversion</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Exchange Rate:</span>
-                  <span>1 {payroll.currencyCode} = {payroll.exchangeRate.toLocaleString()} {payroll.baseCurrencyCode}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount in {payroll.baseCurrencyCode}:</span>
-                  <span>{payroll.baseCurrencyAmount.toLocaleString()} {payroll.baseCurrencyCode}</span>
+          {payroll.exchangeRate &&
+            payroll.baseCurrencyCode &&
+            payroll.baseCurrencyAmount && (
+              <div className="p-4 bg-secondary/30 rounded-lg">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
+                  Currency Conversion
+                </h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Exchange Rate:
+                    </span>
+                    <span>
+                      1 {payroll.currencyCode} ={" "}
+                      {payroll.exchangeRate.toLocaleString()}{" "}
+                      {payroll.baseCurrencyCode}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Amount in {payroll.baseCurrencyCode}:
+                    </span>
+                    <span>
+                      {payroll.baseCurrencyAmount.toLocaleString()}{" "}
+                      {payroll.baseCurrencyCode}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           <Separator />
 
           <div className="p-4 bg-primary/10 rounded-lg">
             <div className="flex justify-between items-center">
               <div>
-                <span className="text-lg font-semibold text-foreground">Net Pay</span>
-                <p className="text-xs text-muted-foreground">{payroll.currencyCode}</p>
+                <span className="text-lg font-semibold text-foreground">
+                  Net Pay
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {payroll.currencyCode}
+                </p>
               </div>
               <span className="text-2xl font-bold text-primary">
                 {formatCurrency(payroll.netSalary, payroll.currencyCode)}
@@ -283,15 +389,22 @@ export function PayslipDialog({ open, onOpenChange, payrollId }: PayslipDialogPr
           </div>
 
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Status: <span className="capitalize font-medium text-foreground">{payroll.status}</span></span>
+            <span>
+              Status:{" "}
+              <span className="capitalize font-medium text-foreground">
+                {payroll.status}
+              </span>
+            </span>
             {payroll.processedAt && (
-              <span>Processed: {new Date(payroll.processedAt).toLocaleDateString()}</span>
+              <span>
+                Processed: {new Date(payroll.processedAt).toLocaleDateString()}
+              </span>
             )}
           </div>
 
           <p className="text-xs text-center text-muted-foreground pt-4 border-t border-border">
-            This is a computer-generated payslip and does not require a signature.
-            For any queries, please contact HR department.
+            This is a computer-generated payslip and does not require a
+            signature. For any queries, please contact HR department.
           </p>
         </div>
       </DialogContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { subDays } from "date-fns";
+import { subDays, startOfDay, format } from "date-fns";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,11 +19,10 @@ import {
   useLeaveReport,
 } from "@/hooks/use-reports";
 import { Printer } from "lucide-react";
-import { format } from "date-fns";
 
 export default function ReportsPage() {
-  const [startDate, setStartDate] = useState(subDays(new Date(), 30));
-  const [endDate, setEndDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(subDays(startOfDay(new Date()), 1));
+  const [endDate, setEndDate] = useState(startOfDay(new Date()));
   const [department, setDepartment] = useState("all");
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -68,7 +67,7 @@ export default function ReportsPage() {
           Print
         </Button>
         <ExportDropdown
-          endpoint="/reports/comprehensive"
+          endpoint="/reports/comprehensive/export"
           params={comprehensiveParams}
           reportName="comprehensive_report"
         />

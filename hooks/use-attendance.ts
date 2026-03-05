@@ -31,6 +31,8 @@ function transformAttendance(att: any): AttendanceRecord {
     'EARLY_OUT': 'early_out',
     'OVERTIME': 'overtime',
     'DID_NOT_CHECKOUT': 'did_not_checkout',
+    'ON_LEAVE': 'on_leave',
+    'HALF_DAY': 'half_day',
   };
 
   const status = statusMap[att.status] || att.status?.toLowerCase() || 'present';
@@ -51,7 +53,7 @@ function transformAttendance(att: any): AttendanceRecord {
       ...att.employee,
       firstName: att.employee.firstname || att.employee.firstName,
       lastName: att.employee.lastname || att.employee.lastName,
-      department: att.employee.department?.departmentName || att.employee.department?.name || att.employee.department,
+      department: att.employee.department?.name || att.employee.department?.departmentName || att.employee.department,
       avatar: getEmployeeAvatarUrl(att.employee.userId || att.employee.user?.id, att.employee.user?.profileImage || att.employee.profileImage || att.employee.avatar),
     } : att.employee,
     isActive: att.isActive ?? true,
@@ -142,6 +144,8 @@ export function useAttendanceRecords(params?: {
   endDate?: string;
   dateFrom?: string;
   dateTo?: string;
+  status?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }) {
@@ -155,6 +159,8 @@ export function useAttendanceRecords(params?: {
       else if (params?.startDate) queryParams.set("dateFrom", params.startDate);
       if (params?.dateTo) queryParams.set("dateTo", params.dateTo);
       else if (params?.endDate) queryParams.set("dateTo", params.endDate);
+      if (params?.status && params.status !== "all") queryParams.set("status", params.status.toUpperCase());
+      if (params?.search) queryParams.set("search", params.search);
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
       queryParams.set("childIncluded", "true");

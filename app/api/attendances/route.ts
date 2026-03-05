@@ -10,6 +10,8 @@ export const GET = withAuth(async (request) => {
   const dateTo = searchParams.get("dateTo");
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const status = searchParams.get("status");
+  const search = searchParams.get("search");
   const page = searchParams.get("page") || "1";
   const limit = searchParams.get("limit") || "10";
   const childIncluded = searchParams.get("childIncluded");
@@ -22,6 +24,8 @@ export const GET = withAuth(async (request) => {
     else if (startDate) params.set("dateFrom", startDate);
     if (dateTo) params.set("dateTo", dateTo);
     else if (endDate) params.set("dateTo", endDate);
+    if (status && status !== "all") params.set("status", status);
+    if (search) params.set("search", search);
     params.set("page", page);
     params.set("limit", limit);
     params.set("pageSize", limit);

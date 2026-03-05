@@ -22,12 +22,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarIcon, Loader2 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, subDays, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCreateLeaveRequest } from "@/hooks/use-attendance";
 import { useSessionStore } from "@/stores/session";
 import type { LeaveType } from "@/stores/attendance-store";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface LeaveRequestFormProps {
   open: boolean;
@@ -42,8 +42,20 @@ interface FormData {
 export function LeaveRequestForm({ open, onOpenChange }: LeaveRequestFormProps) {
   const { user } = useSessionStore();
   const { mutate: createRequest, isPending } = useCreateLeaveRequest();
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  
+  const getYesterday = () => subDays(startOfDay(new Date()), 1);
+  const getToday = () => startOfDay(new Date());
+
+  const [startDate, setStartDate] = useState<Date | undefined>(getYesterday());
+  const [endDate, setEndDate] = useState<Date | undefined>(getToday());
+
+  // Reset dates when dialog opens to ensure they are fresh
+  useEffect(() => {
+    if (open) {
+      setStartDate(getYesterday());
+      setEndDate(getToday());
+    }
+  }, [open]);
 
   const {
     register,
@@ -77,8 +89,8 @@ export function LeaveRequestForm({ open, onOpenChange }: LeaveRequestFormProps) 
       {
         onSuccess: () => {
           reset();
-          setStartDate(undefined);
-          setEndDate(undefined);
+          setStartDate(getYesterday());
+          setEndDate(getToday());
           onOpenChange(false);
         },
       }
@@ -145,7 +157,7 @@ export function LeaveRequestForm({ open, onOpenChange }: LeaveRequestFormProps) 
                         setEndDate(date);
                       }
                     }}
-                    disabled={(date) => date < new Date()}
+                    disabled={(date) => date < subDays(startOfDay(new Date()), 1)}
                     initialFocus
                   />
                 </PopoverContent>
@@ -173,7 +185,7 @@ export function LeaveRequestForm({ open, onOpenChange }: LeaveRequestFormProps) 
                     selected={endDate}
                     onSelect={setEndDate}
                     disabled={(date) =>
-                      date < new Date() || (startDate ? date < startDate : false)
+                      date < subDays(startOfDay(new Date()), 1) || (startDate ? date < startDate : false)
                     }
                     initialFocus
                   />

@@ -158,10 +158,15 @@ export const ROUTE_ROLES: Record<string, RoleName[]> = {
 
   // Reports routes
   '/api/reports/attendances': [ROLES.ADMIN, ROLES.HR_MANAGER],
-  '/api/reports/employee': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/attendances/export': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/employees': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/employees/export': [ROLES.ADMIN, ROLES.HR_MANAGER],
   '/api/reports/payrolls': [ROLES.ADMIN, ROLES.HR_MANAGER],
-  '/api/reports/leave': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/payrolls/export': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/leaves': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/leaves/export': [ROLES.ADMIN, ROLES.HR_MANAGER],
   '/api/reports/comprehensive': [ROLES.ADMIN, ROLES.HR_MANAGER],
+  '/api/reports/comprehensive/export': [ROLES.ADMIN, ROLES.HR_MANAGER],
 
   // attendances routes - all roles can clock in/out
   '/api/attendances': [ROLES.ADMIN, ROLES.HR_MANAGER, ROLES.EMPLOYEE],

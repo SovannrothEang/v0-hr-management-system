@@ -51,9 +51,9 @@ export function useTaxBrackets(params?: {
       const queryParams = new URLSearchParams();
       if (params?.page) queryParams.set("page", params.page.toString());
       if (params?.limit) queryParams.set("limit", params.limit.toString());
-      if (params?.taxYear) queryParams.set("taxYear", params.taxYear.toString());
+      if (params?.taxYear) queryParams.set("year", params.taxYear.toString());
       if (params?.currencyCode) queryParams.set("currencyCode", params.currencyCode);
-      if (params?.countryCode) queryParams.set("countryCode", params.countryCode);
+      if (params?.countryCode) queryParams.set("country", params.countryCode);
 
       const response = await apiClient.get<TaxBracketResponse>(
         `/tax-brackets?${queryParams.toString()}`

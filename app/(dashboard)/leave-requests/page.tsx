@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { format, subDays } from "date-fns";
 import { useDebounce } from "@/hooks/use-debounce";
 
 const LEAVE_TYPES: { value: string; label: string }[] = [
@@ -39,8 +40,8 @@ export default function LeaveRequestsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
   const [searchInput, setSearchInput] = useState("");
-  const [dateFromFilter, setDateFromFilter] = useState("");
-  const [dateToFilter, setDateToFilter] = useState("");
+  const [dateFromFilter, setDateFromFilter] = useState(format(subDays(new Date(), 1), "yyyy-MM-dd"));
+  const [dateToFilter, setDateToFilter] = useState(format(new Date(), "yyyy-MM-dd"));
   const [formOpen, setFormOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);

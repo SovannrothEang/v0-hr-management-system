@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { subDays, startOfDay } from "date-fns";
 
 export type AttendanceStatus = "present" | "absent" | "late" | "half_day" | "on_leave" | "excused" | "early_out" | "overtime" | "did_not_checkout";
 export type LeaveType = "annual" | "sick" | "personal" | "maternity" | "paternity" | "unpaid";
@@ -23,7 +24,6 @@ export interface AttendanceRecord {
   workHours?: number;
   overtime?: number;
   notes?: string;
-  // Additional fields for alignment with external API spec
   performBy?: string;
   performer?: {
     id: string;
@@ -81,13 +81,13 @@ interface AttendanceState {
   setViewMode: (mode: "day" | "week" | "month") => void;
 }
 
-const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() - 1);
+const getYesterday = () => subDays(startOfDay(new Date()), 1);
+const getToday = () => startOfDay(new Date());
 
 export const useAttendanceStore = create<AttendanceState>((set) => ({
-  selectedDate: new Date(),
-  dateFrom: yesterday,
-  dateTo: new Date(),
+  selectedDate: getToday(),
+  dateFrom: getYesterday(),
+  dateTo: getToday(),
   viewMode: "day",
   setSelectedDate: (date) => set({ selectedDate: date }),
   setDateFrom: (date) => set({ dateFrom: date }),

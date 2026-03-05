@@ -11,10 +11,14 @@ interface AttendanceOverviewProps {
 }
 
 export function AttendanceOverview({ records = [], summary }: AttendanceOverviewProps) {
-  const present = summary?.daysPresent ?? records.filter((r) => r.status === "present").length;
-  const late = summary?.lateCount ?? records.filter((r) => r.status === "late").length;
-  const absent = summary?.daysAbsent ?? records.filter((r) => r.status === "absent").length;
-  const onLeave = summary?.daysOnLeave ?? records.filter((r) => r.status === "on_leave").length;
+  const getStatusCount = (status: string) => {
+    return records.filter((r) => r.status.toLowerCase() === status.toLowerCase()).length;
+  };
+
+  const present = summary?.daysPresent ?? (getStatusCount("present") + getStatusCount("late") + getStatusCount("early_out"));
+  const late = summary?.lateCount ?? getStatusCount("late");
+  const absent = summary?.daysAbsent ?? getStatusCount("absent");
+  const onLeave = summary?.daysOnLeave ?? getStatusCount("on_leave");
   const total = records.length;
 
   const stats = [

@@ -6,6 +6,10 @@ export const GET = withAuth(async (request) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const employeeId = searchParams.get("employeeId");
+  const search = searchParams.get("search");
+  const leaveType = searchParams.get("leaveType");
+  const dateFrom = searchParams.get("dateFrom");
+  const dateTo = searchParams.get("dateTo");
   const page = searchParams.get("page") || "1";
   const limit = searchParams.get("limit") || "10";
 
@@ -13,6 +17,10 @@ export const GET = withAuth(async (request) => {
     const params = new URLSearchParams();
     if (status && status !== "all") params.set("status", status);
     if (employeeId) params.set("employeeId", employeeId);
+    if (search) params.set("search", search);
+    if (leaveType && leaveType !== "all") params.set("leaveType", leaveType);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     params.set("page", page);
     params.set("limit", limit);
     params.set("pageSize", limit);

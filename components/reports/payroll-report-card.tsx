@@ -131,7 +131,7 @@ export function PayrollReportCard({ data, isLoading, exportParams }: PayrollRepo
                     tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
                     axisLine={{ stroke: "var(--color-border)" }}
-                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, "")}k` : `${value}`}
                   />
                   <Tooltip
                     contentStyle={{
@@ -174,7 +174,7 @@ export function PayrollReportCard({ data, isLoading, exportParams }: PayrollRepo
                     tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                     tickLine={false}
                     axisLine={{ stroke: "var(--color-border)" }}
-                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, "")}k` : `${value}`}
                   />
                   <YAxis
                     type="category"

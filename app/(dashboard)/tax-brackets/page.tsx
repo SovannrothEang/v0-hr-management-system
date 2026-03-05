@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +36,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTaxBrackets, useCreateTaxBracket, useDeleteTaxBracket, type CreateTaxBracketDto } from "@/hooks/use-tax-brackets";
+import {
+  useTaxBrackets,
+  useCreateTaxBracket,
+  useDeleteTaxBracket,
+  type CreateTaxBracketDto,
+} from "@/hooks/use-tax-brackets";
 import { useCurrencies } from "@/hooks/use-currencies";
 import { Plus, Trash2, Percent, Calculator } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -57,15 +68,16 @@ export default function TaxBracketsPage() {
 
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [selectedCurrency, setSelectedCurrency] = useState<string>("all");
-  const [selectedCountry, setSelectedCountry] = useState<string>("US");
+  const [selectedCountry, setSelectedCountry] = useState<string>("KH");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const { data: taxBracketsData, isLoading: isLoadingBrackets } = useTaxBrackets({
-    taxYear: parseInt(selectedYear),
-    currencyCode: selectedCurrency === "all" ? undefined : selectedCurrency,
-    countryCode: selectedCountry,
-    limit: 100,
-  });
+  const { data: taxBracketsData, isLoading: isLoadingBrackets } =
+    useTaxBrackets({
+      taxYear: parseInt(selectedYear),
+      currencyCode: selectedCurrency === "all" ? undefined : selectedCurrency,
+      countryCode: selectedCountry,
+      limit: 100,
+    });
 
   const { data: currencies, isLoading: isLoadingCurrencies } = useCurrencies();
   const createTaxBracket = useCreateTaxBracket();
@@ -73,7 +85,7 @@ export default function TaxBracketsPage() {
 
   const [newBracket, setNewBracket] = useState<CreateTaxBracketDto>({
     currencyCode: "",
-    countryCode: "US",
+    countryCode: "KH",
     taxYear: currentYear,
     bracketName: "",
     minAmount: 0,
@@ -87,7 +99,7 @@ export default function TaxBracketsPage() {
       return;
     }
     createTaxBracket.mutate(newBracket, {
-        onSuccess: () => {
+      onSuccess: () => {
         setIsAddDialogOpen(false);
         setNewBracket({
           currencyCode: selectedCurrency === "all" ? "" : selectedCurrency,
@@ -153,8 +165,8 @@ export default function TaxBracketsPage() {
 
             <div className="space-y-2">
               <Label>Currency</Label>
-              <Select 
-                value={selectedCurrency} 
+              <Select
+                value={selectedCurrency}
                 onValueChange={setSelectedCurrency}
                 disabled={isLoadingCurrencies}
               >
@@ -174,7 +186,10 @@ export default function TaxBracketsPage() {
 
             <div className="space-y-2">
               <Label>Country</Label>
-              <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <Select
+                value={selectedCountry}
+                onValueChange={setSelectedCountry}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
@@ -204,10 +219,13 @@ export default function TaxBracketsPage() {
             </CardDescription>
           </div>
           {canManage && (
-            <Button 
+            <Button
               onClick={() => {
                 setNewBracket({
-                  currencyCode: selectedCurrency !== "all" ? selectedCurrency : (currencies?.[0]?.code ?? "USD"),
+                  currencyCode:
+                    selectedCurrency !== "all"
+                      ? selectedCurrency
+                      : (currencies?.[0]?.code ?? "USD"),
                   countryCode: selectedCountry,
                   taxYear: parseInt(selectedYear),
                   bracketName: "",
@@ -250,21 +268,29 @@ export default function TaxBracketsPage() {
                   <TableHead>Income Range</TableHead>
                   <TableHead>Tax Rate</TableHead>
                   <TableHead>Fixed Amount</TableHead>
-                  {canManage && <TableHead className="w-[100px]">Actions</TableHead>}
+                  {canManage && (
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {taxBracketsData?.data?.map((bracket) => (
                   <TableRow key={bracket.id}>
-                    <TableCell className="font-medium">{bracket.bracketName}</TableCell>
+                    <TableCell className="font-medium">
+                      {bracket.bracketName}
+                    </TableCell>
                     <TableCell>{bracket.currencyCode}</TableCell>
                     <TableCell>
-                      {formatCurrency(bracket.minAmount, bracket.currencyCode)} -{" "}
+                      {formatCurrency(bracket.minAmount, bracket.currencyCode)}{" "}
+                      -{" "}
                       {formatCurrency(bracket.maxAmount, bracket.currencyCode)}
                     </TableCell>
                     <TableCell>{formatPercent(bracket.taxRate)}</TableCell>
                     <TableCell>
-                      {formatCurrency(bracket.fixedAmount, bracket.currencyCode)}
+                      {formatCurrency(
+                        bracket.fixedAmount,
+                        bracket.currencyCode,
+                      )}
                     </TableCell>
                     {canManage && (
                       <TableCell>
@@ -305,7 +331,10 @@ export default function TaxBracketsPage() {
                   placeholder="e.g., Low Income"
                   value={newBracket.bracketName}
                   onChange={(e) =>
-                    setNewBracket({ ...newBracket, bracketName: e.target.value })
+                    setNewBracket({
+                      ...newBracket,
+                      bracketName: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -462,7 +491,9 @@ export default function TaxBracketsPage() {
               }
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {createTaxBracket.isPending ? "Creating..." : "Create Tax Bracket"}
+              {createTaxBracket.isPending
+                ? "Creating..."
+                : "Create Tax Bracket"}
             </Button>
           </DialogFooter>
         </DialogContent>

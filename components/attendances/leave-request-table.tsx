@@ -66,6 +66,7 @@ export function LeaveRequestTable({
             <TableHead>Leave Type</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Days</TableHead>
+            <TableHead>Created Date</TableHead>
             <TableHead>Reason</TableHead>
             <TableHead>Status</TableHead>
             {showActions && <TableHead className="text-right">Actions</TableHead>}
@@ -75,7 +76,7 @@ export function LeaveRequestTable({
           {requests.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={showActions ? 7 : 6}
+                colSpan={showActions ? 8 : 7}
                 className="h-32 text-center text-muted-foreground"
               >
                 No leave requests found.
@@ -114,6 +115,9 @@ export function LeaveRequestTable({
                   </div>
                 </TableCell>
                 <TableCell>{request.days} day{request.days !== 1 ? "s" : ""}</TableCell>
+                <TableCell className="text-sm">
+                  {request.createdAt ? formatDate(request.createdAt) : "-"}
+                </TableCell>
                 <TableCell className="max-w-[200px]">
                   <p className="truncate text-muted-foreground">{request.reason}</p>
                 </TableCell>
